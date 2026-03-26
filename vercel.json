@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/markets.js": {
+      "maxDuration": 10
+    }
+  }
+}

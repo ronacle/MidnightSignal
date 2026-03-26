@@ -1,13 +1,22 @@
-Midnight Signal redeploy bundle
+Midnight Signal Vercel API build
 
-Deploy on Vercel:
-1. Unzip this folder.
-2. Create a new project in Vercel.
-3. Upload these files.
-4. Framework preset: Other
-5. Build command: blank
-6. Output directory: blank
+Build number: 2026.03.26-api.1
+
+Files:
+- index.html
+- styles.css
+- app.js
+- api/markets.js
+- vercel.json
+
+Deploy:
+1. Unzip
+2. Upload everything to a new Vercel project
+3. Framework preset: Other
+4. Build command: blank
+5. Output directory: blank
 
 Notes:
-- Uses CoinGecko public APIs.
-- This bundle includes the Top 20 card structure fix and moves Asset Detail above the grid.
+- Frontend calls /api/markets on your own Vercel deployment
+- Vercel serverless function calls CoinGecko server-side
+- Build number shows at the bottom of the page
