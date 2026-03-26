@@ -1,21 +1,13 @@
-# Midnight Signal
+Midnight Signal redeploy bundle
 
-A static front-end build ready to deploy on Vercel or any static host.
-
-## Files
-- index.html
-- styles.css
-- app.js
-
-## Deploy on Vercel
+Deploy on Vercel:
 1. Unzip this folder.
-2. Upload the folder to a new Vercel project.
-3. Framework preset: `Other`.
-4. Build command: leave empty.
-5. Output directory: leave empty.
-6. Deploy.
+2. Create a new project in Vercel.
+3. Upload these files.
+4. Framework preset: Other
+5. Build command: blank
+6. Output directory: blank
 
-## Notes
-- Uses CoinGecko public APIs for live snapshot + market chart history.
-- No backend required.
-- Educational only. Not financial advice.
+Notes:
+- Uses CoinGecko public APIs.
+- This bundle includes the Top 20 card structure fix and moves Asset Detail above the grid.
