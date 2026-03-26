@@ -3,12 +3,10 @@ const BUILD_NUMBER = window.__MIDNIGHT_BUILD__ || "dev";
 const GLOSSARY = {
   signal: { title: "Signal", body: "Signal is the model’s overall read on current conditions. Higher numbers mean stronger alignment, not certainty." },
   opportunity: { title: "Opportunity Score", body: "Opportunity Score estimates how actionable a setup looks right now after combining signal, timing, and strategy." },
-  regime: { title: "Regime", body: "Bullish means stronger upward conditions, Neutral means mixed conditions, and Bearish means weaker or downward pressure." },
   timing: { title: "Timing", body: "Enter means alignment is improving, Wait means no strong edge yet, and Reduce means conditions are weakening." },
-  posture: { title: "Suggested Posture", body: "Suggested Posture is plain-English guidance. It does not tell you what to buy or sell." },
   confluence: { title: "Confluence", body: "Confluence measures how many factors are lining up in the same direction." },
   mtf: { title: "MTF", body: "MTF stands for multi-timeframe alignment across short, medium, and longer conditions." },
-  confidence: { title: "Confidence Context", body: "Confidence Context translates the signal into plain English." }
+  confidence: { title: "Confidence", body: "Confidence translates the signal into plain English." }
 };
 const storage = {
   get(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } },
@@ -79,7 +77,7 @@ function buildSyntheticHistory(coin) {
   return arr;
 }
 function buildIndicators(coin) {
-  const priceHistory = coin.price_history?.length ? coin.price_history : buildSyntheticHistory(coin);
+  const priceHistory = Array.isArray(coin.price_history) && coin.price_history.length ? coin.price_history : buildSyntheticHistory(coin);
   const rsi = Math.round(calculateRSI(priceHistory));
   const ma20 = movingAverage(priceHistory, 20);
   const ma50 = movingAverage(priceHistory, 50);
@@ -100,17 +98,16 @@ function getRiskFromChange(change24h) {
 }
 function getAdaptiveLabel(signal) {
   const pct = Math.round(signal * 100);
-  if (pct >= 85) return { title: "High Probability", subtitle: "Stronger setup", priority: "high", cls: "high" };
-  if (pct >= 75) return { title: "Watchlist", subtitle: "Needs confirmation", priority: "medium", cls: "watch" };
-  return { title: "Low Quality", subtitle: "Weaker setup", priority: "low", cls: "low" };
+  if (pct >= 85) return { title: "High Probability", priority: "high", cls: "high" };
+  if (pct >= 75) return { title: "Watchlist", priority: "medium", cls: "watch" };
+  return { title: "Low Quality", priority: "low", cls: "low" };
 }
 function getCoinClasses(coin, selected) {
-  const label = getAdaptiveLabel(coin.signal);
+  const label = coin.adaptiveLabel;
   const classes = ["coin"];
   if (selected) classes.push("active");
   if (label.priority === "high" && !selected) classes.push("priority-high");
   if (label.priority === "low" && !selected) classes.push("priority-low");
-  if (Math.round(coin.signal * 100) >= 90) classes.push("priority-elite");
   return classes.join(" ");
 }
 function getConfidenceContext(signal) {
@@ -136,38 +133,44 @@ function badge(value) {
   else if (value === "Bearish" || value === "Reduce") { cls = "bear"; icon = "🔴"; }
   return `<span class="pill ${cls}">${icon ? icon + " " : ""}${value}</span>`;
 }
+function infoBtn(topic) {
+  return `<button type="button" class="glossary-btn" data-glossary="${topic}">ⓘ</button>`;
+}
 function enrich(row, index) {
-  const indicators = buildIndicators(row);
-  const momentum = scoreMomentum(Number(row.price_change_percentage_24h ?? 0));
-  const trend = scoreTrend(Number(row.market_cap_rank ?? index + 1), Number(row.price_change_percentage_24h ?? 0));
-  const volatility = scoreVolatility(Number(row.price_change_percentage_24h ?? 0));
+  const price = Number(row.current_price ?? 0);
+  const change24h = Number(row.price_change_percentage_24h ?? 0);
+  const indicators = buildIndicators({ price, change24h, price_history: row.price_history });
+  const momentum = scoreMomentum(change24h);
+  const trend = scoreTrend(Number(row.market_cap_rank ?? index + 1), change24h);
+  const volatility = scoreVolatility(change24h);
   let rsiScore = 0.5;
   if (indicators.rsi >= 40 && indicators.rsi <= 65) rsiScore = 0.75;
   else if (indicators.rsi > 70) rsiScore = 0.35;
   else if (indicators.rsi < 30) rsiScore = 0.4;
   const maDiff = Math.abs(indicators.ma20 - indicators.ma50);
-  const maStrength = Math.min(1, maDiff / (Number(row.current_price ?? 1) || 1));
+  const maStrength = Math.min(1, maDiff / (price || 1));
   const shortBias = indicators.maTrend === "Bullish" && indicators.rsi < 70 ? 1 : indicators.maTrend === "Bearish" && indicators.rsi > 30 ? -1 : 0;
   const mediumBias = trend >= 0.65 ? 1 : trend <= 0.45 ? -1 : 0;
-  const longBias = Number(row.price_change_percentage_24h ?? 0) > 1 ? 1 : Number(row.price_change_percentage_24h ?? 0) < -1 ? -1 : 0;
-  const mtf = Math.max(0, Math.min(1, 0.5 + (shortBias + mediumBias + longBias) / 6));
-  const signal = Math.max(0.3, Math.min(0.95, momentum * 0.22 + trend * 0.22 + volatility * 0.13 + rsiScore * 0.17 + maStrength * 0.13 + mtf * 0.13));
+  const longBias = change24h > 1 ? 1 : change24h < -1 ? -1 : 0;
+  const mtfRaw = shortBias + mediumBias + longBias;
+  const mtfScore = Math.max(0, Math.min(1, 0.5 + mtfRaw / 6));
+  const signal = Math.max(0.3, Math.min(0.95, momentum * 0.22 + trend * 0.22 + volatility * 0.13 + rsiScore * 0.17 + maStrength * 0.13 + mtfScore * 0.13));
   const regime = deriveRegime(signal);
-  const timing = deriveTiming(signal, Number(row.price_change_percentage_24h ?? 0));
+  const timing = deriveTiming(signal, change24h);
   const bullish = Math.round(Math.min(100, signal * 100 + (regime === "Bullish" ? 12 : 0) + (timing === "Enter" ? 8 : 0)));
   const bearish = Math.round(Math.min(100, (1 - signal) * 100 + (regime === "Bearish" ? 12 : 0) + (timing === "Reduce" ? 8 : 0)));
   return {
     symbol: String(row.symbol || "").toUpperCase(),
     name: row.name || String(row.symbol || "").toUpperCase(),
-    price: Number(row.current_price ?? 0),
-    change24h: Number(row.price_change_percentage_24h ?? 0),
+    price,
+    change24h,
     volume: formatVolume(Number(row.total_volume ?? 0)),
-    risk: getRiskFromChange(Number(row.price_change_percentage_24h ?? 0)),
+    risk: getRiskFromChange(change24h),
     signal,
     regime,
     timing,
-    opportunityScore: Math.round(signal * 100 + (regime === "Bullish" ? 8 : regime === "Bearish" ? -8 : 0)),
-    mtf: { label: shortBias + mediumBias + longBias >= 2 ? "Strong Bullish" : shortBias + mediumBias + longBias <= -2 ? "Strong Bearish" : shortBias + mediumBias + longBias > 0 ? "Bullish" : shortBias + mediumBias + longBias < 0 ? "Bearish" : "Mixed" },
+    opportunityScore: Math.max(0, Math.min(100, Math.round(signal * 100 + (regime === "Bullish" ? 8 : regime === "Bearish" ? -8 : 0)))),
+    mtf: { label: mtfRaw >= 2 ? "Strong Bullish" : mtfRaw <= -2 ? "Strong Bearish" : mtfRaw > 0 ? "Bullish" : mtfRaw < 0 ? "Bearish" : "Mixed" },
     indicators,
     signalBreakdown: {
       momentum: Math.round(momentum * 100),
@@ -175,15 +178,10 @@ function enrich(row, index) {
       volatility: Math.round(volatility * 100),
       rsi: Math.round(rsiScore * 100),
       trendStrength: Math.round(maStrength * 100),
-      mtf: Math.round(mtf * 100)
+      mtf: Math.round(mtfScore * 100)
     },
     adaptiveLabel: getAdaptiveLabel(signal),
-    confluence: { bullish, bearish },
-    reasons: [
-      momentum >= 0.62 ? "strong momentum" : momentum <= 0.42 ? "weak momentum" : "mixed momentum",
-      indicators.maTrend === "Bullish" ? "bullish MA alignment" : indicators.maTrend === "Bearish" ? "bearish MA alignment" : "steady trend profile",
-      "live market snapshot"
-    ]
+    confluence: { bullish, bearish }
   };
 }
 async function loadMarkets() {
@@ -200,15 +198,10 @@ async function loadMarkets() {
   }
 }
 function getFilteredCoins() {
-  const query = state.assetQuery.toLowerCase();
+  const q = state.assetQuery.toLowerCase();
   let list = state.coins;
-  if (query) list = list.filter(c => `${c.symbol} ${c.name}`.toLowerCase().includes(query));
+  if (q) list = list.filter(c => `${c.symbol} ${c.name}`.toLowerCase().includes(q));
   return [...list].sort((a,b) => b.signal - a.signal).sort((a,b) => state.watchlist.includes(a.symbol) === state.watchlist.includes(b.symbol) ? 0 : state.watchlist.includes(a.symbol) ? -1 : 1);
-}
-function openGlossary(topic) {
-  state.glossaryTopic = topic;
-  state.glossaryOpen = true;
-  render();
 }
 function render() {
   const app = document.getElementById("app");
@@ -277,7 +270,7 @@ function render() {
               ${["7","30","90"].map(t => `<option value="${t}" ${state.timeframe === t ? "selected" : ""}>${t}D</option>`).join("")}
             </select>
           </label>
-          <div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot + history</div></div>
+          <div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot</div></div>
           <div class="metric"><div class="label">Last Updated</div><div style="margin-top:8px;font-size:14px">${state.lastUpdated ? state.lastUpdated.toLocaleTimeString() : "—"}</div></div>
         </div>
       </div>
@@ -301,10 +294,14 @@ function render() {
         <div class="detail-grid-6" style="margin-top:18px">
           <div class="mini"><div class="tiny">Price</div><div style="margin-top:6px;font-weight:700">${formatPrice(selected.price)}</div></div>
           <div class="mini"><div class="tiny">24h Change</div><div style="margin-top:6px;font-weight:700" class="${selected.change24h >= 0 ? "text-pos" : "text-neg"}">${selected.change24h >= 0 ? "+" : ""}${selected.change24h.toFixed(1)}%</div></div>
-          <div class="mini"><div class="tiny">Signal</div><div style="margin-top:6px;font-weight:700">${Math.round(selected.signal * 100)}%</div><div class="tiny" style="margin-top:4px">${getConfidenceContext(selected.signal)}</div></div>
-          <div class="mini"><div class="tiny">Opportunity</div><div style="margin-top:6px;font-weight:700">${selected.opportunityScore}/100</div></div>
-          <div class="mini"><div class="tiny">RSI</div><div style="margin-top:6px;font-weight:700">${selected.indicators.rsi}</div></div>
-          <div class="mini"><div class="tiny">MA Trend</div><div style="margin-top:6px;font-weight:700">${selected.indicators.maTrend}</div></div>
+          <div class="mini"><div class="tiny">Signal ${infoBtn("signal")}</div><div style="margin-top:6px;font-weight:700">${Math.round(selected.signal * 100)}%</div><div class="tiny" style="margin-top:4px">${getConfidenceContext(selected.signal)}</div></div>
+          <div class="mini"><div class="tiny">Opportunity ${infoBtn("opportunity")}</div><div style="margin-top:6px;font-weight:700">${selected.opportunityScore}/100</div></div>
+          <div class="mini"><div class="tiny">RSI ${infoBtn("confidence")}</div><div style="margin-top:6px;font-weight:700">${selected.indicators.rsi}</div></div>
+          <div class="mini"><div class="tiny">MA Trend ${infoBtn("mtf")}</div><div style="margin-top:6px;font-weight:700">${selected.indicators.maTrend}</div></div>
+        </div>
+        <div class="detail-grid-half" style="margin-top:20px">
+          <div class="mini"><div class="tiny">Bullish Confluence ${infoBtn("confluence")}</div><div style="margin-top:8px;font-weight:700;color:var(--blue3)">${selected.confluence.bullish}/100</div></div>
+          <div class="mini"><div class="tiny">Bearish Confluence ${infoBtn("confluence")}</div><div style="margin-top:8px;font-weight:700;color:var(--bear)">${selected.confluence.bearish}/100</div></div>
         </div>
       </section>
     ` : ""}
@@ -313,7 +310,7 @@ function render() {
       <div class="row-start" style="margin-bottom:10px">
         <div>
           <div style="font-size:20px;font-weight:700">Top 20 Opportunity Grid</div>
-          <div class="subtitle">Styled cards restored. View Details stays above the grid.</div>
+          <div class="subtitle">Click-only inline tooltips restored.</div>
         </div>
       </div>
       <section class="grid grid-cards">
@@ -338,17 +335,17 @@ function render() {
               <div class="${coin.change24h >= 0 ? "text-pos" : "text-neg"}" style="font-size:14px;font-weight:600">${coin.change24h >= 0 ? "+" : ""}${coin.change24h.toFixed(1)}% (24h)</div>
             </div>
             <div>
-              <div class="row"><span class="subtitle">Signal Confidence</span><span>${Math.round(coin.signal * 100)}%</span></div>
+              <div class="row"><span class="subtitle">Signal Confidence ${infoBtn("confidence")}</span><span>${Math.round(coin.signal * 100)}%</span></div>
               <div class="tiny" style="margin-top:4px;color:rgba(247,247,247,.65)">${getConfidenceContext(coin.signal)}</div>
               <div class="progress"><span style="width:${Math.round(coin.signal * 100)}%"></span></div>
             </div>
             <div class="grid" style="grid-template-columns:1fr 1fr">
-              <div class="mini"><div class="tiny">Timing</div><div style="margin-top:8px">${badge(coin.timing)}</div></div>
-              <div class="mini"><div class="tiny">Opportunity</div><div style="margin-top:8px;font-weight:700">${coin.opportunityScore}/100</div><div class="tiny" style="margin-top:4px">MTF: ${coin.mtf.label}</div></div>
+              <div class="mini"><div class="tiny">Timing ${infoBtn("timing")}</div><div style="margin-top:8px">${badge(coin.timing)}</div></div>
+              <div class="mini"><div class="tiny">Opportunity ${infoBtn("opportunity")}</div><div style="margin-top:8px;font-weight:700">${coin.opportunityScore}/100</div><div class="tiny" style="margin-top:4px">MTF ${infoBtn("mtf")}: ${coin.mtf.label}</div></div>
             </div>
             <div class="grid" style="grid-template-columns:1fr 1fr">
-              <div class="mini"><div class="tiny">Bullish Confluence</div><div style="margin-top:8px;font-weight:700;color:var(--blue3)">${coin.confluence.bullish}/100</div></div>
-              <div class="mini"><div class="tiny">Bearish Confluence</div><div style="margin-top:8px;font-weight:700;color:var(--bear)">${coin.confluence.bearish}/100</div></div>
+              <div class="mini"><div class="tiny">Bullish Confluence ${infoBtn("confluence")}</div><div style="margin-top:8px;font-weight:700;color:var(--blue3)">${coin.confluence.bullish}/100</div></div>
+              <div class="mini"><div class="tiny">Bearish Confluence ${infoBtn("confluence")}</div><div style="margin-top:8px;font-weight:700;color:var(--bear)">${coin.confluence.bearish}/100</div></div>
             </div>
             <div class="row" style="padding-top:8px;border-top:1px solid rgba(247,247,247,.08)"><div><span class="subtitle">Volume </span><span>${coin.volume}</span></div><div>${coin.risk} risk</div></div>
           </div>
@@ -381,7 +378,6 @@ function render() {
 
   const searchInput = app.querySelector("#searchInput");
   if (searchInput) searchInput.addEventListener("input", (e) => { state.assetQuery = e.target.value; render(); });
-
   app.querySelectorAll("[data-select]").forEach(el => {
     el.addEventListener("click", () => { state.selected = el.dataset.select; render(); });
     el.addEventListener("keydown", (e) => {
@@ -399,16 +395,34 @@ function render() {
     storage.set("midnight-html-watchlist", state.watchlist);
     render();
   }));
+  app.querySelectorAll("[data-glossary]").forEach(el => el.addEventListener("click", (e) => {
+    e.stopPropagation();
+    state.glossaryTopic = el.dataset.glossary;
+    state.glossaryOpen = true;
+    render();
+  }));
   const glossaryOpenHero = app.querySelector("#glossaryOpenHero");
-  if (glossaryOpenHero) glossaryOpenHero.addEventListener("click", () => openGlossary("signal"));
+  if (glossaryOpenHero) glossaryOpenHero.addEventListener("click", () => {
+    state.glossaryTopic = "signal";
+    state.glossaryOpen = true;
+    render();
+  });
   const glossaryClose = app.querySelector("#glossaryClose");
   if (glossaryClose) glossaryClose.addEventListener("click", () => { state.glossaryOpen = false; render(); });
   const glossaryBackdrop = app.querySelector("#glossaryBackdrop");
   if (glossaryBackdrop) glossaryBackdrop.addEventListener("click", () => { state.glossaryOpen = false; render(); });
   const strategySelect = app.querySelector("#strategySelect");
-  if (strategySelect) strategySelect.addEventListener("change", (e) => { state.strategy = e.target.value; storage.set("midnight-html-strategy", state.strategy); render(); });
+  if (strategySelect) strategySelect.addEventListener("change", (e) => {
+    state.strategy = e.target.value;
+    storage.set("midnight-html-strategy", state.strategy);
+    render();
+  });
   const timeframeSelect = app.querySelector("#timeframeSelect");
-  if (timeframeSelect) timeframeSelect.addEventListener("change", (e) => { state.timeframe = e.target.value; storage.set("midnight-html-timeframe", state.timeframe); loadMarkets(); });
+  if (timeframeSelect) timeframeSelect.addEventListener("change", (e) => {
+    state.timeframe = e.target.value;
+    storage.set("midnight-html-timeframe", state.timeframe);
+    loadMarkets();
+  });
 }
 loadMarkets();
 setInterval(loadMarkets, 30000);
