@@ -32,13 +32,15 @@ body {
   padding: 24px;
 }
 .grid { display: grid; gap: 20px; }
-.grid-hero { grid-template-columns: 1.4fr 1fr; }
+.grid-hero { grid-template-columns: 1.3fr 1fr; }
 .grid-cards { grid-template-columns: repeat(4, minmax(0,1fr)); }
+.detail-grid-6 { display:grid; gap:12px; grid-template-columns: repeat(6, minmax(0,1fr)); }
+.detail-grid-half { display:grid; gap:20px; grid-template-columns: 1fr 1fr; }
 .row { display: flex; gap: 14px; align-items: center; justify-content: space-between; }
 .row-start { display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; }
 .title { font-size: 32px; font-weight: 700; letter-spacing: -.03em; margin: 0; }
 .subtitle { font-size: 14px; color: var(--muted); }
-.tiny { font-size: 13px; color: rgba(247,247,247,.5); }
+.tiny { font-size: 13px; color: rgba(247,247,247,.56); }
 .caps { text-transform: uppercase; letter-spacing: .22em; font-size: 11px; color: rgba(247,247,247,.5); }
 .badge, .pill, .signal-label {
   display: inline-flex; align-items: center; gap: 8px;
@@ -113,15 +115,12 @@ button:active { transform: scale(.96); }
 .pill.neutral { background: rgba(247,247,247,.08); color: rgb(247,247,247); }
 .text-pos { color: #8BA8FF; }
 .text-neg { color: #2A6BFF; }
-.detail-grid-6 { display:grid; gap:12px; grid-template-columns: repeat(6, minmax(0,1fr)); }
-.detail-grid-half { display:grid; gap:20px; grid-template-columns: 1fr 1fr; }
-.glossary-btn {
-  padding: 6px 10px;
-  min-height: auto;
-  border-radius: 999px;
-  font-size: 12px;
-  line-height: 1;
-}
+.glossary-btn { padding: 6px 10px; min-height: auto; border-radius: 999px; font-size: 12px; line-height: 1; }
+.top-signal { border: 1px solid rgba(139,168,255,.3); background: linear-gradient(135deg, rgba(96,103,249,.18), rgba(0,51,173,.18)); }
+.mode-note { color: rgba(247,247,247,.75); font-size: 14px; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(8px); z-index: 50; display:flex; align-items:center; justify-content:center; padding:16px; }
+.modal-card { width:min(720px,100%); background: rgba(16,19,40,.98); border:1px solid rgba(247,247,247,.12); border-radius:28px; padding:24px; box-shadow: var(--shadow); }
+.hidden { display:none !important; }
 @media (max-width: 1100px) {
   .grid-hero, .detail-grid-half { grid-template-columns: 1fr; }
   .grid-cards { grid-template-columns: repeat(2, minmax(0,1fr)); }

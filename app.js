@@ -8,6 +8,7 @@ const GLOSSARY = {
   mtf: { title: "MTF", body: "MTF stands for multi-timeframe alignment across short, medium, and longer conditions." },
   confidence: { title: "Confidence", body: "Confidence translates the signal into plain English." }
 };
+const STRATEGY_OPTIONS = ["scalp","swing","position"];
 const storage = {
   get(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } },
   getString(key, fallback) { try { return localStorage.getItem(key) || fallback; } catch { return fallback; } },
@@ -22,7 +23,9 @@ const state = {
   glossaryTopic: "signal",
   assetQuery: "",
   coins: [],
-  lastUpdated: null
+  lastUpdated: null,
+  beginnerMode: storage.getString("midnight-mode", "beginner") !== "pro",
+  showOnboarding: !storage.getString("midnight-onboarding-complete", "")
 };
 
 function formatPrice(price) {
@@ -203,7 +206,42 @@ function getFilteredCoins() {
   if (q) list = list.filter(c => `${c.symbol} ${c.name}`.toLowerCase().includes(q));
   return [...list].sort((a,b) => b.signal - a.signal).sort((a,b) => state.watchlist.includes(a.symbol) === state.watchlist.includes(b.symbol) ? 0 : state.watchlist.includes(a.symbol) ? -1 : 1);
 }
+function renderOnboarding() {
+  const root = document.getElementById("onboarding-root");
+  if (!state.showOnboarding) {
+    root.innerHTML = "";
+    return;
+  }
+  root.innerHTML = `
+    <div class="modal-backdrop">
+      <div class="modal-card">
+        <div class="caps">Welcome</div>
+        <div class="title" style="font-size:28px;margin-top:6px">Midnight Signal 🌙</div>
+        <div class="subtitle" style="margin-top:10px">This dashboard is educational and decision-support only. It does not provide financial advice, guarantees, or personalized recommendations.</div>
+        <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:18px">
+          ${STRATEGY_OPTIONS.map(s => `<button type="button" data-onboard-strategy="${s}">${s[0].toUpperCase() + s.slice(1)}</button>`).join("")}
+        </div>
+        <div class="tiny" style="margin-top:14px">Choose a starting style now or change it later in Controls. Beginner mode explains the app in plain English. Pro mode reduces helper copy.</div>
+        <div class="row" style="margin-top:18px;justify-content:flex-end">
+          <button type="button" class="btn-primary" id="dismissOnboarding">Enter Dashboard</button>
+        </div>
+      </div>
+    </div>
+  `;
+  root.querySelectorAll("[data-onboard-strategy]").forEach(btn => btn.addEventListener("click", () => {
+    state.strategy = btn.dataset.onboardStrategy;
+    storage.set("midnight-html-strategy", state.strategy);
+    render();
+  }));
+  const dismiss = root.querySelector("#dismissOnboarding");
+  if (dismiss) dismiss.addEventListener("click", () => {
+    state.showOnboarding = false;
+    storage.set("midnight-onboarding-complete", "true");
+    render();
+  });
+}
 function render() {
+  renderOnboarding();
   const app = document.getElementById("app");
   const sortedCoins = getFilteredCoins();
   const summary = {
@@ -213,6 +251,7 @@ function render() {
     topCoin: sortedCoins[0]
   };
   const selected = state.selected ? state.coins.find(c => c.symbol === state.selected) : null;
+  const topSignal = summary.topCoin;
   app.innerHTML = `
     <section class="card">
       <div class="row">
@@ -233,9 +272,13 @@ function render() {
             <div class="caps">Midnight Signal</div>
             <div class="row" style="justify-content:flex-start;margin-top:6px">
               <div class="title">Midnight Signal</div>
+              <button id="toggleMode">${state.beginnerMode ? "Switch to Pro" : "Switch to Beginner"}</button>
               <button id="glossaryOpenHero">Glossary / FAQ</button>
             </div>
             <p class="subtitle">Vercel API build using server-side CoinGecko fetches.</p>
+            <div class="mode-note" style="margin-top:10px">
+              ${state.beginnerMode ? "Beginner mode is on. You’ll see extra guidance and plain-English framing." : "Pro mode is on. Helper text is reduced for a cleaner signal-first view."}
+            </div>
           </div>
           <div class="controls">
             <span class="badge">Live engine</span>
@@ -249,31 +292,58 @@ function render() {
           <div class="metric"><div class="label">Top Opportunity</div><div class="value">${summary.topCoin?.symbol || "—"}</div></div>
         </div>
       </div>
-      <div class="card">
-        <div class="row-start">
-          <div>
-            <div class="caps">Controls</div>
-            <div style="font-size:22px;font-weight:700;margin-top:4px">Session Settings</div>
+      <div class="card top-signal">
+        <div class="caps">Tonight’s Top Signal</div>
+        ${topSignal ? `
+          <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div class="title" style="font-size:28px">${topSignal.symbol}</div>
+            <span class="signal-label ${topSignal.adaptiveLabel.cls}">${topSignal.adaptiveLabel.title}</span>
+            ${badge(topSignal.regime)}
+            ${badge(topSignal.timing)}
           </div>
-          <span class="badge">API connected</span>
-        </div>
-        <div class="grid" style="margin-top:14px">
-          <label>
-            <div class="tiny" style="margin-bottom:6px">Strategy</div>
-            <select id="strategySelect">
-              ${["scalp","swing","position"].map(s => `<option value="${s}" ${state.strategy === s ? "selected" : ""}>${s[0].toUpperCase() + s.slice(1)}</option>`).join("")}
-            </select>
-          </label>
-          <label>
-            <div class="tiny" style="margin-bottom:6px">Timeframe</div>
-            <select id="timeframeSelect">
-              ${["7","30","90"].map(t => `<option value="${t}" ${state.timeframe === t ? "selected" : ""}>${t}D</option>`).join("")}
-            </select>
-          </label>
-          <div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot</div></div>
-          <div class="metric"><div class="label">Last Updated</div><div style="margin-top:8px;font-size:14px">${state.lastUpdated ? state.lastUpdated.toLocaleTimeString() : "—"}</div></div>
-        </div>
+          <div class="subtitle" style="margin-top:8px">${topSignal.name}</div>
+          <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px">
+            <div class="mini"><div class="tiny">Signal</div><div style="margin-top:6px;font-weight:700">${Math.round(topSignal.signal * 100)}%</div><div class="tiny" style="margin-top:4px">${getConfidenceContext(topSignal.signal)}</div></div>
+            <div class="mini"><div class="tiny">Suggested Posture</div><div style="margin-top:6px">${postureBadge(topSignal)}</div></div>
+          </div>
+          <div class="mini" style="margin-top:16px">
+            <div class="tiny">Why it leads</div>
+            <div style="margin-top:8px;font-size:14px;color:rgba(247,247,247,.86)">
+              ${state.beginnerMode ? "It currently ranks highest because its signal strength, timing, and overall alignment are beating the rest of the grid." : "Highest-ranked current setup by signal/opportunity alignment."}
+            </div>
+          </div>
+          <div class="row" style="margin-top:16px;justify-content:flex-end">
+            <button type="button" class="btn-primary" data-select="${topSignal.symbol}">View Details</button>
+          </div>
+        ` : `<div class="subtitle" style="margin-top:10px">Waiting for live market data…</div>`}
       </div>
+    </section>
+
+    <section class="card">
+      <div class="row-start">
+        <div>
+          <div class="caps">Controls</div>
+          <div style="font-size:22px;font-weight:700;margin-top:4px">Session Settings</div>
+        </div>
+        <span class="badge">API connected</span>
+      </div>
+      <div class="grid" style="margin-top:14px;grid-template-columns:repeat(4,minmax(0,1fr))">
+        <label>
+          <div class="tiny" style="margin-bottom:6px">Strategy</div>
+          <select id="strategySelect">
+            ${STRATEGY_OPTIONS.map(s => `<option value="${s}" ${state.strategy === s ? "selected" : ""}>${s[0].toUpperCase() + s.slice(1)}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          <div class="tiny" style="margin-bottom:6px">Timeframe</div>
+          <select id="timeframeSelect">
+            ${["7","30","90"].map(t => `<option value="${t}" ${state.timeframe === t ? "selected" : ""}>${t}D</option>`).join("")}
+          </select>
+        </label>
+        <div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot</div></div>
+        <div class="metric"><div class="label">Last Updated</div><div style="margin-top:8px;font-size:14px">${state.lastUpdated ? state.lastUpdated.toLocaleTimeString() : "—"}</div></div>
+      </div>
+      ${state.beginnerMode ? `<div class="mini" style="margin-top:16px"><div class="tiny">How to use this</div><div style="margin-top:8px;font-size:14px;color:rgba(247,247,247,.78)">Start with Tonight’s Top Signal, then compare coins in the Top 20 grid, then open details for a closer read.</div></div>` : ``}
     </section>
 
     ${selected ? `
@@ -310,7 +380,7 @@ function render() {
       <div class="row-start" style="margin-bottom:10px">
         <div>
           <div style="font-size:20px;font-weight:700">Top 20 Opportunity Grid</div>
-          <div class="subtitle">Click-only inline tooltips restored.</div>
+          <div class="subtitle">${state.beginnerMode ? "Compare setup quality, timing, and confluence across the current top 20." : "Top 20 live opportunities."}</div>
         </div>
       </div>
       <section class="grid grid-cards">
@@ -422,6 +492,12 @@ function render() {
     state.timeframe = e.target.value;
     storage.set("midnight-html-timeframe", state.timeframe);
     loadMarkets();
+  });
+  const toggleMode = app.querySelector("#toggleMode");
+  if (toggleMode) toggleMode.addEventListener("click", () => {
+    state.beginnerMode = !state.beginnerMode;
+    storage.set("midnight-mode", state.beginnerMode ? "beginner" : "pro");
+    render();
   });
 }
 loadMarkets();
