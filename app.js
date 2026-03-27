@@ -84,6 +84,22 @@ function getTopSignalShift(currentTopSymbol){
   return `${prevTop} → ${currentTopSymbol}`;
 }
 
+function buildTopSignalPost(topSignal){
+  if(!topSignal) return "";
+  const confidence = Math.round(topSignal.signal * 100);
+  const direction = topSignal.change24h >= 0 ? `+${topSignal.change24h.toFixed(1)}%` : `${topSignal.change24h.toFixed(1)}%`;
+  return `📡 Tonight’s Top Signal: ${topSignal.symbol}
+
+Signal confidence: ${confidence}%
+24h move: ${direction}
+Regime: ${topSignal.regime}
+Timing: ${topSignal.timing}
+
+Midnight Signal is built to help users understand what matters before reacting.
+
+#Cardano #ADA #Crypto #MidnightSignal`;
+}
+
 function getTopSignalNarrative(topSignal){
   if(!topSignal) return "Waiting for signal data.";
   if(topSignal.signal >= 0.75){
@@ -267,6 +283,34 @@ ${selected?`<section class="panel"><div class="row-start"><div><div class="caps"
 <section><div class="row-start" style="margin-bottom:10px"><div><div style="font-size:20px;font-weight:700">Top 20 Opportunity Grid</div><div class="subtitle">${state.beginnerMode?"Compare setup quality, timing, and confluence across the current top 20.":"Top 20 live opportunities."}</div></div></div><section class="grid grid-cards">${sortedCoins.map(coin=>`<div class="${getCoinClasses(coin,state.selected===coin.symbol)}" data-select="${coin.symbol}" role="button" tabindex="0"><div class="row-start" style="position:relative"><button type="button" data-watch="${coin.symbol}" style="padding:6px 10px">${state.watchlist.includes(coin.symbol)?"★":"☆"}</button><div style="flex:1;min-width:0"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div style="font-size:20px;font-weight:700">${coin.symbol}</div>${badge(coin.regime)}</div><div class="subtitle" style="margin-top:4px">${coin.name}</div><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="signal-label ${coin.adaptiveLabel.cls}">${coin.adaptiveLabel.title}</span>${postureBadge(coin)}</div></div></div><div><div style="font-size:28px;font-weight:700">${formatPrice(coin.price)}</div><div class="${coin.change24h>=0?"text-pos":"text-neg"}" style="font-size:14px;font-weight:600">${coin.change24h>=0?"+":""}${coin.change24h.toFixed(1)}% (24h)</div></div><div><div class="row"><span class="subtitle">Signal Confidence</span><span>${Math.round(coin.signal*100)}%</span></div><div class="tiny" style="margin-top:4px;color:rgba(247,247,247,.65)">${getConfidenceContext(coin.signal)}</div><div class="progress"><span style="width:${Math.round(coin.signal*100)}%"></span></div></div><div class="grid" style="grid-template-columns:1fr 1fr"><div class="mini"><div class="tiny">Timing</div><div style="margin-top:8px">${badge(coin.timing)}</div></div><div class="mini"><div class="tiny">Opportunity</div><div style="margin-top:8px;font-weight:700">${coin.opportunityScore}/100</div><div class="tiny" style="margin-top:4px">MTF: ${coin.mtf.label}</div></div></div><div class="grid" style="grid-template-columns:1fr 1fr"><div class="mini"><div class="tiny">Bullish Confluence</div><div style="margin-top:8px;font-weight:700;color:var(--blue3)">${coin.confluence.bullish}/100</div></div><div class="mini"><div class="tiny">Bearish Confluence</div><div style="margin-top:8px;font-weight:700;color:var(--bear)">${coin.confluence.bearish}/100</div></div></div><div class="row" style="padding-top:8px;border-top:1px solid rgba(247,247,247,.08)"><div><span class="subtitle">Volume </span><span>${coin.volume}</span></div><div>${coin.risk} risk</div></div></div>`).join("")}</section></section>
 ${renderGlossaryShell()}
 <button type="button" class="btn-primary floating-glossary" id="floatingGlossaryBtn">Glossary / FAQ</button>
+
+<section class="card ${showSignalsTab ? '' : 'tab-panel-hidden'}">
+  <div class="caps">Latest insights feed</div>
+  <div class="subtitle" style="margin-top:8px">A single clean bridge between Midnight Signal and your Cardano Midnight News posting flow.</div>
+
+  <div class="feed-grid">
+    <div class="feed-post">
+      <div style="font-weight:700">Auto-generated Top Signal post</div>
+      <div class="tiny" style="color:rgba(247,247,247,.82); white-space:pre-line">${buildTopSignalPost(topSignal)}</div>
+      <div class="feed-actions">
+        <button type="button" id="copyTopSignalPost">Copy Post</button>
+        <button type="button" id="openTopSignalPost">Open X</button>
+      </div>
+    </div>
+
+    ${state.insightsFeed.map((item, idx) => `
+      <div class="feed-post">
+        <div style="font-weight:700">${item.title}</div>
+        <div class="tiny" style="color:rgba(247,247,247,.82)">${item.body}</div>
+        <div class="feed-actions">
+          <button type="button" data-copy-feed="${idx}">Copy</button>
+          <button type="button" data-open-feed="${idx}">Open X</button>
+        </div>
+      </div>
+    `).join("")}
+  </div>
+</section>
+
 
 <section class="${showAlertsTab ? '' : 'tab-panel-hidden'}">
   <div class="placeholder-card">
