@@ -480,3 +480,20 @@ section + .card{
   color:rgba(247,247,247,.6);
   margin-top:6px;
 }
+
+
+/* inline learning */
+.inline-term{
+  border-bottom:1px dashed rgba(139,168,255,.6);
+  cursor:pointer;
+}
+.inline-tooltip{
+  position:fixed;
+  max-width:260px;
+  background:#111;
+  border:1px solid rgba(247,247,247,.12);
+  padding:10px 12px;
+  border-radius:10px;
+  font-size:12px;
+  z-index:9999;
+}

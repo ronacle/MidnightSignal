@@ -251,6 +251,16 @@ async function loadMarkets(){try{
   render()
 }catch(err){console.warn("Markets load failed.",err);render()}}
 function getFilteredCoins(){const q=state.assetQuery.toLowerCase();let list=state.coins;if(q)list=list.filter(c=>`${c.symbol} ${c.name}`.toLowerCase().includes(q));return [...list].sort((a,b)=>b.signal-a.signal).sort((a,b)=>state.watchlist.includes(a.symbol)===state.watchlist.includes(b.symbol)?0:state.watchlist.includes(a.symbol)?-1:1)}
+
+function wrapInlineTerms(text){
+  const glossary = state.glossary || {};
+  Object.keys(glossary).forEach(term=>{
+    const regex = new RegExp(`\\b${term}\\b`, "gi");
+    text = text.replace(regex, `<span class="inline-term" data-term="${term}">${term}</span>`);
+  });
+  return text;
+}
+
 function renderOnboarding(){
   const root=document.getElementById("onboarding-root");
   if(!state.showOnboarding){root.innerHTML="";return}
@@ -354,17 +364,17 @@ app.innerHTML=`<section class="tabbar"><button type="button" class="tab-btn ${sh
 
 <div class="explain-block">
   <div class="explain-title">What’s happening</div>
-  <div class="explain-text">${explain.what}</div>
+  <div class="explain-text">${wrapInlineTerms(explain.what)}</div>
 </div>
 
 <div class="explain-block">
   <div class="explain-title">Why</div>
-  <div class="explain-text">${explain.why}</div>
+  <div class="explain-text">${wrapInlineTerms(explain.why)}</div>
 </div>
 
 <div class="explain-block">
   <div class="explain-title">What it means</div>
-  <div class="explain-text">${explain.meaning}</div>
+  <div class="explain-text">${wrapInlineTerms(explain.meaning)}</div>
   <div class="signal-tags">
     ${explain.tags.map(t=>`<span class="signal-tag">${t}</span>`).join("")}
   </div>

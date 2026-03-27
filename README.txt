@@ -1,12 +1,12 @@
-Midnight Signal v7.2.4 glossary upgrade
+Midnight Signal v7.2.5 inline learning
 
-Build number: 2026.03.27-ui.7.2.4
+Build number: 2026.03.27-ui.7.2.5
 
-What this build adds:
-- expanded glossary definitions
-- clearer educational explanations for core market terms
-- richer glossary modal copy
-- no layout, API, tab, or render-logic changes
+What this adds:
+- clickable glossary terms inside explanations
+- tap a term → quick definition popup
+- reinforces learning in context
 
-Built safely from:
-- v7.2.3.1 visual polish hotfix
+Safe build:
+- only wraps text in explanation layer
+- no API, layout, or render structure changes
