@@ -100,6 +100,40 @@ Midnight Signal is built to help users understand what matters before reacting.
 #Cardano #ADA #Crypto #MidnightSignal`;
 }
 
+function buildDecisionLayer(topSignal){
+  if(!topSignal){
+    return {
+      stance:"Neutral",
+      confidence:"Low",
+      guidance:"Wait for clearer market structure before making decisions."
+    };
+  }
+
+  const score = topSignal.signal;
+
+  if(score >= 0.75){
+    return {
+      stance:"Bullish Bias",
+      confidence:"High",
+      guidance:"Momentum is aligned. Avoid chasing—look for structured entries or pullbacks."
+    };
+  }
+
+  if(score >= 0.6){
+    return {
+      stance:"Cautious Bullish",
+      confidence:"Medium",
+      guidance:"Conditions are improving, but confirmation matters. Watch how price reacts before committing."
+    };
+  }
+
+  return {
+    stance:"Neutral / Weak",
+    confidence:"Low",
+    guidance:"This is not a strong setup. Staying patient is likely the better move."
+  };
+}
+
 function buildExplainableSignal(topSignal){
   if(!topSignal){
     return {
@@ -290,7 +324,8 @@ function renderOnboarding(){
   });
 }
 function renderGlossaryShell(){if(!state.glossaryOpen)return "";const topic=GLOSSARY[state.glossaryTopic]||GLOSSARY.signal;return `<section class="card glossary-shell"><div class="row-start"><div><div class="caps">Glossary / FAQ</div><div class="title" style="font-size:28px;margin-top:6px">${topic.title}</div><div class="subtitle" style="margin-top:8px">Fast reference for terms and common questions.</div></div><button id="glossaryClose">Close</button></div><div class="glossary-grid"><div class="mini" style="display:grid;gap:8px;align-content:start">${Object.entries(GLOSSARY).map(([key,item])=>`<button type="button" data-topic="${key}" style="text-align:left;${state.glossaryTopic===key?'border-color:rgba(139,168,255,.35);background:rgba(139,168,255,.12)':''}">${item.title}</button>`).join("")}<button type="button" id="reopenOnboarding" class="reopen-btn" style="text-align:left">Reopen Agreement</button></div><div><div class="mini"><div style="font-size:15px;line-height:1.7;color:rgba(247,247,247,.86)">${topic.body}</div></div><div class="mini faq-block"><div class="caps">FAQ</div><div style="display:grid;gap:14px;margin-top:12px">${FAQ.map(item=>`<div><div style="font-weight:700">${item.q}</div><div class="tiny" style="margin-top:6px;color:rgba(247,247,247,.76)">${item.a}</div></div>`).join("")}</div></div></div></div></section><div id="glossaryBackdrop" style="position:fixed;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(6px);z-index:30"></div>`}
-function render(){renderOnboarding();const app=document.getElementById("app");const sortedCoins=getFilteredCoins();const summary={bullish:state.coins.filter(c=>c.regime==="Bullish").length,enter:state.coins.filter(c=>c.timing==="Enter").length,avgSignal:state.coins.length?Math.round(state.coins.reduce((s,c)=>s+c.signal,0)/state.coins.length*100):0,topCoin:sortedCoins[0]};const selected=state.selected?state.coins.find(c=>c.symbol===state.selected):null;const topSignal=summary.topCoin;const topShift=getTopSignalShift(topSignal?.symbol||"");const topNarrative=getTopSignalNarrative(topSignal);const topSignalFlashClass=state.signalChange!=="neutral"?"signal-flash":"";const explain=buildExplainableSignal(topSignal); updateSignalChange(topSignal);const showSignalsTab=state.activeTab==="signals";const showAlertsTab=state.activeTab==="alerts";const safeInsightsFeed=Array.isArray(state.insightsFeed)?state.insightsFeed:[];
+function render(){renderOnboarding();const app=document.getElementById("app");const sortedCoins=getFilteredCoins();const summary={bullish:state.coins.filter(c=>c.regime==="Bullish").length,enter:state.coins.filter(c=>c.timing==="Enter").length,avgSignal:state.coins.length?Math.round(state.coins.reduce((s,c)=>s+c.signal,0)/state.coins.length*100):0,topCoin:sortedCoins[0]};const selected=state.selected?state.coins.find(c=>c.symbol===state.selected):null;const topSignal=summary.topCoin;const topShift=getTopSignalShift(topSignal?.symbol||"");const topNarrative=getTopSignalNarrative(topSignal);const topSignalFlashClass=state.signalChange!=="neutral"?"signal-flash":"";const explain=buildExplainableSignal(topSignal);
+const decision=buildDecisionLayer(topSignal); updateSignalChange(topSignal);const showSignalsTab=state.activeTab==="signals";const showAlertsTab=state.activeTab==="alerts";const safeInsightsFeed=Array.isArray(state.insightsFeed)?state.insightsFeed:[];
 app.innerHTML=`<section class="tabbar"><button type="button" class="tab-btn ${showSignalsTab ? 'active' : ''}" data-tab="signals">Signals</button><button type="button" class="tab-btn ${showAlertsTab ? 'active' : ''}" data-tab="alerts">Alerts</button></section><section class="card pulse-frame ${showSignalsTab ? '' : 'tab-panel-hidden'}"><div class="row"><div><div style="font-size:20px;font-weight:700">What’s the signal tonight? 🌙</div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place.</div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
 <section class="grid grid-hero ${showSignalsTab ? "" : "tab-panel-hidden"}"><div class="card"><div class="row-start"><div><div class="caps">Midnight Signal</div><div class="row" style="justify-content:flex-start;margin-top:6px"><div class="logo-lockup"><div class="logo-badge"></div><div class="logo-wordmark"><div class="title" style="font-size:30px">Midnight Signal</div><div class="tiny">Logo placeholder • easy to swap later</div></div></div><button id="toggleMode">${state.beginnerMode?"Switch to Pro":"Switch to Beginner"}</button></div><p class="subtitle">Signal-first dashboard powered by a Vercel API snapshot.</p><div class="mode-note" style="margin-top:10px">${state.beginnerMode?"Beginner mode is on. You’ll see extra guidance and plain-English framing.":"Pro mode is on. Helper text is reduced for a cleaner signal-first view."}</div></div><div><div class="controls"><span class="badge live-pill">Live engine</span><span class="badge">${state.timeframe}D timeframe</span></div><div class="live-updated">${getLastUpdatedLabel()}</div></div></div><div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:18px"><div class="metric"><div class="label">Bullish Regimes</div><div class="value">${summary.bullish}/20</div></div><div class="metric"><div class="label">Enter Signals</div><div class="value">${summary.enter}</div></div><div class="metric"><div class="label">Average Confidence</div><div class="value">${summary.avgSignal}%</div></div><div class="metric"><div class="label">Top Opportunity</div><div class="value">${summary.topCoin?.symbol||"—"}</div></div></div></div>
 <section class="card"><div class="row-start"><div><div class="caps">Session Controls</div><div style="font-size:22px;font-weight:700;margin-top:4px">Controls</div></div><span class="badge live-pill">API connected</span></div><div class="grid" style="margin-top:14px"><button type="button" id="soundToggle" class="${state.soundEnabled?'sound-toggle-on':''}">Sound: ${state.soundEnabled?'On':'Off'}</button><label><div class="tiny" style="margin-bottom:6px">Strategy</div><select id="strategySelect">${STRATEGY_OPTIONS.map(s=>`<option value="${s}" ${state.strategy===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></label><label><div class="tiny" style="margin-bottom:6px">Timeframe</div><select id="timeframeSelect">${["7","30","90"].map(t=>`<option value="${t}" ${state.timeframe===t?"selected":""}>${t}D</option>`).join("")}</select></label><div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot</div></div><div class="metric"><div class="label">Last Updated</div><div style="margin-top:8px;font-size:14px">${state.lastUpdated?state.lastUpdated.toLocaleTimeString():"—"}</div></div></div></section></section>
@@ -317,6 +352,25 @@ app.innerHTML=`<section class="tabbar"><button type="button" class="tab-btn ${sh
     ${explain.tags.map(t=>`<span class="signal-tag">${t}</span>`).join("")}
   </div>
 </div>
+
+<div class="decision-block">
+  <div class="decision-title">Decision layer</div>
+
+  <div class="decision-row">
+    <div class="decision-label">Stance</div>
+    <div class="decision-value">${decision.stance}</div>
+  </div>
+
+  <div class="decision-row">
+    <div class="decision-label">Confidence</div>
+    <div class="decision-value">${decision.confidence}</div>
+  </div>
+
+  <div class="decision-guidance">
+    ${decision.guidance}
+  </div>
+</div>
+
 <div class="row" style="margin-top:16px;justify-content:space-between"><div class="tiny ${state.signalChange==='up'?'change-up':state.signalChange==='down'?'change-down':'change-neutral'}">Signal change: ${state.signalChange==='up'?'▲ Rising':state.signalChange==='down'?'▼ Cooling':'• Stable'}</div><button type="button" class="btn-primary" data-select="${topSignal.symbol}">View Details</button></div>`:`<div class="subtitle" style="margin-top:10px">Waiting for live market data…</div>`}</section>
 
 <section class="card">

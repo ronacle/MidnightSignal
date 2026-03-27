@@ -302,3 +302,36 @@ button:active{transform:scale(.96)}
   border:1px solid rgba(247,247,247,.12);
   background:rgba(247,247,247,.05);
 }
+
+
+.decision-block{
+  margin-top:14px;
+  border:1px solid rgba(139,168,255,.25);
+  background:rgba(139,168,255,.08);
+  border-radius:16px;
+  padding:14px 16px;
+}
+.decision-title{
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:rgba(139,168,255,.8);
+}
+.decision-row{
+  margin-top:10px;
+}
+.decision-label{
+  font-size:12px;
+  color:rgba(247,247,247,.55);
+}
+.decision-value{
+  font-size:16px;
+  font-weight:700;
+  margin-top:2px;
+}
+.decision-guidance{
+  margin-top:10px;
+  font-size:14px;
+  line-height:1.55;
+  color:rgba(247,247,247,.9);
+}
