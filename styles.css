@@ -845,3 +845,16 @@ section + .card{
   border-color:rgba(139,168,255,.35);
   background:rgba(139,168,255,.12);
 }
+
+
+/* v8.1 pro gating */
+.pro-lock{
+  margin-top:10px;
+  padding:12px;
+  border-radius:14px;
+  border:1px dashed rgba(247,247,247,.2);
+  background:rgba(247,247,247,.03);
+  font-size:13px;
+  text-align:center;
+  opacity:.8;
+}
