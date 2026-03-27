@@ -406,3 +406,24 @@ button:active{
   .card,.panel{padding:18px !important}
   .title{font-size:24px !important}
 }
+
+
+.evolution-badge{
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid rgba(247,247,247,.12);
+  background:rgba(247,247,247,.05);
+  margin-left:6px;
+}
+.evolution-up{
+  border-color: rgba(80,200,120,.4);
+  background: rgba(80,200,120,.15);
+}
+.evolution-down{
+  border-color: rgba(255,100,100,.4);
+  background: rgba(255,100,100,.15);
+}
+.evolution-neutral{
+  opacity:.6;
+}
