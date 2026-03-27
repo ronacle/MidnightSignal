@@ -1,7 +1,10 @@
-Midnight Signal stable branch from v6.5.1 hotfix
+Midnight Signal v6.6 UI foundation
 
-Build number: 2026.03.27-stable.6.5.1.1
+Build number: 2026.03.27-ui.6.6
 
-Fixes:
-- repaired malformed object literal in app.js
-- intended as the working recovery baseline
+What this build adds:
+- clean styled tabs: Signals / Alerts
+- Signals tab keeps the stable dashboard flow
+- Alerts tab is a safe placeholder panel
+- no signal logic changes
+- intended as the first controlled rebuild on top of the stable baseline
