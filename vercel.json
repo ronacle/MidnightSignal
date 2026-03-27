@@ -1,5 +1,14 @@
 {
   "functions": {
+    "api/stripe-webhook.js": {
+      "maxDuration": 10
+    },
+    "api/create-checkout.js": {
+      "maxDuration": 10
+    },
+    "api/get-plan.js": {
+      "maxDuration": 10
+    },
     "api/markets.js": {
       "maxDuration": 10
     }

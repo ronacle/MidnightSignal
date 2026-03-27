@@ -1,3 +1,9 @@
 {
-  "type": "module"
+  "name": "midnight-signal-v8-1-auth-stripe",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.0",
+    "stripe": "^17.1.0"
+  }
 }
