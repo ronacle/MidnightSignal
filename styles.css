@@ -684,3 +684,25 @@ section + .card{
   color:rgba(247,247,247,.7);
   margin-top:6px;
 }
+
+
+/* v7.6 tonight story */
+.story-block{
+  margin-top:16px;
+  border:1px solid rgba(139,168,255,.25);
+  background:rgba(139,168,255,.06);
+  border-radius:18px;
+  padding:16px 18px;
+}
+.story-title{
+  font-size:12px;
+  letter-spacing:.08em;
+  color:rgba(247,247,247,.6);
+  text-transform:uppercase;
+}
+.story-text{
+  margin-top:8px;
+  font-size:15px;
+  line-height:1.6;
+  color:rgba(247,247,247,.95);
+}

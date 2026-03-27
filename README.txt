@@ -1,11 +1,10 @@
-Midnight Signal v7.5 scan polish
+Midnight Signal v7.6 tonight’s story
 
-Build number: 2026.03.27-ui.7.5
+Build number: 2026.03.27-ui.7.6
 
 What this build adds:
-- live status label based on last market update
-- simple scan chips (Top 20 + watchlist count)
-- clearer Top 20 scanning guidance
-- friendlier context section labels
+- a narrative "Tonight’s Story" block
+- combines signal + context into a human-readable explanation
+- helps users understand what’s happening without interpreting multiple sections
 
-No API, layout, or signal-logic changes.
+No layout restructuring or API changes.
