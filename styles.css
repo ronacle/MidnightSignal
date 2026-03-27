@@ -858,3 +858,39 @@ section + .card{
   text-align:center;
   opacity:.8;
 }
+
+
+/* v8.3 live Stripe */
+.pro-lock{
+  margin-top:10px;
+  padding:12px;
+  border-radius:14px;
+  border:1px dashed rgba(247,247,247,.2);
+  background:rgba(247,247,247,.03);
+  font-size:13px;
+  text-align:center;
+  opacity:.9;
+}
+.upgrade-btn, .billing-btn{
+  margin-top:8px;
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid rgba(139,168,255,.4);
+  background:rgba(139,168,255,.15);
+  font-size:13px;
+  cursor:pointer;
+}
+.plan-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding:5px 10px;
+  border:1px solid rgba(247,247,247,.12);
+  background:rgba(247,247,247,.04);
+  font-size:11px;
+}
+.plan-pill.pro{
+  border-color:rgba(139,168,255,.35);
+  background:rgba(139,168,255,.12);
+}

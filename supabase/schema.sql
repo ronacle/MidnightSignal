@@ -1,11 +1,15 @@
--- Midnight Signal v8.0 auth + persistence
+-- Midnight Signal v8.3 auth + billing schema
 create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
+  plan text not null default 'free' check (plan in ('free','pro')),
   watchlist jsonb not null default '[]'::jsonb,
   preferences jsonb not null default '{}'::jsonb,
+  stripe_customer_id text,
+  stripe_subscription_id text,
+  subscription_status text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -37,8 +41,8 @@ for select
 to authenticated
 using (auth.uid() = id);
 
-drop policy if exists "Users can upsert own profile" on public.profiles;
-create policy "Users can upsert own profile"
+drop policy if exists "Users can insert own profile" on public.profiles;
+create policy "Users can insert own profile"
 on public.profiles
 for insert
 to authenticated

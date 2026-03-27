@@ -2,6 +2,15 @@
   "functions": {
     "api/markets.js": {
       "maxDuration": 10
+    },
+    "api/create-checkout.js": {
+      "maxDuration": 10
+    },
+    "api/create-portal.js": {
+      "maxDuration": 10
+    },
+    "api/stripe-webhook.js": {
+      "maxDuration": 10
     }
   }
 }

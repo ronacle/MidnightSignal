@@ -12,7 +12,7 @@ async function getSupabaseClient(){
 }
 
 
-const BUILD_NUMBER = window.__MIDNIGHT_BUILD__ || "2026.03.26-api.6.5.1";
+const BUILD_NUMBER = window.__MIDNIGHT_BUILD__ || "2026.03.27-ui.8.3";
 const GLOSSARY = {
   signal:{title:"Signal",body:"Signal is the model’s overall read on current conditions. Higher numbers mean stronger alignment, not certainty."},
   opportunity:{title:"Opportunity Score",body:"Opportunity Score estimates how actionable a setup looks right now after combining signal, timing, and strategy."},
@@ -429,6 +429,7 @@ async function ensureProfile(){
       id: state.authUser.id,
       email: state.authUser.email || null,
       watchlist: state.watchlist,
+      plan: state.isProUser ? "pro" : "free",
       preferences: {
         strategy: state.strategy,
         timeframe: state.timeframe,
@@ -446,13 +447,16 @@ async function loadRemotePreferences(){
   try{
     const { data } = await client
       .from("profiles")
-      .select("watchlist, preferences")
+      .select("watchlist, preferences, plan, subscription_status, stripe_customer_id")
       .eq("id", state.authUser.id)
       .maybeSingle();
 
     if(data?.watchlist && Array.isArray(data.watchlist) && data.watchlist.length){
       state.watchlist = data.watchlist;
       storage.set("midnight-html-watchlist", state.watchlist);
+    }
+    if(typeof data?.plan === "string"){
+      state.isProUser = data.plan === "pro";
     }
     if(data?.preferences && typeof data.preferences === "object"){
       const prefs = data.preferences;
@@ -555,6 +559,64 @@ async function saveRemotePreferences(){
   }
 }
 
+
+async function startCheckout(){
+  if(!state.authUser?.id || !state.authUser?.email){
+    state.authMessage = "Sign in first to upgrade.";
+    render();
+    return;
+  }
+  state.billingLoading = true;
+  state.authMessage = "Opening secure checkout…";
+  render();
+  try{
+    const res = await fetch("/api/create-checkout", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        userId: state.authUser.id,
+        email: state.authUser.email
+      })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data?.error || "checkout_failed");
+    if(data?.url){
+      window.location.href = data.url;
+      return;
+    }
+    throw new Error("missing_checkout_url");
+  }catch{
+    state.authMessage = "Checkout could not be started.";
+    state.billingLoading = false;
+    render();
+  }
+}
+
+async function openBillingPortal(){
+  if(!state.authUser?.id) return;
+  state.billingLoading = true;
+  state.authMessage = "Opening billing portal…";
+  render();
+  try{
+    const res = await fetch("/api/create-portal", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ userId: state.authUser.id })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data?.error || "portal_failed");
+    if(data?.url){
+      window.location.href = data.url;
+      return;
+    }
+    throw new Error("missing_portal_url");
+  }catch{
+    state.authMessage = "Billing portal could not be opened.";
+    state.billingLoading = false;
+    render();
+  }
+}
+
 function renderOnboarding(){
   const root=document.getElementById("onboarding-root");
   if(!state.showOnboarding){root.innerHTML="";return}
@@ -628,7 +690,8 @@ function renderOnboarding(){
   });
 }
 function renderGlossaryShell(){if(!state.glossaryOpen)return "";const topic=GLOSSARY[state.glossaryTopic]||GLOSSARY.signal;return `<section class="card glossary-shell"><div class="row-start"><div><div class="caps">Glossary / FAQ</div><div class="title" style="font-size:28px;margin-top:6px">${topic.title}</div><div class="subtitle" style="margin-top:8px">Fast reference for terms and common questions.</div></div><button id="glossaryClose">Close</button></div><div class="glossary-grid"><div class="mini" style="display:grid;gap:8px;align-content:start">${Object.entries(GLOSSARY).map(([key,item])=>`<button type="button" data-topic="${key}" style="text-align:left;${state.glossaryTopic===key?'border-color:rgba(139,168,255,.35);background:rgba(139,168,255,.12)':''}">${item.title}</button>`).join("")}<button type="button" id="reopenOnboarding" class="reopen-btn" style="text-align:left">Reopen Agreement</button></div><div><div class="mini"><div style="font-size:15px;line-height:1.7;color:rgba(247,247,247,.86)">${topic.body}</div></div><div class="mini faq-block"><div class="caps">FAQ</div><div style="display:grid;gap:14px;margin-top:12px">${FAQ.map(item=>`<div><div style="font-weight:700">${item.q}</div><div class="tiny" style="margin-top:6px;color:rgba(247,247,247,.76)">${item.a}</div></div>`).join("")}</div></div></div></div></section><div id="glossaryBackdrop" style="position:fixed;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(6px);z-index:30"></div>`}
-function render(){renderOnboarding();const app=document.getElementById("app");const sortedCoins=getFilteredCoins();const summary={bullish:state.coins.filter(c=>c.regime==="Bullish").length,enter:state.coins.filter(c=>c.timing==="Enter").length,avgSignal:state.coins.length?Math.round(state.coins.reduce((s,c)=>s+c.signal,0)/state.coins.length*100):0,topCoin:sortedCoins[0]};const selected=state.selected?state.coins.find(c=>c.symbol===state.selected):null;const topSignal=summary.topCoin;
+function render(){renderOnboarding();const app=document.getElementById("app");let sortedCoins=getFilteredCoins();
+if(!state.isProUser){ sortedCoins = sortedCoins.slice(0,5); }const summary={bullish:state.coins.filter(c=>c.regime==="Bullish").length,enter:state.coins.filter(c=>c.timing==="Enter").length,avgSignal:state.coins.length?Math.round(state.coins.reduce((s,c)=>s+c.signal,0)/state.coins.length*100):0,topCoin:sortedCoins[0]};const selected=state.selected?state.coins.find(c=>c.symbol===state.selected):null;const topSignal=summary.topCoin;
 const safePreviousSignals = state.previousSignals && typeof state.previousSignals==="object" && !Array.isArray(state.previousSignals) ? state.previousSignals : {};
 let evolution = "neutral";
 const prev = topSignal && topSignal.symbol ? safePreviousSignals[topSignal.symbol] : null;
@@ -663,8 +726,9 @@ app.innerHTML=`<div class="${state.learningEnabled ? "learning-on" : ""}">
     <div class="auth-status">${state.authMessage || state.remoteSyncState}</div>
   </div>
   <div class="auth-controls">
-    <span class="auth-pill ${state.authUser ? 'active' : ''}">${state.remoteSyncState}</span>
+    <span class="auth-pill ${state.authUser ? 'active' : ''}">${state.remoteSyncState}</span><span class="plan-pill ${state.isProUser ? "pro" : ""}">${state.isProUser ? "Pro" : "Free"}</span>
     ${state.authUser ? `
+      ${state.isProUser ? `<button type="button" class="billing-btn" id="billingBtn">${state.billingLoading ? "Loading…" : "Manage Billing"}</button>` : `<button type="button" class="upgrade-btn" id="upgradeBtn">${state.billingLoading ? "Loading…" : "Upgrade to Pro"}</button>`}
       <button type="button" id="signOutBtn">Sign out</button>
     ` : `
       <input class="auth-email" id="authEmailInput" type="email" placeholder="you@example.com" value="${state.authEmail}" />
@@ -674,7 +738,7 @@ app.innerHTML=`<div class="${state.learningEnabled ? "learning-on" : ""}">
 </section><section class="tabbar"><button type="button" class="tab-btn ${showSignalsTab ? 'active' : ''}" data-tab="signals">Signals</button><button type="button" class="tab-btn ${showAlertsTab ? 'active' : ''}" data-tab="alerts">Alerts</button></section><section class="card pulse-frame fade-in ${showSignalsTab ? '' : 'tab-panel-hidden'}"><div class="row"><div><div style="font-size:20px;font-weight:700"><span class="header-emphasis">What’s the signal tonight? 🌙</span></div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place. It is built to explain why a setup matters, not just show what changed.<div class="last-updated">${liveStatusLabel}</div><div class="ritual-bar"><div class="ritual-chip">Last check: ${lastCheckLabel}</div><div class="ritual-chip">Streak: ${ritual.streak}</div></div><div class="status-row"><span class="status-chip">Top 20 live scan</span><span class="status-chip">${watchlistCount} watched asset${watchlistCount===1?"":"s"}</span></div><div class="scan-note">Tip: star assets you care about so they stay easier to spot in the grid.</div></div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
 <section class="grid grid-hero fade-in ${showSignalsTab ? "" : "tab-panel-hidden"}"><div class="card"><div class="row-start"><div><div class="caps">Midnight Signal</div><div class="row" style="justify-content:flex-start;margin-top:6px"><div class="logo-lockup"><div class="logo-badge"></div><div class="logo-wordmark"><div class="title" style="font-size:30px">Midnight Signal</div><div class="tiny">Logo placeholder • easy to swap later</div></div></div><button id="toggleMode">${state.beginnerMode?"Switch to Pro":"Switch to Beginner"}</button></div><p class="subtitle">Signal-first dashboard powered by a Vercel API snapshot.</p><div class="mode-note" style="margin-top:10px">${state.beginnerMode?"Beginner mode is on. You’ll see extra guidance and plain-English framing.":"Pro mode is on. Helper text is reduced for a cleaner signal-first view."}</div></div><div><div class="controls"><span class="badge live-pill">Live engine</span><span class="badge">${state.timeframe}D timeframe</span></div><div class="live-updated">${getLastUpdatedLabel()}</div></div></div><div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:18px"><div class="metric"><div class="label">Bullish Regimes</div><div class="value">${summary.bullish}/20</div></div><div class="metric"><div class="label">Enter Signals</div><div class="value">${summary.enter}</div></div><div class="metric"><div class="label">Average Confidence</div><div class="value">${summary.avgSignal}%</div></div><div class="metric"><div class="label">Top Opportunity</div><div class="value">${summary.topCoin?.symbol||"—"}</div></div></div></div>
 <section class="card"><div class="row-start"><div><div class="caps">Session Controls</div><div style="font-size:22px;font-weight:700;margin-top:4px">Controls</div></div><span class="badge live-pill">API connected</span></div><div class="grid" style="margin-top:14px"><button type="button" id="soundToggle" class="${state.soundEnabled?'sound-toggle-on':''}">Sound: ${state.soundEnabled?'On':'Off'}</button><label><div class="tiny" style="margin-bottom:6px">Strategy</div><select id="strategySelect">${STRATEGY_OPTIONS.map(s=>`<option value="${s}" ${state.strategy===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></label><label><div class="tiny" style="margin-bottom:6px">Timeframe</div><select id="timeframeSelect">${["7","30","90"].map(t=>`<option value="${t}" ${state.timeframe===t?"selected":""}>${t}D</option>`).join("")}</select></label><div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot</div></div><div class="metric"><div class="label">Last Updated</div><div style="margin-top:8px;font-size:14px">${state.lastUpdated?state.lastUpdated.toLocaleTimeString():"—"}</div></div></div></section></section>
-<section class="card top-signal fade-in ${signalChanged ? "pulse-glow" : ""} pulse-frame"><div class="caps">Tonight’s Brief</div><div class="story-block"><div class="story-title">Tonight’s Story</div><div class="story-text">${story}</div></div>${compareItems.length?`<div class="compare-block"><div class="compare-title">Tonight vs Yesterday</div><div class="compare-list">${compareItems.map(i=>`<div class="compare-item">• ${i}</div>`).join("")}</div></div>`:""}
+<section class="card top-signal fade-in ${signalChanged ? "pulse-glow" : ""} pulse-frame"><div class="caps">Tonight’s Brief</div><div class="story-block"><div class="story-title">Tonight’s Story</div><div class="story-text">${story}</div></div>${state.isProUser ? (compareItems.length?`<div class="compare-block"><div class="compare-title">Tonight vs Yesterday</div><div class="compare-list">${compareItems.map(i=>`<div class="compare-item">• ${i}</div>`).join("")}</div></div>`:"") : `<div class="pro-lock">🔒 Pro: Unlock "Tonight vs Yesterday" insights<br><button type="button" class="upgrade-btn" id="inlineUpgradeBtn">${state.billingLoading ? "Loading…" : "Upgrade to Pro"}</button></div>`}
 <div class="journey-block"><div class="journey-title">What changed for you</div><div class="journey-text">${journeyNarrative}</div></div><div class="sound-toggle" id="soundToggle">${state.soundEnabled ? "Sound: ON" : "Sound: OFF"}</div><div class="tiny" style="margin-top:6px">Start here first. This is the clearest current read in the app.</div>${topSignal?`<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="title" style="font-size:28px">${topSignal.symbol}</div><span class="signal-label ${topSignal.adaptiveLabel.cls}">${topSignal.adaptiveLabel.title}</span>${badge(topSignal.regime)}${badge(topSignal.timing)}</div><div class="subtitle" style="margin-top:8px">${topSignal.name}</div><div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px"><div class="mini"><div class="tiny">Signal</div><div style="margin-top:6px;font-weight:700">${Math.round(topSignal.signal*100)}%</div><div class="tiny" style="margin-top:4px">${getConfidenceContext(topSignal.signal)}</div><div class="tiny" style="margin-top:4px">Higher = stronger setup.</div><div class="helper-note">${buildLearningHelper("signal")}</div></div><div class="mini"><div class="tiny">Suggested Posture</div><div style="margin-top:6px">${postureBadge(topSignal)}</div></div></div>
 <div class="mini" style="margin-top:16px">
   <div class="tiny">Current read</div>
@@ -745,7 +809,7 @@ app.innerHTML=`<div class="${state.learningEnabled ? "learning-on" : ""}">
 </section>
 
 ${selected?`<section class="panel"><div class="row-start"><div><div class="caps">Asset Detail</div><div style="margin-top:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="title" style="margin:0">${selected.symbol}</div><span class="signal-label ${selected.adaptiveLabel.cls}">${selected.adaptiveLabel.title}</span>${badge(selected.regime)}${badge(selected.timing)}${postureBadge(selected)}</div><div class="subtitle" style="margin-top:8px">${selected.name}</div></div></div><div class="detail-grid-6" style="margin-top:18px"><div class="mini"><div class="tiny">Price</div><div style="margin-top:6px;font-weight:700">${formatPrice(selected.price)}</div></div><div class="mini"><div class="tiny">24h Change</div><div style="margin-top:6px;font-weight:700" class="${selected.change24h>=0?"text-pos":"text-neg"}">${selected.change24h>=0?"+":""}${selected.change24h.toFixed(1)}%</div></div><div class="mini"><div class="tiny">Signal</div><div style="margin-top:6px;font-weight:700">${Math.round(selected.signal*100)}%</div><div class="tiny" style="margin-top:4px">${getConfidenceContext(selected.signal)}</div></div><div class="mini"><div class="tiny">Opportunity</div><div style="margin-top:6px;font-weight:700">${selected.opportunityScore}/100</div></div><div class="mini"><div class="tiny">RSI</div><div style="margin-top:6px;font-weight:700">${selected.indicators.rsi}</div></div><div class="mini"><div class="tiny">MA Trend</div><div style="margin-top:6px;font-weight:700">${selected.indicators.maTrend}</div></div></div><div class="detail-grid-half" style="margin-top:20px"><div class="mini"><div class="tiny">Bullish Confluence</div><div style="margin-top:8px;font-weight:700;color:var(--blue3)">${selected.confluence.bullish}/100</div></div><div class="mini"><div class="tiny">Bearish Confluence</div><div style="margin-top:8px;font-weight:700;color:var(--bear)">${selected.confluence.bearish}/100</div></div></div></section>`:""}
-<section><div class="row-start" style="margin-bottom:10px"><div><div style="font-size:20px;font-weight:700">Top 20 Opportunity Grid</div><div class="subtitle">${state.beginnerMode?"Compare setup quality, timing, and confluence across the current top 20. Higher signal strength usually means a cleaner setup, while starred assets are easier to keep track of.":"Top 20 live opportunities."}</div></div></div><section class="grid grid-cards">${sortedCoins.map(coin=>`<div class="${getCoinClasses(coin,state.selected===coin.symbol)}" data-select="${coin.symbol}" role="button" tabindex="0"><div class="coin-head"><div class="coin-head-main"><div class="coin-symbol-row"><div style="font-size:20px;font-weight:700">${coin.symbol}</div>${badge(coin.regime)}<button type="button" class="watch-inline" data-watch="${coin.symbol}">${state.watchlist.includes(coin.symbol)?"★":"☆"}</button></div><div class="subtitle" style="margin-top:4px">${coin.name}</div><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="signal-label ${coin.adaptiveLabel.cls}">${coin.adaptiveLabel.title}</span>${postureBadge(coin)}</div></div><div class="coin-price-block"><div class="coin-price">${formatPrice(coin.price)}</div><div class="${coin.change24h>=0?"text-pos":"text-neg"} coin-change">${coin.change24h>=0?"+":""}${coin.change24h.toFixed(1)}% (24h)</div></div><div><div class="row"><span class="subtitle">Signal Strength</span><span>${Math.round(coin.signal*100)}%</span></div><div class="tiny" style="margin-top:4px;color:rgba(247,247,247,.65)">${getConfidenceContext(coin.signal)}</div><div class="progress"><span style="width:${Math.round(coin.signal*100)}%"></span></div></div><div class="grid" style="grid-template-columns:1fr 1fr"><div class="mini"><div class="tiny">Timing</div><div style="margin-top:8px">${badge(coin.timing)}</div><div class="tiny" style="margin-top:4px">Timing shows whether conditions look ready, early, or weak.</div><div class="helper-note">${buildLearningHelper("timing")}</div></div><div class="mini"><div class="tiny">Opportunity</div><div style="margin-top:8px;font-weight:700">${coin.opportunityScore}/100</div><div class="tiny" style="margin-top:4px">MTF: ${coin.mtf.label}</div><div class="tiny" style="margin-top:4px">Multi-timeframe alignment helps show whether different views agree.</div><div class="helper-note">${buildLearningHelper("mtf")}</div></div></div><div class="grid" style="grid-template-columns:1fr 1fr"><div class="mini"><div class="tiny">Bullish Confluence</div><div style="margin-top:8px;font-weight:700;color:var(--blue3)">${coin.confluence.bullish}/100</div></div><div class="mini"><div class="tiny">Bearish Confluence</div><div style="margin-top:8px;font-weight:700;color:var(--bear)">${coin.confluence.bearish}/100</div></div></div><div class="row" style="padding-top:8px;border-top:1px solid rgba(247,247,247,.08)"><div><span class="subtitle">Volume </span><span>${coin.volume}</span></div><div>${coin.risk} risk</div></div></div>`).join("")}</section></section>
+<section><div class="row-start" style="margin-bottom:10px"><div><div style="font-size:20px;font-weight:700">Top ${state.isProUser ? "20" : "5"} Opportunity Grid</div><div class="subtitle">${state.beginnerMode?"Compare setup quality, timing, and confluence across the current top 20. Higher signal strength usually means a cleaner setup, while starred assets are easier to keep track of.":"Top 20 live opportunities."}</div></div></div><section class="grid grid-cards">${sortedCoins.map(coin=>`<div class="${getCoinClasses(coin,state.selected===coin.symbol)}" data-select="${coin.symbol}" role="button" tabindex="0"><div class="coin-head"><div class="coin-head-main"><div class="coin-symbol-row"><div style="font-size:20px;font-weight:700">${coin.symbol}</div>${badge(coin.regime)}<button type="button" class="watch-inline" data-watch="${coin.symbol}">${state.watchlist.includes(coin.symbol)?"★":"☆"}</button></div><div class="subtitle" style="margin-top:4px">${coin.name}</div><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="signal-label ${coin.adaptiveLabel.cls}">${coin.adaptiveLabel.title}</span>${postureBadge(coin)}</div></div><div class="coin-price-block"><div class="coin-price">${formatPrice(coin.price)}</div><div class="${coin.change24h>=0?"text-pos":"text-neg"} coin-change">${coin.change24h>=0?"+":""}${coin.change24h.toFixed(1)}% (24h)</div></div><div><div class="row"><span class="subtitle">Signal Strength</span><span>${Math.round(coin.signal*100)}%</span></div><div class="tiny" style="margin-top:4px;color:rgba(247,247,247,.65)">${getConfidenceContext(coin.signal)}</div><div class="progress"><span style="width:${Math.round(coin.signal*100)}%"></span></div></div><div class="grid" style="grid-template-columns:1fr 1fr"><div class="mini"><div class="tiny">Timing</div><div style="margin-top:8px">${badge(coin.timing)}</div><div class="tiny" style="margin-top:4px">Timing shows whether conditions look ready, early, or weak.</div><div class="helper-note">${buildLearningHelper("timing")}</div></div><div class="mini"><div class="tiny">Opportunity</div><div style="margin-top:8px;font-weight:700">${coin.opportunityScore}/100</div><div class="tiny" style="margin-top:4px">MTF: ${coin.mtf.label}</div><div class="tiny" style="margin-top:4px">Multi-timeframe alignment helps show whether different views agree.</div><div class="helper-note">${buildLearningHelper("mtf")}</div></div></div><div class="grid" style="grid-template-columns:1fr 1fr"><div class="mini"><div class="tiny">Bullish Confluence</div><div style="margin-top:8px;font-weight:700;color:var(--blue3)">${coin.confluence.bullish}/100</div></div><div class="mini"><div class="tiny">Bearish Confluence</div><div style="margin-top:8px;font-weight:700;color:var(--bear)">${coin.confluence.bearish}/100</div></div></div><div class="row" style="padding-top:8px;border-top:1px solid rgba(247,247,247,.08)"><div><span class="subtitle">Volume </span><span>${coin.volume}</span></div><div>${coin.risk} risk</div></div></div>`).join("")}</section></section>
 ${renderGlossaryShell()}
 <button type="button" class="btn-primary floating-glossary" id="floatingGlossaryBtn">Glossary / FAQ</button>
 
@@ -798,6 +862,13 @@ app.querySelectorAll("[data-tab]").forEach(el=>{
   });
 });
 
+
+const upgradeBtn=app.querySelector("#upgradeBtn");
+if(upgradeBtn)upgradeBtn.addEventListener("click",()=>{startCheckout();});
+const inlineUpgradeBtn=app.querySelector("#inlineUpgradeBtn");
+if(inlineUpgradeBtn)inlineUpgradeBtn.addEventListener("click",()=>{startCheckout();});
+const billingBtn=app.querySelector("#billingBtn");
+if(billingBtn)billingBtn.addEventListener("click",()=>{openBillingPortal();});
 const authEmailInput=app.querySelector("#authEmailInput");
 if(authEmailInput)authEmailInput.addEventListener("input",(e)=>{state.authEmail=e.target.value;});
 const magicLinkBtn=app.querySelector("#magicLinkBtn");
@@ -822,9 +893,11 @@ getSupabaseClient().then(client=>{
       if(state.authUser){
         state.authMessage = "Logged in successfully.";
         state.remoteSyncState = "Signed in";
+        state.billingLoading = false;
         ensureProfile().then(loadRemotePreferences).then(()=>render());
       } else {
         state.remoteSyncState = "Local only";
+        state.billingLoading = false;
         render();
       }
     });
