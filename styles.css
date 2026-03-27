@@ -788,3 +788,60 @@ section + .card{
 .compare-item{
   margin-bottom:6px;
 }
+
+
+/* v8.0 auth + persistence */
+.auth-bar{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  border:1px solid rgba(247,247,247,.08);
+  background:rgba(247,247,247,.04);
+  border-radius:18px;
+  padding:14px 16px;
+  margin-bottom:14px;
+}
+.auth-meta{
+  min-width:0;
+}
+.auth-title{
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:rgba(247,247,247,.55);
+}
+.auth-sub{
+  margin-top:6px;
+  font-size:14px;
+  color:rgba(247,247,247,.85);
+}
+.auth-status{
+  margin-top:6px;
+  font-size:12px;
+  color:rgba(247,247,247,.65);
+}
+.auth-controls{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.auth-email{
+  min-width:220px;
+}
+.auth-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding:5px 10px;
+  border:1px solid rgba(247,247,247,.12);
+  background:rgba(247,247,247,.04);
+  font-size:11px;
+}
+.auth-pill.active{
+  border-color:rgba(139,168,255,.35);
+  background:rgba(139,168,255,.12);
+}

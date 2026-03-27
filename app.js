@@ -1,4 +1,17 @@
 
+const SUPABASE_URL = window.__SUPABASE_URL__ || "";
+const SUPABASE_ANON_KEY = window.__SUPABASE_ANON_KEY__ || "";
+let supabaseClient = null;
+
+async function getSupabaseClient(){
+  if (supabaseClient) return supabaseClient;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  if (!window.supabase || !window.supabase.createClient) return null;
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return supabaseClient;
+}
+
+
 const BUILD_NUMBER = window.__MIDNIGHT_BUILD__ || "2026.03.26-api.6.5.1";
 const GLOSSARY = {
   signal:{title:"Signal",body:"Signal is the model’s overall read on current conditions. Higher numbers mean stronger alignment, not certainty."},
@@ -407,6 +420,122 @@ function updateRitualState(){
   };
 }
 
+
+async function ensureProfile(){
+  const client = await getSupabaseClient();
+  if(!client || !state.authUser?.id) return;
+  try{
+    await client.from("profiles").upsert({
+      id: state.authUser.id,
+      email: state.authUser.email || null,
+      watchlist: state.watchlist,
+      preferences: {
+        strategy: state.strategy,
+        timeframe: state.timeframe,
+        beginnerMode: state.beginnerMode,
+        learningEnabled: state.learningEnabled
+      },
+      updated_at: new Date().toISOString()
+    });
+  }catch{}
+}
+
+async function loadRemotePreferences(){
+  const client = await getSupabaseClient();
+  if(!client || !state.authUser?.id) return;
+  try{
+    const { data } = await client
+      .from("profiles")
+      .select("watchlist, preferences")
+      .eq("id", state.authUser.id)
+      .maybeSingle();
+
+    if(data?.watchlist && Array.isArray(data.watchlist) && data.watchlist.length){
+      state.watchlist = data.watchlist;
+      storage.set("midnight-html-watchlist", state.watchlist);
+    }
+    if(data?.preferences && typeof data.preferences === "object"){
+      const prefs = data.preferences;
+      if(typeof prefs.strategy === "string") state.strategy = prefs.strategy;
+      if(typeof prefs.timeframe === "string") state.timeframe = prefs.timeframe;
+      if(typeof prefs.beginnerMode === "boolean") state.beginnerMode = prefs.beginnerMode;
+      if(typeof prefs.learningEnabled === "boolean") state.learningEnabled = prefs.learningEnabled;
+      storage.set("midnight-html-strategy", state.strategy);
+      storage.set("midnight-html-timeframe", state.timeframe);
+      storage.set("midnight-mode", state.beginnerMode ? "beginner" : "pro");
+      storage.set("midnight-learning-enabled", state.learningEnabled ? "on" : "off");
+    }
+    state.remoteSyncState = "Synced";
+  }catch{
+    state.remoteSyncState = "Sync unavailable";
+  }
+}
+
+async function syncAuthSession(){
+  const client = await getSupabaseClient();
+  if(!client){
+    state.authMessage = "Supabase keys not set. Using local mode.";
+    state.remoteSyncState = "Local only";
+    return;
+  }
+  try{
+    const { data } = await client.auth.getUser();
+    state.authUser = data?.user || null;
+    if(state.authUser){
+      state.authMessage = "Signed in. Preferences can sync across devices.";
+      await ensureProfile();
+      await loadRemotePreferences();
+      render();
+    } else {
+      state.remoteSyncState = "Local only";
+    }
+  }catch{
+    state.authMessage = "Auth session could not be read.";
+  }
+}
+
+async function sendMagicLink(){
+  const client = await getSupabaseClient();
+  if(!client || !state.authEmail) return;
+  state.authLoading = true;
+  state.authMessage = "";
+  render();
+  try{
+    await client.auth.signInWithOtp({ email: state.authEmail });
+    state.authMessage = "Magic link sent. Check your email to continue.";
+  }catch{
+    state.authMessage = "Magic link could not be sent. Check your email and Supabase keys.";
+  }
+  state.authLoading = false;
+  render();
+}
+
+async function signOutUser(){
+  const client = await getSupabaseClient();
+  if(!client) return;
+  try{ await client.auth.signOut(); }catch{}
+  state.authUser = null;
+  state.authMessage = "Signed out. Using local mode.";
+  state.remoteSyncState = "Local only";
+  render();
+}
+
+async function saveRemotePreferences(){
+  if(!state.authUser) return;
+  const client = await getSupabaseClient();
+  if(!client) return;
+  try{
+    state.remoteSyncState = "Syncing…";
+    render();
+    await ensureProfile();
+    state.remoteSyncState = "Synced";
+    render();
+  }catch{
+    state.remoteSyncState = "Sync unavailable";
+    render();
+  }
+}
+
 function renderOnboarding(){
   const root=document.getElementById("onboarding-root");
   if(!state.showOnboarding){root.innerHTML="";return}
@@ -507,7 +636,23 @@ const ritual=updateRitualState();
 const lastCheckLabel=formatLastCheck(ritual.lastCheck);
 const liveStatusLabel=getLiveStatusLabel();
 const watchlistCount=Array.isArray(state.watchlist)?state.watchlist.length:0; updateSignalChange(topSignal);const showSignalsTab=state.activeTab==="signals";const showAlertsTab=state.activeTab==="alerts";const safeInsightsFeed=Array.isArray(state.insightsFeed)?state.insightsFeed:[];
-app.innerHTML=`<div class="${state.learningEnabled ? "learning-on" : ""}"><section class="tabbar"><button type="button" class="tab-btn ${showSignalsTab ? 'active' : ''}" data-tab="signals">Signals</button><button type="button" class="tab-btn ${showAlertsTab ? 'active' : ''}" data-tab="alerts">Alerts</button></section><section class="card pulse-frame fade-in ${showSignalsTab ? '' : 'tab-panel-hidden'}"><div class="row"><div><div style="font-size:20px;font-weight:700"><span class="header-emphasis">What’s the signal tonight? 🌙</span></div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place. It is built to explain why a setup matters, not just show what changed.<div class="last-updated">${liveStatusLabel}</div><div class="ritual-bar"><div class="ritual-chip">Last check: ${lastCheckLabel}</div><div class="ritual-chip">Streak: ${ritual.streak}</div></div><div class="status-row"><span class="status-chip">Top 20 live scan</span><span class="status-chip">${watchlistCount} watched asset${watchlistCount===1?"":"s"}</span></div><div class="scan-note">Tip: star assets you care about so they stay easier to spot in the grid.</div></div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
+app.innerHTML=`<div class="${state.learningEnabled ? "learning-on" : ""}">
+<section class="auth-bar">
+  <div class="auth-meta">
+    <div class="auth-title">Account</div>
+    <div class="auth-sub">${state.authUser ? `Signed in as ${state.authUser.email}` : "Sign in to keep your watchlist and preferences across devices."}</div>
+    <div class="auth-status">${state.authMessage || state.remoteSyncState}</div>
+  </div>
+  <div class="auth-controls">
+    <span class="auth-pill ${state.authUser ? 'active' : ''}">${state.remoteSyncState}</span>
+    ${state.authUser ? `
+      <button type="button" id="signOutBtn">Sign out</button>
+    ` : `
+      <input class="auth-email" id="authEmailInput" type="email" placeholder="you@example.com" value="${state.authEmail}" />
+      <button type="button" id="magicLinkBtn">${state.authLoading ? "Sending…" : "Email Magic Link"}</button>
+    `}
+  </div>
+</section><section class="tabbar"><button type="button" class="tab-btn ${showSignalsTab ? 'active' : ''}" data-tab="signals">Signals</button><button type="button" class="tab-btn ${showAlertsTab ? 'active' : ''}" data-tab="alerts">Alerts</button></section><section class="card pulse-frame fade-in ${showSignalsTab ? '' : 'tab-panel-hidden'}"><div class="row"><div><div style="font-size:20px;font-weight:700"><span class="header-emphasis">What’s the signal tonight? 🌙</span></div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place. It is built to explain why a setup matters, not just show what changed.<div class="last-updated">${liveStatusLabel}</div><div class="ritual-bar"><div class="ritual-chip">Last check: ${lastCheckLabel}</div><div class="ritual-chip">Streak: ${ritual.streak}</div></div><div class="status-row"><span class="status-chip">Top 20 live scan</span><span class="status-chip">${watchlistCount} watched asset${watchlistCount===1?"":"s"}</span></div><div class="scan-note">Tip: star assets you care about so they stay easier to spot in the grid.</div></div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
 <section class="grid grid-hero fade-in ${showSignalsTab ? "" : "tab-panel-hidden"}"><div class="card"><div class="row-start"><div><div class="caps">Midnight Signal</div><div class="row" style="justify-content:flex-start;margin-top:6px"><div class="logo-lockup"><div class="logo-badge"></div><div class="logo-wordmark"><div class="title" style="font-size:30px">Midnight Signal</div><div class="tiny">Logo placeholder • easy to swap later</div></div></div><button id="toggleMode">${state.beginnerMode?"Switch to Pro":"Switch to Beginner"}</button></div><p class="subtitle">Signal-first dashboard powered by a Vercel API snapshot.</p><div class="mode-note" style="margin-top:10px">${state.beginnerMode?"Beginner mode is on. You’ll see extra guidance and plain-English framing.":"Pro mode is on. Helper text is reduced for a cleaner signal-first view."}</div></div><div><div class="controls"><span class="badge live-pill">Live engine</span><span class="badge">${state.timeframe}D timeframe</span></div><div class="live-updated">${getLastUpdatedLabel()}</div></div></div><div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:18px"><div class="metric"><div class="label">Bullish Regimes</div><div class="value">${summary.bullish}/20</div></div><div class="metric"><div class="label">Enter Signals</div><div class="value">${summary.enter}</div></div><div class="metric"><div class="label">Average Confidence</div><div class="value">${summary.avgSignal}%</div></div><div class="metric"><div class="label">Top Opportunity</div><div class="value">${summary.topCoin?.symbol||"—"}</div></div></div></div>
 <section class="card"><div class="row-start"><div><div class="caps">Session Controls</div><div style="font-size:22px;font-weight:700;margin-top:4px">Controls</div></div><span class="badge live-pill">API connected</span></div><div class="grid" style="margin-top:14px"><button type="button" id="soundToggle" class="${state.soundEnabled?'sound-toggle-on':''}">Sound: ${state.soundEnabled?'On':'Off'}</button><label><div class="tiny" style="margin-bottom:6px">Strategy</div><select id="strategySelect">${STRATEGY_OPTIONS.map(s=>`<option value="${s}" ${state.strategy===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></label><label><div class="tiny" style="margin-bottom:6px">Timeframe</div><select id="timeframeSelect">${["7","30","90"].map(t=>`<option value="${t}" ${state.timeframe===t?"selected":""}>${t}D</option>`).join("")}</select></label><div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot</div></div><div class="metric"><div class="label">Last Updated</div><div style="margin-top:8px;font-size:14px">${state.lastUpdated?state.lastUpdated.toLocaleTimeString():"—"}</div></div></div></section></section>
 <section class="card top-signal fade-in ${signalChanged ? "pulse-glow" : ""} pulse-frame"><div class="caps">Tonight’s Brief</div><div class="story-block"><div class="story-title">Tonight’s Story</div><div class="story-text">${story}</div></div>${compareItems.length?`<div class="compare-block"><div class="compare-title">Tonight vs Yesterday</div><div class="compare-list">${compareItems.map(i=>`<div class="compare-item">• ${i}</div>`).join("")}</div></div>`:""}
@@ -624,7 +769,7 @@ ${renderGlossaryShell()}
 <section style="margin-top:20px;text-align:center"><div class="tiny" style="color:rgba(247,247,247,.5)">Midnight Signal • Educational only • Not financial advice • Build ${BUILD_NUMBER}</div></section></div>`;
 const searchInput=app.querySelector("#searchInput");if(searchInput)searchInput.addEventListener("input",e=>{state.assetQuery=e.target.value;render()});
 app.querySelectorAll("[data-select]").forEach(el=>{el.addEventListener("click",()=>{state.selected=el.dataset.select;render()});el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();state.selected=el.dataset.select;render()}})});
-app.querySelectorAll("[data-watch]").forEach(el=>el.addEventListener("click",e=>{e.stopPropagation();const sym=el.dataset.watch;state.watchlist=state.watchlist.includes(sym)?state.watchlist.filter(s=>s!==sym):[...state.watchlist,sym];storage.set("midnight-html-watchlist",state.watchlist);render()}));
+app.querySelectorAll("[data-watch]").forEach(el=>el.addEventListener("click",e=>{e.stopPropagation();const sym=el.dataset.watch;state.watchlist=state.watchlist.includes(sym)?state.watchlist.filter(s=>s!==sym):[...state.watchlist,sym];storage.set("midnight-html-watchlist",state.watchlist);render();saveRemotePreferences();}));
 
 app.querySelectorAll("[data-tab]").forEach(el=>{
   el.addEventListener("click",()=>{
@@ -633,12 +778,19 @@ app.querySelectorAll("[data-tab]").forEach(el=>{
     render();
   });
 });
+
+const authEmailInput=app.querySelector("#authEmailInput");
+if(authEmailInput)authEmailInput.addEventListener("input",(e)=>{state.authEmail=e.target.value;});
+const magicLinkBtn=app.querySelector("#magicLinkBtn");
+if(magicLinkBtn)magicLinkBtn.addEventListener("click",async ()=>{await sendMagicLink();});
+const signOutBtn=app.querySelector("#signOutBtn");
+if(signOutBtn)signOutBtn.addEventListener("click",async ()=>{await signOutUser();});
 const floatingGlossaryBtn=app.querySelector("#floatingGlossaryBtn");if(floatingGlossaryBtn)floatingGlossaryBtn.addEventListener("click",()=>{state.glossaryOpen=true;render()});
 const glossaryClose=app.querySelector("#glossaryClose");if(glossaryClose)glossaryClose.addEventListener("click",()=>{state.glossaryOpen=false;render()});
 const glossaryBackdrop=app.querySelector("#glossaryBackdrop");if(glossaryBackdrop)glossaryBackdrop.addEventListener("click",()=>{state.glossaryOpen=false;render()});
 app.querySelectorAll("[data-topic]").forEach(el=>el.addEventListener("click",()=>{state.glossaryTopic=el.dataset.topic;render()}));
 const reopenOnboarding=app.querySelector("#reopenOnboarding");if(reopenOnboarding)reopenOnboarding.addEventListener("click",()=>{state.glossaryOpen=false;state.showOnboarding=true;render()});
-const strategySelect=app.querySelector("#strategySelect");if(strategySelect)strategySelect.addEventListener("change",e=>{state.strategy=e.target.value;storage.set("midnight-html-strategy",state.strategy);render()});
-const timeframeSelect=app.querySelector("#timeframeSelect");if(timeframeSelect)timeframeSelect.addEventListener("change",e=>{state.timeframe=e.target.value;storage.set("midnight-html-timeframe",state.timeframe);loadMarkets()});
-const soundToggle=app.querySelector("#soundToggle");if(soundToggle)soundToggle.addEventListener("click",()=>{state.soundEnabled=!state.soundEnabled;storage.set("midnight-sound-enabled",state.soundEnabled?"on":"off");render()});const toggleMode=app.querySelector("#toggleMode");if(toggleMode)toggleMode.addEventListener("click",()=>{state.beginnerMode=!state.beginnerMode;storage.set("midnight-mode",state.beginnerMode?"beginner":"pro");render()})}
-render(); loadMarkets(); setInterval(loadMarkets,30000);
+const strategySelect=app.querySelector("#strategySelect");if(strategySelect)strategySelect.addEventListener("change",e=>{state.strategy=e.target.value;storage.set("midnight-html-strategy",state.strategy);render();saveRemotePreferences();});
+const timeframeSelect=app.querySelector("#timeframeSelect");if(timeframeSelect)timeframeSelect.addEventListener("change",e=>{state.timeframe=e.target.value;storage.set("midnight-html-timeframe",state.timeframe);loadMarkets();saveRemotePreferences();});
+const soundToggle=app.querySelector("#soundToggle");if(soundToggle)soundToggle.addEventListener("click",()=>{state.soundEnabled=!state.soundEnabled;storage.set("midnight-sound-enabled",state.soundEnabled?"on":"off");render();saveRemotePreferences();});const toggleMode=app.querySelector("#toggleMode");if(toggleMode)toggleMode.addEventListener("click",()=>{state.beginnerMode=!state.beginnerMode;storage.set("midnight-mode",state.beginnerMode?"beginner":"pro");render();saveRemotePreferences();})}
+render(); syncAuthSession(); loadMarkets(); setInterval(loadMarkets,30000);
