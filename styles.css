@@ -536,3 +536,25 @@ section + .card{
   opacity:.75;
   cursor:pointer;
 }
+
+
+/* signal context */
+.context-block{
+  margin-top:14px;
+  border:1px solid rgba(247,247,247,.08);
+  background:rgba(247,247,247,.04);
+  border-radius:16px;
+  padding:14px 16px;
+}
+.context-title{
+  font-size:12px;
+  letter-spacing:.08em;
+  color:rgba(247,247,247,.55);
+  text-transform:uppercase;
+}
+.context-text{
+  margin-top:6px;
+  font-size:14px;
+  color:rgba(247,247,247,.9);
+  line-height:1.55;
+}

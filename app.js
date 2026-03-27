@@ -100,6 +100,27 @@ Midnight Signal is built to help users understand what matters before reacting.
 #Cardano #ADA #Crypto #MidnightSignal</div>`;
 }
 
+function buildSignalContext(topSignal){
+  if(!topSignal){
+    return {
+      market:"Market context is unclear right now.",
+      ecosystem:"No strong ecosystem signals detected."
+    };
+  }
+
+  const strong = topSignal.signal >= 0.7;
+  const bullish = topSignal.regime === "Bullish";
+
+  return {
+    market: strong
+      ? "Broader market momentum appears supportive, which may be helping strengthen this setup."
+      : "Market conditions look more mixed, which can make signals less reliable.",
+    ecosystem: bullish
+      ? "Positive sentiment around this asset’s ecosystem may be contributing to the current strength."
+      : "There is no strong ecosystem push behind this setup right now."
+  };
+}
+
 function buildDecisionLayer(topSignal){
   if(!topSignal){
     return {
@@ -372,7 +393,8 @@ const signalChanged = topSignal && topSignal.symbol !== state.lastTopSymbol;
 if(signalChanged && state.soundEnabled){ try{ new Audio("pulse.wav").play(); }catch{} }
 if(signalChanged && topSignal){ state.lastTopSymbol = topSignal.symbol; storage.set("midnight-last-symbol", topSignal.symbol); }
 const indicator = signalChanged ? "↑ change" : "→ stable";const topShift=getTopSignalShift(topSignal?.symbol||"");const topNarrative=getTopSignalNarrative(topSignal);const topSignalFlashClass=state.signalChange!=="neutral"?"signal-flash":"";const explain=buildExplainableSignal(topSignal);
-const decision=buildDecisionLayer(topSignal); updateSignalChange(topSignal);const showSignalsTab=state.activeTab==="signals";const showAlertsTab=state.activeTab==="alerts";const safeInsightsFeed=Array.isArray(state.insightsFeed)?state.insightsFeed:[];
+const decision=buildDecisionLayer(topSignal);
+const context=buildSignalContext(topSignal); updateSignalChange(topSignal);const showSignalsTab=state.activeTab==="signals";const showAlertsTab=state.activeTab==="alerts";const safeInsightsFeed=Array.isArray(state.insightsFeed)?state.insightsFeed:[];
 app.innerHTML=`<div class="${state.learningEnabled ? "learning-on" : ""}"><section class="tabbar"><button type="button" class="tab-btn ${showSignalsTab ? 'active' : ''}" data-tab="signals">Signals</button><button type="button" class="tab-btn ${showAlertsTab ? 'active' : ''}" data-tab="alerts">Alerts</button></section><section class="card pulse-frame fade-in ${showSignalsTab ? '' : 'tab-panel-hidden'}"><div class="row"><div><div style="font-size:20px;font-weight:700"><span class="header-emphasis">What’s the signal tonight? 🌙</span></div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place. It is built to explain why a setup matters, not just show what changed.<div class="last-updated">Last updated just now</div></div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
 <section class="grid grid-hero fade-in ${showSignalsTab ? "" : "tab-panel-hidden"}"><div class="card"><div class="row-start"><div><div class="caps">Midnight Signal</div><div class="row" style="justify-content:flex-start;margin-top:6px"><div class="logo-lockup"><div class="logo-badge"></div><div class="logo-wordmark"><div class="title" style="font-size:30px">Midnight Signal</div><div class="tiny">Logo placeholder • easy to swap later</div></div></div><button id="toggleMode">${state.beginnerMode?"Switch to Pro":"Switch to Beginner"}</button></div><p class="subtitle">Signal-first dashboard powered by a Vercel API snapshot.</p><div class="mode-note" style="margin-top:10px">${state.beginnerMode?"Beginner mode is on. You’ll see extra guidance and plain-English framing.":"Pro mode is on. Helper text is reduced for a cleaner signal-first view."}</div></div><div><div class="controls"><span class="badge live-pill">Live engine</span><span class="badge">${state.timeframe}D timeframe</span></div><div class="live-updated">${getLastUpdatedLabel()}</div></div></div><div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:18px"><div class="metric"><div class="label">Bullish Regimes</div><div class="value">${summary.bullish}/20</div></div><div class="metric"><div class="label">Enter Signals</div><div class="value">${summary.enter}</div></div><div class="metric"><div class="label">Average Confidence</div><div class="value">${summary.avgSignal}%</div></div><div class="metric"><div class="label">Top Opportunity</div><div class="value">${summary.topCoin?.symbol||"—"}</div></div></div></div>
 <section class="card"><div class="row-start"><div><div class="caps">Session Controls</div><div style="font-size:22px;font-weight:700;margin-top:4px">Controls</div></div><span class="badge live-pill">API connected</span></div><div class="grid" style="margin-top:14px"><button type="button" id="soundToggle" class="${state.soundEnabled?'sound-toggle-on':''}">Sound: ${state.soundEnabled?'On':'Off'}</button><label><div class="tiny" style="margin-bottom:6px">Strategy</div><select id="strategySelect">${STRATEGY_OPTIONS.map(s=>`<option value="${s}" ${state.strategy===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></label><label><div class="tiny" style="margin-bottom:6px">Timeframe</div><select id="timeframeSelect">${["7","30","90"].map(t=>`<option value="${t}" ${state.timeframe===t?"selected":""}>${t}D</option>`).join("")}</select></label><div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot</div></div><div class="metric"><div class="label">Last Updated</div><div style="margin-top:8px;font-size:14px">${state.lastUpdated?state.lastUpdated.toLocaleTimeString():"—"}</div></div></div></section></section>
