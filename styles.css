@@ -748,3 +748,20 @@ section + .card{
   line-height:1.55;
   color:rgba(247,247,247,.82);
 }
+
+
+/* v7.8 daily ritual */
+.ritual-bar{
+  margin-top:8px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.ritual-chip{
+  font-size:11px;
+  padding:5px 10px;
+  border-radius:999px;
+  border:1px solid rgba(247,247,247,.12);
+  background:rgba(247,247,247,.04);
+  opacity:.85;
+}
