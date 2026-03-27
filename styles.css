@@ -429,43 +429,29 @@ button:active{
 }
 
 
-/* Visual hierarchy polish */
-
+/* safe visual polish hotfix */
 .top-signal{
   border:1px solid rgba(139,168,255,.35);
   box-shadow:0 10px 40px rgba(139,168,255,.12);
 }
-
 .grid-cards .coin{
-  opacity:.92;
+  opacity:.94;
 }
-
 .grid-cards .coin:hover{
   opacity:1;
+  transform:translateY(-2px);
 }
-
 .grid-cards .coin:not(:hover){
-  filter:brightness(.95);
+  filter:brightness(.97);
 }
-
-.section-spacing{
+.card + .card,
+.card + section,
+section + .card{
   margin-top:18px;
 }
-
-.section-divider{
-  height:1px;
-  background:linear-gradient(90deg, transparent, rgba(247,247,247,.1), transparent);
-  margin:18px 0;
-}
-
 .header-emphasis{
   letter-spacing:-0.02em;
 }
-
-.subtle-muted{
-  opacity:.7;
-}
-
 .last-updated{
   font-size:11px;
   opacity:.6;
