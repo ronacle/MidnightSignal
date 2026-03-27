@@ -251,21 +251,6 @@ async function loadMarkets(){try{
   render()
 }catch(err){console.warn("Markets load failed.",err);render()}}
 function getFilteredCoins(){const q=state.assetQuery.toLowerCase();let list=state.coins;if(q)list=list.filter(c=>`${c.symbol} ${c.name}`.toLowerCase().includes(q));return [...list].sort((a,b)=>b.signal-a.signal).sort((a,b)=>state.watchlist.includes(a.symbol)===state.watchlist.includes(b.symbol)?0:state.watchlist.includes(a.symbol)?-1:1)}
-function buildVisitNarrative(){
-  if(Array.isArray(state.sinceLastVisit) && state.sinceLastVisit.length){
-    const item = state.sinceLastVisit[0];
-    if(!item || !item.symbol) return "No major change since your last check.";
-    const changeText = `${item.diff > 0 ? "+" : ""}${item.diff}%`;
-    if(item.direction === "up"){
-      return `${item.symbol} strengthened since your last check (${changeText}) — momentum improving.`;
-    }
-    if(item.direction === "down"){
-      return `${item.symbol} weakened since your last check (${changeText}) — momentum fading.`;
-    }
-  }
-  return "No major change since your last check.";
-}
-
 function renderOnboarding(){
   const root=document.getElementById("onboarding-root");
   if(!state.showOnboarding){root.innerHTML="";return}
@@ -407,7 +392,7 @@ app.innerHTML=`<section class="tabbar"><button type="button" class="tab-btn ${sh
 
 <section class="card">
   <div class="caps">Since your last visit • signal evolution tracked</div>
-  <div class="subtitle" style="margin-top:8px">Compared to your last session</div><div class="tiny" style="margin-top:6px;color:rgba(247,247,247,.85)">${visitNarrative}</div>
+  <div class="subtitle" style="margin-top:8px">Compared to your last session</div>
   ${topShift ? `<div class="last-visit-row" style="margin-top:14px"><div><div style="font-weight:700">Top Signal changed</div><div class="tiny" style="margin-top:4px">The leading setup is different now</div></div><div class="last-visit-badge change-up">${topShift}</div></div>` : ``}
   ${
     state.sinceLastVisit && state.sinceLastVisit.length
