@@ -1,8 +1,9 @@
-Midnight Signal v6.7.1 single X feed hotfix
+Midnight Signal v6.8 explainable signals
 
-Build number: 2026.03.27-ui.6.7.1
+Build number: 2026.03.27-ui.6.8
 
-Fixes:
-- protects feed rendering against bad localStorage state
-- prevents blank screen after agreement when insights feed is invalid
-- keeps single X feed and stable v6.6.1 layout intact
+What this build adds:
+- explainable signal layer inside Tonight's Top Signal
+- What’s happening / Why / What it means
+- lightweight signal tags for faster interpretation
+- no layout or tab changes from v6.7.1
