@@ -100,32 +100,6 @@ Midnight Signal is built to help users understand what matters before reacting.
 #Cardano #ADA #Crypto #MidnightSignal`;
 }
 
-function buildLastVisitNarrative(topSignal){
-  if(!topSignal) return "No recent signal data available.";
-
-  const prev = state.lastVisitSnapshot[topSignal.symbol];
-  if(prev === undefined){
-    state.lastVisitSnapshot[topSignal.symbol] = topSignal.signal;
-    storage.set("midnight-last-visit", state.lastVisitSnapshot);
-    return `${topSignal.symbol} is your current focus. No prior visit data yet.`;
-  }
-
-  const diff = (topSignal.signal - prev) * 100;
-  let direction = "stable";
-  if(diff > 1) direction = "strengthened";
-  else if(diff < -1) direction = "weakened";
-
-  state.lastVisitSnapshot[topSignal.symbol] = topSignal.signal;
-  storage.set("midnight-last-visit", state.lastVisitSnapshot);
-
-  if(direction === "stable"){
-    return `${topSignal.symbol} is holding steady since your last visit.`;
-  }
-
-  const pct = diff.toFixed(1);
-  return `${topSignal.symbol} has ${direction} since your last visit (${pct} pts) — momentum ${direction === "strengthened" ? "improving" : "fading"}.`;
-}
-
 function buildDecisionLayer(topSignal){
   if(!topSignal){
     return {
@@ -261,34 +235,11 @@ function updateSignalChange(topCoin){
   storage.set("midnight-prev-top-score", String(currentScore));
 }
 function enrich(row,index){const price=Number(row.current_price??0),change24h=Number(row.price_change_percentage_24h??0);const indicators=buildIndicators({price,change24h,price_history:row.price_history});const momentum=scoreMomentum(change24h),trend=scoreTrend(Number(row.market_cap_rank??index+1),change24h),volatility=scoreVolatility(change24h);let rsiScore=0.5;if(indicators.rsi>=40&&indicators.rsi<=65)rsiScore=0.75;else if(indicators.rsi>70)rsiScore=0.35;else if(indicators.rsi<30)rsiScore=0.4;const maDiff=Math.abs(indicators.ma20-indicators.ma50),maStrength=Math.min(1,maDiff/(price||1));const shortBias=indicators.maTrend==="Bullish"&&indicators.rsi<70?1:indicators.maTrend==="Bearish"&&indicators.rsi>30?-1:0;const mediumBias=trend>=0.65?1:trend<=0.45?-1:0;const longBias=change24h>1?1:change24h<-1?-1:0;const mtfRaw=shortBias+mediumBias+longBias;const mtfScore=Math.max(0,Math.min(1,0.5+mtfRaw/6));const signal=Math.max(0.3,Math.min(0.95,momentum*0.22+trend*0.22+volatility*0.13+rsiScore*0.17+maStrength*0.13+mtfScore*0.13));const regime=deriveRegime(signal),timing=deriveTiming(signal,change24h);const bullish=Math.round(Math.min(100,signal*100+(regime==="Bullish"?12:0)+(timing==="Enter"?8:0)));const bearish=Math.round(Math.min(100,(1-signal)*100+(regime==="Bearish"?12:0)+(timing==="Reduce"?8:0)));return {symbol:String(row.symbol||"").toUpperCase(),name:row.name||String(row.symbol||"").toUpperCase(),price,change24h,volume:formatVolume(Number(row.total_volume??0)),risk:getRiskFromChange(change24h),signal,regime,timing,opportunityScore:Math.max(0,Math.min(100,Math.round(signal*100+(regime==="Bullish"?8:regime==="Bearish"?-8:0)))),mtf:{label:mtfRaw>=2?"Strong Bullish":mtfRaw<=-2?"Strong Bearish":mtfRaw>0?"Bullish":mtfRaw<0?"Bearish":"Mixed"},indicators,adaptiveLabel:getAdaptiveLabel(signal),confluence:{bullish,bearish}}}
-
-function getFallbackMarketRows(){
-  return [
-    {symbol:"btc",name:"Bitcoin",current_price:87000,price_change_percentage_24h:1.8,total_volume:42000000000,market_cap_rank:1},
-    {symbol:"eth",name:"Ethereum",current_price:4200,price_change_percentage_24h:1.2,total_volume:21000000000,market_cap_rank:2},
-    {symbol:"sol",name:"Solana",current_price:210,price_change_percentage_24h:2.9,total_volume:7800000000,market_cap_rank:3},
-    {symbol:"ada",name:"Cardano",current_price:0.92,price_change_percentage_24h:2.1,total_volume:1400000000,market_cap_rank:4},
-    {symbol:"xrp",name:"XRP",current_price:1.72,price_change_percentage_24h:0.7,total_volume:2500000000,market_cap_rank:5},
-    {symbol:"doge",name:"Dogecoin",current_price:0.19,price_change_percentage_24h:-0.6,total_volume:1800000000,market_cap_rank:6},
-    {symbol:"bnb",name:"BNB",current_price:680,price_change_percentage_24h:0.9,total_volume:1600000000,market_cap_rank:7},
-    {symbol:"avax",name:"Avalanche",current_price:44,price_change_percentage_24h:1.5,total_volume:900000000,market_cap_rank:8},
-    {symbol:"dot",name:"Polkadot",current_price:8.3,price_change_percentage_24h:0.3,total_volume:510000000,market_cap_rank:9},
-    {symbol:"link",name:"Chainlink",current_price:21,price_change_percentage_24h:1.6,total_volume:870000000,market_cap_rank:10},
-    {symbol:"near",name:"NEAR",current_price:7.1,price_change_percentage_24h:1.0,total_volume:420000000,market_cap_rank:11},
-    {symbol:"atom",name:"Cosmos",current_price:9.4,price_change_percentage_24h:-0.4,total_volume:250000000,market_cap_rank:12},
-    {symbol:"ltc",name:"Litecoin",current_price:94,price_change_percentage_24h:0.5,total_volume:640000000,market_cap_rank:13},
-    {symbol:"uni",name:"Uniswap",current_price:12.2,price_change_percentage_24h:1.3,total_volume:320000000,market_cap_rank:14},
-    {symbol:"apt",name:"Aptos",current_price:11.4,price_change_percentage_24h:2.4,total_volume:290000000,market_cap_rank:15},
-    {symbol:"arb",name:"Arbitrum",current_price:1.6,price_change_percentage_24h:1.8,total_volume:410000000,market_cap_rank:16},
-    {symbol:"op",name:"Optimism",current_price:2.9,price_change_percentage_24h:1.1,total_volume:300000000,market_cap_rank:17},
-    {symbol:"rndr",name:"Render",current_price:9.6,price_change_percentage_24h:3.0,total_volume:230000000,market_cap_rank:18},
-    {symbol:"kas",name:"Kaspa",current_price:0.17,price_change_percentage_24h:-0.2,total_volume:150000000,market_cap_rank:19},
-    {symbol:"sui",name:"Sui",current_price:2.2,price_change_percentage_24h:2.0,total_volume:390000000,market_cap_rank:20},
-  ];
-}
-function applyMarketPayload(rows, statusLabel){
-  state.coins=(rows||[]).map(enrich);
-  state.marketStatus=statusLabel;
+async function loadMarkets(){try{
+  const res=await fetch("/api/markets");
+  if(!res.ok)throw new Error(`markets ${res.status}`);
+  const payload=await res.json();
+  state.coins=(payload.coins||[]).map(enrich);
   state.lastUpdated=new Date();
   state.sinceLastVisit = computeSinceLastVisit(state.coins);
   const currentTop = [...state.coins].sort((a,b)=>b.signal-a.signal)[0];
@@ -297,20 +248,24 @@ function applyMarketPayload(rows, statusLabel){
   storage.set("midnight-last-visit", String(Date.now()));
   state.previousSnapshot = buildSnapshot(state.coins);
   state.lastVisit = Date.now();
+  render()
+}catch(err){console.warn("Markets load failed.",err);render()}}
+function getFilteredCoins(){const q=state.assetQuery.toLowerCase();let list=state.coins;if(q)list=list.filter(c=>`${c.symbol} ${c.name}`.toLowerCase().includes(q));return [...list].sort((a,b)=>b.signal-a.signal).sort((a,b)=>state.watchlist.includes(a.symbol)===state.watchlist.includes(b.symbol)?0:state.watchlist.includes(a.symbol)?-1:1)}
+function buildVisitNarrative(){
+  if(Array.isArray(state.sinceLastVisit) && state.sinceLastVisit.length){
+    const item = state.sinceLastVisit[0];
+    if(!item || !item.symbol) return "No major change since your last check.";
+    const changeText = `${item.diff > 0 ? "+" : ""}${item.diff}%`;
+    if(item.direction === "up"){
+      return `${item.symbol} strengthened since your last check (${changeText}) — momentum improving.`;
+    }
+    if(item.direction === "down"){
+      return `${item.symbol} weakened since your last check (${changeText}) — momentum fading.`;
+    }
+  }
+  return "No major change since your last check.";
 }
 
-async function loadMarkets(){try{
-  const res=await fetch("/api/markets");
-  if(!res.ok)throw new Error(`markets ${res.status}`);
-  const payload=await res.json();
-  applyMarketPayload(payload.coins||[], "live");
-  render();
-}catch(err){
-  console.warn("Markets load failed.",err);
-  applyMarketPayload(getFallbackMarketRows(), "fallback");
-  render();
-}}
-function getFilteredCoins(){const q=state.assetQuery.toLowerCase();let list=state.coins;if(q)list=list.filter(c=>`${c.symbol} ${c.name}`.toLowerCase().includes(q));return [...list].sort((a,b)=>b.signal-a.signal).sort((a,b)=>state.watchlist.includes(a.symbol)===state.watchlist.includes(b.symbol)?0:state.watchlist.includes(a.symbol)?-1:1)}
 function renderOnboarding(){
   const root=document.getElementById("onboarding-root");
   if(!state.showOnboarding){root.innerHTML="";return}
@@ -402,9 +357,8 @@ const signalChanged = topSignal && topSignal.symbol !== state.lastTopSymbol;
 if(signalChanged && state.soundEnabled){ try{ new Audio("pulse.wav").play(); }catch{} }
 if(signalChanged && topSignal){ state.lastTopSymbol = topSignal.symbol; storage.set("midnight-last-symbol", topSignal.symbol); }
 const indicator = signalChanged ? "↑ change" : "→ stable";const topShift=getTopSignalShift(topSignal?.symbol||"");const topNarrative=getTopSignalNarrative(topSignal);const topSignalFlashClass=state.signalChange!=="neutral"?"signal-flash":"";const explain=buildExplainableSignal(topSignal);
-const decision=buildDecisionLayer(topSignal);
-const lastVisitNarrative=buildLastVisitNarrative(topSignal); updateSignalChange(topSignal);const showSignalsTab=state.activeTab==="signals";const showAlertsTab=state.activeTab==="alerts";const safeInsightsFeed=Array.isArray(state.insightsFeed)?state.insightsFeed:[];
-app.innerHTML=`<section class="tabbar"><button type="button" class="tab-btn ${showSignalsTab ? 'active' : ''}" data-tab="signals">Signals</button><button type="button" class="tab-btn ${showAlertsTab ? 'active' : ''}" data-tab="alerts">Alerts</button></section><section class="card pulse-frame fade-in ${showSignalsTab ? '' : 'tab-panel-hidden'}"><div class="row"><div><div style="font-size:20px;font-weight:700">What’s the signal tonight? 🌙</div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place.</div><div class="tiny" style="margin-top:6px">${state.marketStatus==="live"?"Live market feed connected.":"Using fallback market snapshot while live feed is unavailable."}</div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
+const decision=buildDecisionLayer(topSignal); updateSignalChange(topSignal);const showSignalsTab=state.activeTab==="signals";const showAlertsTab=state.activeTab==="alerts";const safeInsightsFeed=Array.isArray(state.insightsFeed)?state.insightsFeed:[];
+app.innerHTML=`<section class="tabbar"><button type="button" class="tab-btn ${showSignalsTab ? 'active' : ''}" data-tab="signals">Signals</button><button type="button" class="tab-btn ${showAlertsTab ? 'active' : ''}" data-tab="alerts">Alerts</button></section><section class="card pulse-frame fade-in ${showSignalsTab ? '' : 'tab-panel-hidden'}"><div class="row"><div><div style="font-size:20px;font-weight:700">What’s the signal tonight? 🌙</div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place.</div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
 <section class="grid grid-hero fade-in ${showSignalsTab ? "" : "tab-panel-hidden"}"><div class="card"><div class="row-start"><div><div class="caps">Midnight Signal</div><div class="row" style="justify-content:flex-start;margin-top:6px"><div class="logo-lockup"><div class="logo-badge"></div><div class="logo-wordmark"><div class="title" style="font-size:30px">Midnight Signal</div><div class="tiny">Logo placeholder • easy to swap later</div></div></div><button id="toggleMode">${state.beginnerMode?"Switch to Pro":"Switch to Beginner"}</button></div><p class="subtitle">Signal-first dashboard powered by a Vercel API snapshot.</p><div class="mode-note" style="margin-top:10px">${state.beginnerMode?"Beginner mode is on. You’ll see extra guidance and plain-English framing.":"Pro mode is on. Helper text is reduced for a cleaner signal-first view."}</div></div><div><div class="controls"><span class="badge live-pill">Live engine</span><span class="badge">${state.timeframe}D timeframe</span></div><div class="live-updated">${getLastUpdatedLabel()}</div></div></div><div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:18px"><div class="metric"><div class="label">Bullish Regimes</div><div class="value">${summary.bullish}/20</div></div><div class="metric"><div class="label">Enter Signals</div><div class="value">${summary.enter}</div></div><div class="metric"><div class="label">Average Confidence</div><div class="value">${summary.avgSignal}%</div></div><div class="metric"><div class="label">Top Opportunity</div><div class="value">${summary.topCoin?.symbol||"—"}</div></div></div></div>
 <section class="card"><div class="row-start"><div><div class="caps">Session Controls</div><div style="font-size:22px;font-weight:700;margin-top:4px">Controls</div></div><span class="badge live-pill">API connected</span></div><div class="grid" style="margin-top:14px"><button type="button" id="soundToggle" class="${state.soundEnabled?'sound-toggle-on':''}">Sound: ${state.soundEnabled?'On':'Off'}</button><label><div class="tiny" style="margin-bottom:6px">Strategy</div><select id="strategySelect">${STRATEGY_OPTIONS.map(s=>`<option value="${s}" ${state.strategy===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></label><label><div class="tiny" style="margin-bottom:6px">Timeframe</div><select id="timeframeSelect">${["7","30","90"].map(t=>`<option value="${t}" ${state.timeframe===t?"selected":""}>${t}D</option>`).join("")}</select></label><div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot</div></div><div class="metric"><div class="label">Last Updated</div><div style="margin-top:8px;font-size:14px">${state.lastUpdated?state.lastUpdated.toLocaleTimeString():"—"}</div></div></div></section></section>
 <section class="card top-signal fade-in ${signalChanged ? "pulse-glow" : ""} pulse-frame"><div class="caps">Tonight’s Brief</div><div class="sound-toggle" id="soundToggle">${state.soundEnabled ? "Sound: ON" : "Sound: OFF"}</div>${topSignal?`<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="title" style="font-size:28px">${topSignal.symbol}</div><span class="signal-label ${topSignal.adaptiveLabel.cls}">${topSignal.adaptiveLabel.title}</span>${badge(topSignal.regime)}${badge(topSignal.timing)}</div><div class="subtitle" style="margin-top:8px">${topSignal.name}</div><div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px"><div class="mini"><div class="tiny">Signal</div><div style="margin-top:6px;font-weight:700">${Math.round(topSignal.signal*100)}%</div><div class="tiny" style="margin-top:4px">${getConfidenceContext(topSignal.signal)}</div></div><div class="mini"><div class="tiny">Suggested Posture</div><div style="margin-top:6px">${postureBadge(topSignal)}</div></div></div>
@@ -452,8 +406,8 @@ app.innerHTML=`<section class="tabbar"><button type="button" class="tab-btn ${sh
 <div class="row" style="margin-top:16px;justify-content:space-between"><div class="tiny ${state.signalChange==='up'?'change-up':state.signalChange==='down'?'change-down':'change-neutral'}">Signal change: ${state.signalChange==='up'?'▲ Rising':state.signalChange==='down'?'▼ Cooling':'• Stable'}</div><button type="button" class="btn-primary" data-select="${topSignal.symbol}">View Details</button></div>`:`<div class="subtitle" style="margin-top:10px">Waiting for live market data…</div>`}</section>
 
 <section class="card">
-  <div class="caps">Since your last visit • signal evolution tracked<br><span style="font-size:14px;color:rgba(247,247,247,.85)">${lastVisitNarrative}</span></div>
-  <div class="subtitle" style="margin-top:8px">Compared to your last session</div>
+  <div class="caps">Since your last visit • signal evolution tracked</div>
+  <div class="subtitle" style="margin-top:8px">Compared to your last session</div><div class="tiny" style="margin-top:6px;color:rgba(247,247,247,.85)">${visitNarrative}</div>
   ${topShift ? `<div class="last-visit-row" style="margin-top:14px"><div><div style="font-weight:700">Top Signal changed</div><div class="tiny" style="margin-top:4px">The leading setup is different now</div></div><div class="last-visit-badge change-up">${topShift}</div></div>` : ``}
   ${
     state.sinceLastVisit && state.sinceLastVisit.length
