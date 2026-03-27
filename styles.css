@@ -612,3 +612,51 @@ section + .card{
   .coin-head-main{padding-right:44px}
   .coin-price{font-size:24px}
 }
+
+
+/* v7.4.1 safer card header hotfix */
+.coin-head{
+  display:grid;
+  gap:10px;
+}
+.coin-symbol-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.watch-inline{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:32px;
+  height:32px;
+  border-radius:999px;
+  border:1px solid rgba(247,247,247,.12);
+  background:rgba(247,247,247,.04);
+  margin-left:auto;
+  flex:0 0 auto;
+}
+.coin-head-main,
+.coin-price-block,
+.coin .mini{
+  min-width:0;
+}
+.coin-price{
+  font-size:26px;
+  font-weight:700;
+  line-height:1.1;
+}
+.coin-change{
+  font-size:14px;
+  font-weight:600;
+  margin-top:4px;
+}
+.watch-chip{
+  position:static !important;
+  top:auto !important;
+  right:auto !important;
+  min-width:auto !important;
+  height:auto !important;
+  z-index:auto !important;
+}
