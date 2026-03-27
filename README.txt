@@ -1,10 +1,11 @@
-Midnight Signal v6.9 decision layer
+Midnight Signal v7.0 habit layer
 
-Build number: 2026.03.27-ui.6.9
+Build number: 2026.03.27-ui.7.0
 
-What this build adds:
-- decision layer inside Top Signal
-- stance (bullish / neutral / caution)
-- confidence level
-- plain-English guidance
-- builds on explainable signals without touching layout
+What this adds:
+- pulse animation on Top Signal change
+- signal change indicator (↑ / →)
+- subtle sound toggle (pulse)
+- renames Top Signal to Tonight's Brief
+
+No layout or logic changes.
