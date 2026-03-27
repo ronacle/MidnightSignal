@@ -471,6 +471,25 @@ async function loadRemotePreferences(){
   }
 }
 
+async function handleAuthRedirect(){
+  const client = await getSupabaseClient();
+  if(!client) return;
+  try{
+    const { data, error } = await client.auth.getSession();
+    if(error) throw error;
+    if(data?.session?.user){
+      state.authUser = data.session.user;
+      state.authMessage = "Logged in successfully.";
+      state.remoteSyncState = "Signed in";
+      await ensureProfile();
+      await loadRemotePreferences();
+      render();
+    }
+  }catch{
+    // silent fallback; syncAuthSession will still try
+  }
+}
+
 async function syncAuthSession(){
   const client = await getSupabaseClient();
   if(!client){
@@ -502,7 +521,7 @@ async function sendMagicLink(){
   render();
   try{
     await client.auth.signInWithOtp({ email: state.authEmail });
-    state.authMessage = "Magic link sent. Check your email to continue.";
+    state.authMessage = "Magic link sent. Check your email, then return here after clicking it.";
   }catch{
     state.authMessage = "Magic link could not be sent. Check your email and Supabase keys.";
   }
@@ -640,7 +659,7 @@ app.innerHTML=`<div class="${state.learningEnabled ? "learning-on" : ""}">
 <section class="auth-bar">
   <div class="auth-meta">
     <div class="auth-title">Account</div>
-    <div class="auth-sub">${state.authUser ? `Signed in as ${state.authUser.email}` : "Sign in to keep your watchlist and preferences across devices."}</div>
+    <div class="auth-sub">${state.authUser ? `Signed in as ${state.authUser.email}` : "Sign in to keep your watchlist and preferences across devices. Magic link returns you right back here."}</div>
     <div class="auth-status">${state.authMessage || state.remoteSyncState}</div>
   </div>
   <div class="auth-controls">
@@ -793,4 +812,22 @@ const reopenOnboarding=app.querySelector("#reopenOnboarding");if(reopenOnboardin
 const strategySelect=app.querySelector("#strategySelect");if(strategySelect)strategySelect.addEventListener("change",e=>{state.strategy=e.target.value;storage.set("midnight-html-strategy",state.strategy);render();saveRemotePreferences();});
 const timeframeSelect=app.querySelector("#timeframeSelect");if(timeframeSelect)timeframeSelect.addEventListener("change",e=>{state.timeframe=e.target.value;storage.set("midnight-html-timeframe",state.timeframe);loadMarkets();saveRemotePreferences();});
 const soundToggle=app.querySelector("#soundToggle");if(soundToggle)soundToggle.addEventListener("click",()=>{state.soundEnabled=!state.soundEnabled;storage.set("midnight-sound-enabled",state.soundEnabled?"on":"off");render();saveRemotePreferences();});const toggleMode=app.querySelector("#toggleMode");if(toggleMode)toggleMode.addEventListener("click",()=>{state.beginnerMode=!state.beginnerMode;storage.set("midnight-mode",state.beginnerMode?"beginner":"pro");render();saveRemotePreferences();})}
-render(); syncAuthSession(); loadMarkets(); setInterval(loadMarkets,30000);
+render();
+handleAuthRedirect();
+syncAuthSession();
+getSupabaseClient().then(client=>{
+  if(client){
+    client.auth.onAuthStateChange((_event, session)=>{
+      state.authUser = session?.user || null;
+      if(state.authUser){
+        state.authMessage = "Logged in successfully.";
+        state.remoteSyncState = "Signed in";
+        ensureProfile().then(loadRemotePreferences).then(()=>render());
+      } else {
+        state.remoteSyncState = "Local only";
+        render();
+      }
+    });
+  }
+});
+loadMarkets(); setInterval(loadMarkets,30000);

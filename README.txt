@@ -1,21 +1,12 @@
-Midnight Signal v8.0 auth + persistence
+Midnight Signal v8.0.1 auth redirect patch
 
-Build number: 2026.03.27-ui.8.0
+Build number: 2026.03.27-ui.8.0.1
 
-What this build adds:
-- Supabase magic-link login scaffold
-- auth bar in the app
-- remote persistence for watchlist and key preferences
-- local mode still works if Supabase keys are not set
+Fixes:
+- handles Supabase auth session after magic-link redirect
+- listens for auth state changes on app load
+- improves sign-in messaging so users know to return after clicking the email link
 
-Setup:
-1. Create a Supabase project.
-2. Run supabase/schema.sql in the SQL editor.
-3. Put your project URL and anon key into index.html:
-   window.__SUPABASE_URL__
-   window.__SUPABASE_ANON_KEY__
-4. Deploy as usual.
-
-Notes:
-- This build does not add Stripe yet.
-- It keeps all current signal logic and UI, and adds auth/persistence around it.
+Still required in Supabase:
+- set Site URL
+- add your deployed app URL to Redirect URLs
