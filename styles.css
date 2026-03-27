@@ -706,3 +706,25 @@ section + .card{
   line-height:1.6;
   color:rgba(247,247,247,.95);
 }
+
+
+/* v7.7 narrative journey */
+.journey-block{
+  margin-top:14px;
+  border:1px solid rgba(139,168,255,.2);
+  background:rgba(139,168,255,.05);
+  border-radius:16px;
+  padding:14px 16px;
+}
+.journey-title{
+  font-size:12px;
+  letter-spacing:.08em;
+  color:rgba(247,247,247,.55);
+  text-transform:uppercase;
+}
+.journey-text{
+  margin-top:8px;
+  font-size:14px;
+  line-height:1.6;
+  color:rgba(247,247,247,.9);
+}

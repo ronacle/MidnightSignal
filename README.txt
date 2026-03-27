@@ -1,10 +1,10 @@
-Midnight Signal v7.6 tonight’s story
+Midnight Signal v7.7 narrative journey
 
-Build number: 2026.03.27-ui.7.6
+Build number: 2026.03.27-ui.7.7B
 
-What this build adds:
-- a narrative "Tonight’s Story" block
-- combines signal + context into a human-readable explanation
-- helps users understand what’s happening without interpreting multiple sections
+Adds:
+- narrative "Since your last visit"
+- human-readable summary of changes
+- integrates watchlist + signal movement
 
-No layout restructuring or API changes.
+Style: narrative (option B)
