@@ -497,3 +497,27 @@ section + .card{
   font-size:12px;
   z-index:9999;
 }
+
+
+/* guided learning */
+.helper-note{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(247,247,247,.08);
+  background:rgba(247,247,247,.04);
+  font-size:12px;
+  color:rgba(247,247,247,.78);
+  line-height:1.5;
+}
+.mode-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding:5px 10px;
+  border:1px solid rgba(247,247,247,.12);
+  background:rgba(247,247,247,.04);
+  font-size:11px;
+  margin-top:8px;
+}

@@ -1,12 +1,9 @@
-Midnight Signal v7.2.5 inline learning
+Midnight Signal v7.2.6 guided learning
 
-Build number: 2026.03.27-ui.7.2.5
+Build number: 2026.03.27-ui.7.2.6
 
-What this adds:
-- clickable glossary terms inside explanations
-- tap a term → quick definition popup
-- reinforces learning in context
-
-Safe build:
-- only wraps text in explanation layer
-- no API, layout, or render structure changes
+What this build adds:
+- guided learning helper notes
+- beginner / advanced learning mode toggle
+- extra context for signal strength, timing, MTF, and decision support
+- no layout, API, tab, or render-logic changes
