@@ -37,7 +37,7 @@ const state={
   watchlist:storage.get("midnight-html-watchlist",["BTC","ETH","ADA"]),
   selected:null, glossaryOpen:false, glossaryTopic:"signal", assetQuery:"", coins:[], lastUpdated:null,
   lastVisit:Number(storage.getString("midnight-last-visit","0"))||0,
-  previousSnapshot:storage.get("midnight-snapshot",{{}}),
+  previousSnapshot:storage.get("midnight-snapshot",{}),
   sinceLastVisit:[],
   previousTopFromSnapshot:storage.getString("midnight-prev-top-snapshot",""),
   beginnerMode:storage.getString("midnight-mode","beginner")!=="pro",
@@ -412,7 +412,7 @@ function closeUpgradeModal(){
 function isPro(){
   return getEffectivePlan() === "pro";
 }
-function openUpgradeModal(); setUpgradeMessage(msg){
+function setUpgradeMessage(msg){
   state.upgradeMessage = msg;
 }
 function createProfileFromCurrent(){
