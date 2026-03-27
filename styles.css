@@ -558,3 +558,57 @@ section + .card{
   color:rgba(247,247,247,.9);
   line-height:1.55;
 }
+
+
+/* v7.4 card/watchlist layout fix */
+.coin-head{
+  position:relative;
+  display:grid;
+  gap:12px;
+}
+.watch-chip{
+  position:absolute;
+  top:0;
+  right:0;
+  min-width:38px;
+  height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  border:1px solid rgba(247,247,247,.12);
+  background:rgba(247,247,247,.04);
+  z-index:2;
+}
+.coin-head-main{
+  min-width:0;
+  padding-right:48px;
+}
+.coin-symbol-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  min-width:0;
+}
+.coin-price-block{
+  min-width:0;
+}
+.coin-price{
+  font-size:28px;
+  font-weight:700;
+  line-height:1.1;
+  word-break:break-word;
+}
+.coin-change{
+  font-size:14px;
+  font-weight:600;
+  margin-top:4px;
+}
+.coin .mini{
+  min-width:0;
+}
+@media (max-width: 768px){
+  .coin-head-main{padding-right:44px}
+  .coin-price{font-size:24px}
+}
