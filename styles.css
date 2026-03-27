@@ -360,3 +360,49 @@ button:active{transform:scale(.96)}
   opacity:.8;
   cursor:pointer;
 }
+
+
+.card, .panel, .coin, .feed-post, .decision-block, .explain-block, .brief-card, .metric, .mini, .placeholder-card{
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease, opacity .18s ease;
+}
+.card:hover, .panel:hover, .feed-post:hover, .placeholder-card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0,0,0,.24);
+}
+.fade-in{
+  animation: fadeIn .35s ease;
+}
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(6px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.section-title{
+  letter-spacing:-.02em;
+}
+.soft-divider{
+  height:1px;
+  background:linear-gradient(90deg, transparent, rgba(247,247,247,.12), transparent);
+  margin:14px 0;
+}
+button{
+  transition: transform .14s ease, background .14s ease, box-shadow .18s ease, border-color .18s ease;
+}
+button:hover{
+  transform: translateY(-1px);
+}
+button:active{
+  transform: scale(.98);
+}
+.tab-btn{
+  min-height:44px;
+  font-weight:600;
+}
+.top-signal .mini,
+.top-signal .explain-block,
+.top-signal .decision-block{
+  backdrop-filter: blur(6px);
+}
+@media (max-width: 768px){
+  .card,.panel{padding:18px !important}
+  .title{font-size:24px !important}
+}

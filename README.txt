@@ -1,11 +1,13 @@
-Midnight Signal v7.0 habit layer
+Midnight Signal v7.1 polish pass
 
-Build number: 2026.03.27-ui.7.0
+Build number: 2026.03.27-ui.7.1
 
-What this adds:
-- pulse animation on Top Signal change
-- signal change indicator (↑ / →)
-- subtle sound toggle (pulse)
-- renames Top Signal to Tonight's Brief
+What this build adds:
+- smoother fade-in transitions
+- softer hover and button interactions
+- improved spacing and visual hierarchy
+- subtle premium feel without changing layout or logic
 
-No layout or logic changes.
+Safe on top of:
+- v7.0 habit layer
+- stable v6.9 decision-layer branch
