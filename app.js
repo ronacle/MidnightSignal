@@ -325,15 +325,17 @@ function renderOnboarding(){
 }
 function renderGlossaryShell(){if(!state.glossaryOpen)return "";const topic=GLOSSARY[state.glossaryTopic]||GLOSSARY.signal;return `<section class="card glossary-shell"><div class="row-start"><div><div class="caps">Glossary / FAQ</div><div class="title" style="font-size:28px;margin-top:6px">${topic.title}</div><div class="subtitle" style="margin-top:8px">Fast reference for terms and common questions.</div></div><button id="glossaryClose">Close</button></div><div class="glossary-grid"><div class="mini" style="display:grid;gap:8px;align-content:start">${Object.entries(GLOSSARY).map(([key,item])=>`<button type="button" data-topic="${key}" style="text-align:left;${state.glossaryTopic===key?'border-color:rgba(139,168,255,.35);background:rgba(139,168,255,.12)':''}">${item.title}</button>`).join("")}<button type="button" id="reopenOnboarding" class="reopen-btn" style="text-align:left">Reopen Agreement</button></div><div><div class="mini"><div style="font-size:15px;line-height:1.7;color:rgba(247,247,247,.86)">${topic.body}</div></div><div class="mini faq-block"><div class="caps">FAQ</div><div style="display:grid;gap:14px;margin-top:12px">${FAQ.map(item=>`<div><div style="font-weight:700">${item.q}</div><div class="tiny" style="margin-top:6px;color:rgba(247,247,247,.76)">${item.a}</div></div>`).join("")}</div></div></div></div></section><div id="glossaryBackdrop" style="position:fixed;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(6px);z-index:30"></div>`}
 function render(){renderOnboarding();const app=document.getElementById("app");const sortedCoins=getFilteredCoins();const summary={bullish:state.coins.filter(c=>c.regime==="Bullish").length,enter:state.coins.filter(c=>c.timing==="Enter").length,avgSignal:state.coins.length?Math.round(state.coins.reduce((s,c)=>s+c.signal,0)/state.coins.length*100):0,topCoin:sortedCoins[0]};const selected=state.selected?state.coins.find(c=>c.symbol===state.selected):null;const topSignal=summary.topCoin;
-const prev = state.previousSignals[topSignal?.symbol] || null;
+const safePreviousSignals = state.previousSignals && typeof state.previousSignals==="object" && !Array.isArray(state.previousSignals) ? state.previousSignals : {};
 let evolution = "neutral";
-if(prev !== null && topSignal){
+const prev = topSignal && topSignal.symbol ? safePreviousSignals[topSignal.symbol] : null;
+if(prev !== null && prev !== undefined && topSignal){
   if(topSignal.signal > prev) evolution = "up";
   else if(topSignal.signal < prev) evolution = "down";
 }
-if(topSignal){
-  state.previousSignals[topSignal.symbol] = topSignal.signal;
-  storage.set("midnight-prev-signals", state.previousSignals);
+if(topSignal && topSignal.symbol){
+  safePreviousSignals[topSignal.symbol] = topSignal.signal;
+  state.previousSignals = safePreviousSignals;
+  storage.set("midnight-prev-signals", safePreviousSignals);
 }
 
 const signalChanged = topSignal && topSignal.symbol !== state.lastTopSymbol;
