@@ -1,18 +1,5 @@
 
-const SUPABASE_URL = window.__SUPABASE_URL__ || "";
-const SUPABASE_ANON_KEY = window.__SUPABASE_ANON_KEY__ || "";
-let supabaseClient = null;
-
-async function getSupabaseClient(){
-  if (supabaseClient) return supabaseClient;
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
-  if (!window.supabase || !window.supabase.createClient) return null;
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  return supabaseClient;
-}
-
-
-const BUILD_NUMBER = window.__MIDNIGHT_BUILD__ || "2026.03.26-api.8.2";
+const BUILD_NUMBER = window.__MIDNIGHT_BUILD__ || "2026.03.26-api.7.8";
 const GLOSSARY = {
   signal:{title:"Signal",body:"Signal is the model’s overall read on current conditions. Higher numbers mean stronger alignment, not certainty."},
   opportunity:{title:"Opportunity Score",body:"Opportunity Score estimates how actionable a setup looks right now after combining signal, timing, and strategy."},
@@ -37,7 +24,7 @@ const state={
   watchlist:storage.get("midnight-html-watchlist",["BTC","ETH","ADA"]),
   selected:null, glossaryOpen:false, glossaryTopic:"signal", assetQuery:"", coins:[], lastUpdated:null,
   lastVisit:Number(storage.getString("midnight-last-visit","0"))||0,
-  previousSnapshot:storage.get("midnight-snapshot",{}),
+  previousSnapshot:storage.get("midnight-snapshot",{{}}),
   sinceLastVisit:[],
   previousTopFromSnapshot:storage.getString("midnight-prev-top-snapshot",""),
   beginnerMode:storage.getString("midnight-mode","beginner")!=="pro",
@@ -410,9 +397,9 @@ function closeUpgradeModal(){
   state.showUpgradeModal = false;
 }
 function isPro(){
-  return getEffectivePlan() === "pro";
+  return state.planTier === "pro";
 }
-function setUpgradeMessage(msg){
+function openUpgradeModal(); setUpgradeMessage(msg){
   state.upgradeMessage = msg;
 }
 function createProfileFromCurrent(){
@@ -430,94 +417,6 @@ function createProfileFromCurrent(){
   state.activeProfileName = name;
   saveCurrentProfile();
 }
-
-async function syncAuthSession(){
-  try{
-    const client = await getSupabaseClient();
-    if(!client) return;
-    const { data } = await client.auth.getUser();
-    state.authUser = data?.user || null;
-    if(state.authUser?.id){
-      await refreshRealPlan();
-    } else {
-      state.realPlanTier = "free";
-      storage.set("midnight-real-plan-tier","free");
-    }
-  }catch{}
-}
-
-async function sendMagicLink(){
-  const client = await getSupabaseClient();
-  if(!client || !state.authEmail) return;
-  state.authLoading = true;
-  render();
-  try{
-    await client.auth.signInWithOtp({ email: state.authEmail });
-    state.authMessage = 'Magic link sent. Check your email to continue.';
-  }catch{
-    state.authMessage = 'Magic link could not be sent. Double-check your email and keys.';
-  }
-  state.authLoading = false;
-  render();
-}
-
-async function signOutUser(){
-  const client = await getSupabaseClient();
-  if(!client) return;
-  try{
-    await client.auth.signOut();
-  }catch{}
-  state.authUser = null;
-  state.realPlanTier = "free";
-  state.authMessage = 'Signed out.';
-  storage.set("midnight-real-plan-tier","free");
-  render();
-}
-
-async function refreshRealPlan(){
-  if(!state.authUser?.id) return;
-  try{
-    const res = await fetch(`/api/get-plan?userId=${encodeURIComponent(state.authUser.id)}`);
-    const data = await res.json();
-    if(res.ok && data?.profile){
-      state.realPlanTier = data.profile.plan || "free";
-      storage.set("midnight-real-plan-tier", state.realPlanTier);
-      if(state.realPlanTier === "pro"){
-        state.planTier = "pro";
-        state.authMessage = 'Pro plan active.';
-      } else {
-        state.authMessage = 'Signed in. Free plan active.';
-      }
-    }
-  }catch{}
-}
-
-async function startRealCheckout(){
-  if(!state.authUser?.id || !state.authUser?.email){
-    openUpgradeModal();
-    setUpgradeMessage("Sign in first to upgrade.");
-    render();
-    return;
-  }
-  try{
-    const res = await fetch('/api/create-checkout', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ userId: state.authUser.id, email: state.authUser.email })
-    });
-    const data = await res.json();
-    if(!res.ok) throw new Error(data?.error || 'Checkout failed');
-    if(data?.url) window.location.href = data.url;
-  }catch{
-    setUpgradeMessage("Checkout could not be started.");
-    render();
-  }
-}
-
-function getEffectivePlan(){
-  return state.realPlanTier === "pro" ? "pro" : state.planTier;
-}
-
 function renderOnboarding(){
   const root=document.getElementById("onboarding-root");
   if(!state.showOnboarding){root.innerHTML="";return}
@@ -592,54 +491,7 @@ function renderOnboarding(){
 }
 function renderGlossaryShell(){if(!state.glossaryOpen)return "";const topic=GLOSSARY[state.glossaryTopic]||GLOSSARY.signal;return `<section class="card glossary-shell"><div class="row-start"><div><div class="caps">Glossary / FAQ</div><div class="title" style="font-size:28px;margin-top:6px">${topic.title}</div><div class="subtitle" style="margin-top:8px">Fast reference for terms and common questions.</div></div><button id="glossaryClose">Close</button></div><div class="glossary-grid"><div class="mini" style="display:grid;gap:8px;align-content:start">${Object.entries(GLOSSARY).map(([key,item])=>`<button type="button" data-topic="${key}" style="text-align:left;${state.glossaryTopic===key?'border-color:rgba(139,168,255,.35);background:rgba(139,168,255,.12)':''}">${item.title}</button>`).join("")}<button type="button" id="reopenOnboarding" class="reopen-btn" style="text-align:left">Reopen Agreement</button></div><div><div class="mini"><div style="font-size:15px;line-height:1.7;color:rgba(247,247,247,.86)">${topic.body}</div></div><div class="mini faq-block"><div class="caps">FAQ</div><div style="display:grid;gap:14px;margin-top:12px">${FAQ.map(item=>`<div><div style="font-weight:700">${item.q}</div><div class="tiny" style="margin-top:6px;color:rgba(247,247,247,.76)">${item.a}</div></div>`).join("")}</div></div></div></div></section><div id="glossaryBackdrop" style="position:fixed;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(6px);z-index:30"></div>`}
 function render(){renderOnboarding();const app=document.getElementById("app");const sortedCoins=getFilteredCoins();const summary={bullish:state.coins.filter(c=>c.regime==="Bullish").length,enter:state.coins.filter(c=>c.timing==="Enter").length,avgSignal:state.coins.length?Math.round(state.coins.reduce((s,c)=>s+c.signal,0)/state.coins.length*100):0,topCoin:sortedCoins[0]};const selected=state.selected?state.coins.find(c=>c.symbol===state.selected):null;const topSignal=summary.topCoin;const topShift=getTopSignalShift(topSignal?.symbol||"");const topNarrative=getTopSignalNarrative(topSignal);const explain=buildExplainableSignal(topSignal);updateVisitStreak();const decision=buildDecisionLayer(topSignal);const brief=buildTonightBrief(topSignal, explain);const contextDrivers=buildSignalContext(topSignal);const topSignalFlashClass=state.signalChange!=="neutral"?"signal-flash":"";maybeTriggerAlert(topSignal); maybeTriggerWatchlistAlerts(state.coins);const showSignalsTab=state.activeTab==="signals";const showAlertsTab=state.activeTab==="alerts";const showProfileTab=state.activeTab==="profile"; updateSignalChange(topSignal);
-
-app.innerHTML=`
-${!state.dismissedLaunchHero ? `
-<section class="launch-hero">
-  <div class="launch-kicker">Launch polish</div>
-  <div style="font-size:22px;font-weight:700;margin-top:6px">Midnight Signal is ready for real user testing</div>
-  <div class="auth-status" style="margin-top:8px">Use the app like a real user: sign in, explore the signal flow, and upgrade only when the value feels obvious.</div>
-  <div class="launch-grid">
-    <div class="launch-step">
-      <div class="launch-kicker">1. Sign in</div>
-      <div style="margin-top:6px;font-weight:700">Use magic link email login</div>
-      <div class="auth-status" style="margin-top:6px">This turns Pro into a real account-based experience.</div>
-    </div>
-    <div class="launch-step">
-      <div class="launch-kicker">2. Learn</div>
-      <div style="margin-top:6px;font-weight:700">Read the brief + explainable signals</div>
-      <div class="auth-status" style="margin-top:6px">The app should reduce confusion before it tries to monetize.</div>
-    </div>
-    <div class="launch-step">
-      <div class="launch-kicker">3. Upgrade</div>
-      <div style="margin-top:6px;font-weight:700">Trigger Pro only when it feels earned</div>
-      <div class="auth-status" style="margin-top:6px">That is the test for whether your pricing and value are aligned.</div>
-    </div>
-  </div>
-  <div style="margin-top:12px;display:flex;justify-content:flex-end">
-    <button type="button" id="dismissLaunchHero">Got it</button>
-  </div>
-</section>
-` : ``}
-<section class="auth-bar">
-  <div>
-    <div class="caps">Account</div>
-    <div style="font-weight:700;margin-top:4px">Authentication + Billing</div>
-    <div class="tiny" style="margin-top:4px">${state.authUser ? state.authUser.email : "Sign in with magic link to make Pro real across devices."}</div><div class="auth-status">${state.authMessage || ""}</div>
-  </div>
-  <div class="auth-controls">
-    <span class="auth-pill ${getEffectivePlan()==='pro' ? 'pro' : ''}">${getEffectivePlan()==='pro' ? 'Pro Active' : 'Free Plan'}</span>
-    ${state.authUser ? `
-      <button type="button" id="refreshPlanBtn">Refresh Plan</button>
-      <button type="button" id="signOutBtn">Sign out</button>
-    ` : `
-      <input class="auth-email" id="authEmailInput" type="email" placeholder="you@example.com" value="${state.authEmail}" />
-      <button type="button" id="magicLinkBtn">${state.authLoading ? 'Sending…' : 'Email Magic Link'}</button>
-    `}
-  </div>
-</section>
-` + `
-<section class="card pulse-frame tab-section ${showSignalsTab ? "" : "tab-hidden"}"><div class="row"><div><div style="font-size:20px;font-weight:700">What’s the signal tonight? 🌙</div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place.</div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
+app.innerHTML=`<section class="card pulse-frame tab-section ${showSignalsTab ? "" : "tab-hidden"}"><div class="row"><div><div style="font-size:20px;font-weight:700">What’s the signal tonight? 🌙</div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place.</div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
 <section class="grid grid-hero tab-section ${showSignalsTab ? "" : "tab-hidden"}"><div class="card"><div class="row-start"><div><div class="caps">Midnight Signal</div><div class="row" style="justify-content:flex-start;margin-top:6px"><div class="logo-lockup"><div class="logo-badge"></div><div class="logo-wordmark"><div class="title" style="font-size:30px">Midnight Signal</div><div class="tiny">Logo placeholder • easy to swap later</div></div></div><button id="toggleMode">${state.beginnerMode?"Switch to Pro":"Switch to Beginner"}</button></div><p class="subtitle">Signal-first dashboard powered by a Vercel API snapshot.</p><div class="mode-note" style="margin-top:10px">${state.beginnerMode?"Beginner mode is on. You’ll see extra guidance and plain-English framing.":"Pro mode is on. Helper text is reduced for a cleaner signal-first view."}</div></div><div><div class="controls"><span class="badge live-pill">Live engine</span><span class="badge">${state.timeframe}D timeframe</span></div><div class="live-updated">${getLastUpdatedLabel()}</div></div></div><div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:18px"><div class="metric"><div class="label">Bullish Regimes</div><div class="value">${summary.bullish}/20</div></div><div class="metric"><div class="label">Enter Signals</div><div class="value">${summary.enter}</div></div><div class="metric"><div class="label">Average Confidence</div><div class="value">${summary.avgSignal}%</div></div><div class="metric"><div class="label">Top Opportunity</div><div class="value">${summary.topCoin?.symbol||"—"}</div></div></div></div>
 <section class="card"><div class="row-start"><div><div class="caps">Session Controls</div><div style="font-size:22px;font-weight:700;margin-top:4px">Controls</div></div><span class="badge live-pill">API connected</span></div><div class="grid" style="margin-top:14px"><button type="button" id="soundToggle" class="${state.soundEnabled?'sound-toggle-on':''}">Sound: ${state.soundEnabled?'On':'Off'}</button><label><div class="tiny" style="margin-bottom:6px">Strategy</div><select id="strategySelect">${STRATEGY_OPTIONS.map(s=>`<option value="${s}" ${state.strategy===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></label><label><div class="tiny" style="margin-bottom:6px">Timeframe</div><select id="timeframeSelect">${["7","30","90"].map(t=>`<option value="${t}" ${state.timeframe===t?"selected":""}>${t}D</option>`).join("")}</select></label><div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot</div></div><div class="metric"><div class="label">Last Updated</div><div style="margin-top:8px;font-size:14px">${state.lastUpdated?state.lastUpdated.toLocaleTimeString():"—"}</div></div></div></section></section>
 
@@ -783,7 +635,10 @@ ${state.showUpgradeModal ? `
     <div style="font-size:24px;font-weight:700;margin-top:6px">Unlock full signal intelligence</div>
     <div class="price">$15<span style="font-size:16px;font-weight:400">/month</span></div>
     <div style="margin-top:14px;color:rgba(247,247,247,.75)">
-      • Watchlist alerts that follow your starred assets<br/>      • Multiple profiles for different trading styles<br/>      • Expanded coverage beyond the free experience<br/>      • Deeper signal context and personalization
+      • Watchlist alerts<br/>
+      • Multiple profiles<br/>
+      • Expanded asset coverage<br/>
+      • Advanced signal context
     </div>
     <div class="row" style="margin-top:18px;justify-content:flex-end">
       <button id="closeUpgrade">Maybe later</button>
@@ -915,4 +770,4 @@ if(newProfileBtn)newProfileBtn.addEventListener("click",()=>{
 
 app.querySelectorAll('.nav-item').forEach(el=>{el.addEventListener('click',()=>{state.activeTab = el.dataset.tab; render();});});
 const toggleMode=app.querySelector("#toggleMode");if(toggleMode)toggleMode.addEventListener("click",()=>{state.beginnerMode=!state.beginnerMode;storage.set("midnight-mode",state.beginnerMode?"beginner":"pro");render()})}
-render(); syncAuthSession(); loadMarkets(); setInterval(loadMarkets,30000);
+render(); loadMarkets(); setInterval(loadMarkets,30000);
