@@ -1,9 +1,8 @@
-Midnight Signal v7.8 daily ritual
+Midnight Signal v7.9 tonight vs yesterday
 
-Build number: 2026.03.27-ui.7.8
+Build number: 2026.03.27-ui.7.9
 
 Adds:
-- last check timestamp
-- simple streak tracking
-- subtle ritual chips
-- no layout or signal logic changes
+- comparison vs previous snapshot
+- stronger / weaker / steady labels
+- completes daily feedback loop

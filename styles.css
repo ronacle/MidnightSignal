@@ -765,3 +765,26 @@ section + .card{
   background:rgba(247,247,247,.04);
   opacity:.85;
 }
+
+
+/* v7.9 comparison block */
+.compare-block{
+  margin-top:18px;
+  border:1px solid rgba(247,247,247,.08);
+  background:rgba(247,247,247,.035);
+  border-radius:16px;
+  padding:14px 16px;
+}
+.compare-title{
+  font-size:12px;
+  letter-spacing:.08em;
+  color:rgba(247,247,247,.55);
+  text-transform:uppercase;
+}
+.compare-list{
+  margin-top:8px;
+  font-size:14px;
+}
+.compare-item{
+  margin-bottom:6px;
+}
