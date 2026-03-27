@@ -1,9 +1,12 @@
-Midnight Signal v7.2.3.1 visual polish hotfix
+Midnight Signal v7.2.4 glossary upgrade
 
-Build number: 2026.03.27-ui.7.2.3.1
+Build number: 2026.03.27-ui.7.2.4
 
-Fixes:
-- rebuilds visual polish safely from the stable v7.2.2 base
-- avoids risky template/class replacements from the broken v7.2.3 build
-- CSS-only emphasis for Top Signal and card hierarchy
-- keeps logic, tabs, and rendering intact
+What this build adds:
+- expanded glossary definitions
+- clearer educational explanations for core market terms
+- richer glossary modal copy
+- no layout, API, tab, or render-logic changes
+
+Built safely from:
+- v7.2.3.1 visual polish hotfix
