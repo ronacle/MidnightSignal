@@ -1,10 +1,8 @@
-Midnight Signal v7.7 narrative journey
+Midnight Signal v7.7.2 hotfix
 
-Build number: 2026.03.27-ui.7.7B
+Build number: 2026.03.27-ui.7.7.2
 
-Adds:
-- narrative "Since your last visit"
-- human-readable summary of changes
-- integrates watchlist + signal movement
-
-Style: narrative (option B)
+Fixes:
+- correctly places 'Tonight’s Story' inside the story block
+- moves 'Since your last visit' into its own block below the story
+- fixes the overlap/stacking issue from v7.7/v7.7.1
