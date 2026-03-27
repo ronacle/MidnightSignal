@@ -1,8 +1,10 @@
-Midnight Signal v7.7.2 hotfix
+Midnight Signal v7.7.3 polish
 
-Build number: 2026.03.27-ui.7.7.2
+Build number: 2026.03.27-ui.7.7.3
 
-Fixes:
-- correctly places 'Tonight’s Story' inside the story block
-- moves 'Since your last visit' into its own block below the story
-- fixes the overlap/stacking issue from v7.7/v7.7.1
+Changes:
+- softens the visual weight of the journey block
+- increases spacing between story and journey
+- renames 'Since your last visit' to 'What changed for you'
+- adds gentler fallback copy when nothing major changed
+- no logic or layout structure changes

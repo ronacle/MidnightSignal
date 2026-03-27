@@ -728,3 +728,23 @@ section + .card{
   line-height:1.6;
   color:rgba(247,247,247,.9);
 }
+
+
+/* v7.7.3 polish */
+.story-block{
+  margin-top:16px;
+}
+.journey-block{
+  margin-top:22px;
+  border:1px solid rgba(247,247,247,.08);
+  background:rgba(247,247,247,.035);
+  box-shadow:none;
+}
+.journey-title{
+  color:rgba(247,247,247,.5);
+}
+.journey-text{
+  font-size:13px;
+  line-height:1.55;
+  color:rgba(247,247,247,.82);
+}
