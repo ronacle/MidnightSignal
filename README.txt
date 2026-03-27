@@ -1,10 +1,9 @@
-Midnight Signal v6.6 UI foundation
+Midnight Signal v6.6.1 UI foundation hotfix
 
-Build number: 2026.03.27-ui.6.6
+Build number: 2026.03.27-ui.6.6.1
 
-What this build adds:
-- clean styled tabs: Signals / Alerts
-- Signals tab keeps the stable dashboard flow
-- Alerts tab is a safe placeholder panel
-- no signal logic changes
-- intended as the first controlled rebuild on top of the stable baseline
+Fixes:
+- agreement accept no longer leads to blank screen
+- restores missing tab state definitions
+- restores visible styled Signals / Alerts tab bar
+- keeps stable baseline rendering intact
