@@ -32,8 +32,8 @@ const state={
   agreementChecked: false
 };
 
-function formatPrice(price){if(price>=1000)return `$${price.toLocaleString(undefined,{maximumFractionDigits:0})}`;if(price>=1)return `$${price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;return `$${price.toLocaleString(undefined,{minimumFractionDigits:4,maximumFractionDigits:4})}`}
-function formatVolume(num){if(!Number.isFinite(num))return "$0";if(num>=1e12)return `$${(num/1e12).toFixed(2)}T`;if(num>=1e9)return `$${(num/1e9).toFixed(2)}B`;if(num>=1e6)return `$${(num/1e6).toFixed(2)}M`;return `$${num.toLocaleString()}`}
+function formatPrice(price){if(price>=1000)return `$${price.toLocaleString(undefined,{maximumFractionDigits:0})}</div>`;if(price>=1)return `$${price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`;return `$${price.toLocaleString(undefined,{minimumFractionDigits:4,maximumFractionDigits:4})}`}
+function formatVolume(num){if(!Number.isFinite(num))return "$0";if(num>=1e12)return `$${(num/1e12).toFixed(2)}T</div>`;if(num>=1e9)return `$${(num/1e9).toFixed(2)}B</div>`;if(num>=1e6)return `$${(num/1e6).toFixed(2)}M</div>`;return `$${num.toLocaleString()}`}
 function scoreMomentum(c){return Math.max(0,Math.min(1,0.5+c/20))}
 function scoreTrend(rank,c){const base=rank<=5?0.72:rank<=10?0.64:0.56;const adj=c>4?0.06:c<-4?-0.06:0;return Math.max(0,Math.min(1,base+adj))}
 function scoreVolatility(c){return 1-Math.min(1,Math.abs(c)/10)}
@@ -81,13 +81,13 @@ function getTopSignalShift(currentTopSymbol){
   const prevTop = state.previousTopFromSnapshot || "";
   if(!prevTop || !currentTopSymbol) return "";
   if(prevTop === currentTopSymbol) return "";
-  return `${prevTop} → ${currentTopSymbol}`;
+  return `${prevTop} → ${currentTopSymbol}</div>`;
 }
 
 function buildTopSignalPost(topSignal){
   if(!topSignal) return "";
   const confidence = Math.round(topSignal.signal * 100);
-  const direction = topSignal.change24h >= 0 ? `+${topSignal.change24h.toFixed(1)}%` : `${topSignal.change24h.toFixed(1)}%`;
+  const direction = topSignal.change24h >= 0 ? `+${topSignal.change24h.toFixed(1)}%` : `${topSignal.change24h.toFixed(1)}%</div>`;
   return `📡 Tonight’s Brief: ${topSignal.symbol}
 
 Signal confidence: ${confidence}%
@@ -97,7 +97,7 @@ Timing: ${topSignal.timing}
 
 Midnight Signal is built to help users understand what matters before reacting.
 
-#Cardano #ADA #Crypto #MidnightSignal`;
+#Cardano #ADA #Crypto #MidnightSignal</div>`;
 }
 
 function buildDecisionLayer(topSignal){
@@ -191,7 +191,7 @@ function getLastUpdatedLabel(){
   const mins = Math.max(0, Math.floor((Date.now() - state.lastUpdated.getTime()) / 60000));
   if(mins < 1) return "Updated just now";
   if(mins === 1) return "Updated 1 min ago";
-  return `Updated ${mins} min ago`;
+  return `Updated ${mins} min ago</div>`;
 }
 
 function playSignalSound(kind){
@@ -318,7 +318,7 @@ function renderOnboarding(){
         <button type="button" class="btn-primary" id="acceptAgreement" ${state.agreementChecked ? '' : 'disabled style="opacity:.55;cursor:not-allowed"'}>I Agree & Enter</button>
       </div>
     </div>
-  </div>`;
+  </div></div>`;
 
   root.querySelectorAll("[data-onboard-strategy]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -373,7 +373,7 @@ if(signalChanged && state.soundEnabled){ try{ new Audio("pulse.wav").play(); }ca
 if(signalChanged && topSignal){ state.lastTopSymbol = topSignal.symbol; storage.set("midnight-last-symbol", topSignal.symbol); }
 const indicator = signalChanged ? "↑ change" : "→ stable";const topShift=getTopSignalShift(topSignal?.symbol||"");const topNarrative=getTopSignalNarrative(topSignal);const topSignalFlashClass=state.signalChange!=="neutral"?"signal-flash":"";const explain=buildExplainableSignal(topSignal);
 const decision=buildDecisionLayer(topSignal); updateSignalChange(topSignal);const showSignalsTab=state.activeTab==="signals";const showAlertsTab=state.activeTab==="alerts";const safeInsightsFeed=Array.isArray(state.insightsFeed)?state.insightsFeed:[];
-app.innerHTML=`<section class="tabbar"><button type="button" class="tab-btn ${showSignalsTab ? 'active' : ''}" data-tab="signals">Signals</button><button type="button" class="tab-btn ${showAlertsTab ? 'active' : ''}" data-tab="alerts">Alerts</button></section><section class="card pulse-frame fade-in ${showSignalsTab ? '' : 'tab-panel-hidden'}"><div class="row"><div><div style="font-size:20px;font-weight:700"><span class="header-emphasis">What’s the signal tonight? 🌙</span></div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place. It is built to explain why a setup matters, not just show what changed.<div class="last-updated">Last updated just now</div></div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
+app.innerHTML=`<div class="${state.learningEnabled ? "learning-on" : ""}"><section class="tabbar"><button type="button" class="tab-btn ${showSignalsTab ? 'active' : ''}" data-tab="signals">Signals</button><button type="button" class="tab-btn ${showAlertsTab ? 'active' : ''}" data-tab="alerts">Alerts</button></section><section class="card pulse-frame fade-in ${showSignalsTab ? '' : 'tab-panel-hidden'}"><div class="row"><div><div style="font-size:20px;font-weight:700"><span class="header-emphasis">What’s the signal tonight? 🌙</span></div><div class="subtitle">Midnight Signal helps you scan, understand, and compare crypto setups in one place. It is built to explain why a setup matters, not just show what changed.<div class="last-updated">Last updated just now</div></div></div><div style="width:min(420px,100%)"><input id="searchInput" value="${state.assetQuery}" placeholder="Search crypto…" /></div></div></section>
 <section class="grid grid-hero fade-in ${showSignalsTab ? "" : "tab-panel-hidden"}"><div class="card"><div class="row-start"><div><div class="caps">Midnight Signal</div><div class="row" style="justify-content:flex-start;margin-top:6px"><div class="logo-lockup"><div class="logo-badge"></div><div class="logo-wordmark"><div class="title" style="font-size:30px">Midnight Signal</div><div class="tiny">Logo placeholder • easy to swap later</div></div></div><button id="toggleMode">${state.beginnerMode?"Switch to Pro":"Switch to Beginner"}</button></div><p class="subtitle">Signal-first dashboard powered by a Vercel API snapshot.</p><div class="mode-note" style="margin-top:10px">${state.beginnerMode?"Beginner mode is on. You’ll see extra guidance and plain-English framing.":"Pro mode is on. Helper text is reduced for a cleaner signal-first view."}</div></div><div><div class="controls"><span class="badge live-pill">Live engine</span><span class="badge">${state.timeframe}D timeframe</span></div><div class="live-updated">${getLastUpdatedLabel()}</div></div></div><div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:18px"><div class="metric"><div class="label">Bullish Regimes</div><div class="value">${summary.bullish}/20</div></div><div class="metric"><div class="label">Enter Signals</div><div class="value">${summary.enter}</div></div><div class="metric"><div class="label">Average Confidence</div><div class="value">${summary.avgSignal}%</div></div><div class="metric"><div class="label">Top Opportunity</div><div class="value">${summary.topCoin?.symbol||"—"}</div></div></div></div>
 <section class="card"><div class="row-start"><div><div class="caps">Session Controls</div><div style="font-size:22px;font-weight:700;margin-top:4px">Controls</div></div><span class="badge live-pill">API connected</span></div><div class="grid" style="margin-top:14px"><button type="button" id="soundToggle" class="${state.soundEnabled?'sound-toggle-on':''}">Sound: ${state.soundEnabled?'On':'Off'}</button><label><div class="tiny" style="margin-bottom:6px">Strategy</div><select id="strategySelect">${STRATEGY_OPTIONS.map(s=>`<option value="${s}" ${state.strategy===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("")}</select></label><label><div class="tiny" style="margin-bottom:6px">Timeframe</div><select id="timeframeSelect">${["7","30","90"].map(t=>`<option value="${t}" ${state.timeframe===t?"selected":""}>${t}D</option>`).join("")}</select></label><div class="metric"><div class="label">Feed Source</div><div style="margin-top:8px;font-size:14px">Vercel API → CoinGecko snapshot</div></div><div class="metric"><div class="label">Last Updated</div><div style="margin-top:8px;font-size:14px">${state.lastUpdated?state.lastUpdated.toLocaleTimeString():"—"}</div></div></div></section></section>
 <section class="card top-signal fade-in ${signalChanged ? "pulse-glow" : ""} pulse-frame"><div class="caps">Tonight’s Brief</div><div class="sound-toggle" id="soundToggle">${state.soundEnabled ? "Sound: ON" : "Sound: OFF"}</div><div class="tiny" style="margin-top:6px">Start here first. This is the clearest current read in the app.</div>${topSignal?`<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="title" style="font-size:28px">${topSignal.symbol}</div><span class="signal-label ${topSignal.adaptiveLabel.cls}">${topSignal.adaptiveLabel.title}</span>${badge(topSignal.regime)}${badge(topSignal.timing)}</div><div class="subtitle" style="margin-top:8px">${topSignal.name}</div><div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px"><div class="mini"><div class="tiny">Signal</div><div style="margin-top:6px;font-weight:700">${Math.round(topSignal.signal*100)}%</div><div class="tiny" style="margin-top:4px">${getConfidenceContext(topSignal.signal)}</div><div class="tiny" style="margin-top:4px">Higher = stronger setup.</div><div class="helper-note">${buildLearningHelper("signal")}</div></div><div class="mini"><div class="tiny">Suggested Posture</div><div style="margin-top:6px">${postureBadge(topSignal)}</div></div></div>
@@ -486,7 +486,7 @@ ${renderGlossaryShell()}
   </div>
 </section>
 
-<section style="margin-top:20px;text-align:center"><div class="tiny" style="color:rgba(247,247,247,.5)">Midnight Signal • Educational only • Not financial advice • Build ${BUILD_NUMBER}</div></section>`;
+<section style="margin-top:20px;text-align:center"><div class="tiny" style="color:rgba(247,247,247,.5)">Midnight Signal • Educational only • Not financial advice • Build ${BUILD_NUMBER}</div></section></div>`;
 const searchInput=app.querySelector("#searchInput");if(searchInput)searchInput.addEventListener("input",e=>{state.assetQuery=e.target.value;render()});
 app.querySelectorAll("[data-select]").forEach(el=>{el.addEventListener("click",()=>{state.selected=el.dataset.select;render()});el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();state.selected=el.dataset.select;render()}})});
 app.querySelectorAll("[data-watch]").forEach(el=>el.addEventListener("click",e=>{e.stopPropagation();const sym=el.dataset.watch;state.watchlist=state.watchlist.includes(sym)?state.watchlist.filter(s=>s!==sym):[...state.watchlist,sym];storage.set("midnight-html-watchlist",state.watchlist);render()}));

@@ -521,3 +521,18 @@ section + .card{
   font-size:11px;
   margin-top:8px;
 }
+
+
+/* clean learning mode */
+.helper-note{
+  display:none;
+}
+.learning-on .helper-note{
+  display:block;
+}
+.learning-toggle{
+  margin-top:6px;
+  font-size:12px;
+  opacity:.75;
+  cursor:pointer;
+}
