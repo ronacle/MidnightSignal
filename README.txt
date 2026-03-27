@@ -1,9 +1,11 @@
-Midnight Signal v7.4.1 card layout hotfix
+Midnight Signal v7.5 scan polish
 
-Build number: 2026.03.27-ui.7.4.1
+Build number: 2026.03.27-ui.7.5
 
-What this fixes:
-- moves the watchlist star out of the absolute corner position
-- places the star inline in the symbol row instead
-- avoids crowding/overlap affecting the first watched Top 20 assets
-- no API or signal logic changes
+What this build adds:
+- live status label based on last market update
+- simple scan chips (Top 20 + watchlist count)
+- clearer Top 20 scanning guidance
+- friendlier context section labels
+
+No API, layout, or signal-logic changes.

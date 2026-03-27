@@ -660,3 +660,27 @@ section + .card{
   height:auto !important;
   z-index:auto !important;
 }
+
+
+/* v7.5 scan polish */
+.status-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding:5px 10px;
+  border:1px solid rgba(247,247,247,.12);
+  background:rgba(247,247,247,.04);
+  font-size:11px;
+}
+.status-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.scan-note{
+  font-size:12px;
+  color:rgba(247,247,247,.7);
+  margin-top:6px;
+}
