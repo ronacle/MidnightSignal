@@ -1,8 +1,11 @@
-Midnight Signal v7.2.1 signal evolution hotfix
+Midnight Signal v7.3 since last visit upgrade
 
-Build number: 2026.03.27-ui.7.2.1
+Build number: 2026.03.27-ui.7.3
 
-Fixes:
-- hardens signal evolution against bad localStorage state
-- prevents blank screen after agreement when previous signal history is invalid
-- keeps v7.2 signal evolution intact
+What this build adds:
+- personalized "since your last visit" narrative
+- compares current vs last visit signal strength
+- generates plain-English summary of change
+- stores last visit snapshot safely
+
+Safe on top of v7.2.1
