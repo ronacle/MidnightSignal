@@ -1,11 +1,8 @@
-Midnight Signal v7.3 since last visit upgrade
+Midnight Signal v7.3.1 since last visit hotfix
 
-Build number: 2026.03.27-ui.7.3
+Build number: 2026.03.27-ui.7.3.1
 
-What this build adds:
-- personalized "since your last visit" narrative
-- compares current vs last visit signal strength
-- generates plain-English summary of change
-- stores last visit snapshot safely
-
-Safe on top of v7.2.1
+Fixes:
+- if /api/markets fails, app now falls back to a built-in market snapshot
+- restores visible Top 20 cards and Top Signal even when live API is unavailable
+- adds market status label so you can tell live vs fallback data
