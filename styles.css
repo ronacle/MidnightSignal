@@ -162,3 +162,17 @@ button:active{transform:scale(.96)}
   .title{font-size:26px}
   .floating-glossary{right:12px;left:12px;bottom:12px}
 }
+
+
+.strategy-selected{
+  border-color: rgba(139,168,255,.45) !important;
+  background: rgba(139,168,255,.14) !important;
+  box-shadow: 0 0 0 1px rgba(139,168,255,.12), 0 0 18px rgba(139,168,255,.18);
+}
+.sound-toggle-on{
+  border-color: rgba(139,168,255,.35);
+  background: rgba(139,168,255,.12);
+}
+.change-up{ color:#8BA8FF; }
+.change-down{ color:#2A6BFF; }
+.change-neutral{ color:rgba(247,247,247,.72); }

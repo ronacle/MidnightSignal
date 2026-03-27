@@ -1,11 +1,9 @@
-Midnight Signal Vercel API build v6
+Midnight Signal Vercel API build v6.2
 
-Build number: 2026.03.26-api.6
+Build number: 2026.03.26-api.6.2
 
-Polish pass:
-- onboarding shows once per build and can be reopened from Glossary / FAQ
-- UI renders immediately before API fetch
-- more alive feel with live beacon + pulse/shimmer accents
-- logo placeholder added to header
-- floating glossary retained
-- v5 layout retained
+Adds:
+- subtle sound toggle for top-signal changes
+- signal change indicator (rising / cooling / stable)
+- restored visual highlighting for trader type selection in the agreement modal
+- v6.1 agreement gate retained
