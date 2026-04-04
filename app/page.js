@@ -8,6 +8,31 @@ const SESSION_KEY = "midnight:session";
 const USER_KEY = "midnight:user";
 const PREMIUM_KEY = "midnight:premium";
 
+const ALLOWED_ASSETS = [
+  "bitcoin",
+  "ethereum",
+  "cardano",
+  "solana",
+  "chainlink",
+  "avalanche-2",
+  "matic-network",
+  "polkadot",
+  "dogecoin",
+  "ripple",
+  "litecoin",
+  "uniswap",
+  "near",
+  "internet-computer",
+  "aptos",
+  "render-token",
+  "arbitrum",
+  "optimism"
+];
+
+const ALLOWED_SYMBOLS = [
+  "BTC","ETH","ADA","SOL","LINK","AVAX","MATIC","DOT","DOGE","XRP","LTC","UNI","NEAR","ICP","APT","RENDER","ARB","OP"
+];
+
 function clamp(n, min = 0, max = 100) {
   return Math.max(min, Math.min(max, n));
 }
@@ -21,7 +46,7 @@ function buildSignal(asset, session) {
   const low24h = asset.low_24h || currentPrice || 0;
 
   const pricePosition = high24h === low24h
-    ? 0
+    ? 50
     : ((currentPrice - low24h) / (high24h - low24h)) * 100;
 
   const rangePct = currentPrice > 0 ? ((high24h - low24h) / currentPrice) * 100 : 0;
@@ -31,35 +56,48 @@ function buildSignal(asset, session) {
   let compressionAdj = 0;
 
   if (session === "scalp") {
-    momentumWeight = 2.2;
-    compressionAdj = rangePct < 4 ? 5 : -2;
+    momentumWeight = 2.0;
+    compressionAdj = rangePct < 4 ? 6 : -2;
   } else if (session === "position") {
-    momentumWeight = 1.0;
+    momentumWeight = 1.1;
     rankBonus = marketCapRank <= 10 ? 6 : marketCapRank <= 25 ? 2 : -2;
     compressionAdj = rangePct < 6 ? 3 : 0;
   } else {
-    momentumWeight = 1.5;
     compressionAdj = rangePct < 5 ? 3 : -1;
   }
 
-  const momentumScore = momentum24h * momentumWeight;
-  const volumeScore = volume > 1000000000 ? 10 : volume > 250000000 ? 5 : volume < 50000000 ? -10 : 0;
-  const positionScore = pricePosition > 70 ? 8 : pricePosition < 30 ? -8 : 0;
-  const rankScore = rankBonus;
-  const compressionScore = compressionAdj;
+  const normalizedMomentum = clamp(50 + momentum24h * momentumWeight * 3, 0, 100);
+  const normalizedVolume =
+    volume > 25000000000 ? 95 :
+    volume > 10000000000 ? 85 :
+    volume > 2500000000 ? 72 :
+    volume > 500000000 ? 60 :
+    volume > 100000000 ? 48 : 32;
 
-  let score = 50 + momentumScore + volumeScore + positionScore + rankScore + compressionScore;
-  score = clamp(Math.round(score));
+  const normalizedTrend =
+    marketCapRank <= 5 ? 78 :
+    marketCapRank <= 10 ? 72 :
+    marketCapRank <= 20 ? 64 :
+    marketCapRank <= 40 ? 56 : 46;
+
+  const score = clamp(Math.round(
+    normalizedMomentum * 0.4 +
+    normalizedVolume * 0.3 +
+    normalizedTrend * 0.3 +
+    rankBonus +
+    compressionAdj +
+    ((pricePosition - 50) * 0.12)
+  ));
 
   let label = "Neutral";
-  if (score >= 65) label = "Bullish";
-  if (score <= 40) label = "Bearish";
+  if (score >= 61) label = "Bullish";
+  else if (score <= 39) label = "Bearish";
 
   const confidence = clamp(Math.round(Math.abs(score - 50) * 2));
 
   let teaching = "Signal is balanced.";
-  if (label === "Bullish") teaching = "Momentum and positioning are leaning upward.";
-  if (label === "Bearish") teaching = "Weak positioning and pressure are dragging the signal lower.";
+  if (label === "Bullish") teaching = "Momentum, liquidity, and trend posture are leaning upward.";
+  if (label === "Bearish") teaching = "Weak trend posture and pressure are dragging the signal lower.";
 
   return {
     id: asset.id,
@@ -75,11 +113,11 @@ function buildSignal(asset, session) {
     pricePosition: Math.round(pricePosition),
     rangePct: Math.round(rangePct * 100) / 100,
     breakdown: {
-      momentum: Math.round(momentumScore),
-      volume: volumeScore,
-      position: positionScore,
-      rank: rankScore,
-      compression: compressionScore
+      momentum: Math.round((normalizedMomentum - 50) / 5),
+      volume: Math.round((normalizedVolume - 50) / 5),
+      trend: Math.round((normalizedTrend - 50) / 5),
+      rank: rankBonus,
+      compression: compressionAdj
     },
     teaching
   };
@@ -98,10 +136,25 @@ function badgeColor(label) {
   return "#94a3b8";
 }
 
+function confidenceColor(confidence) {
+  if (confidence >= 70) return "#60a5fa";
+  if (confidence <= 45) return "#1d4ed8";
+  return "#94a3b8";
+}
+
 function glow(score) {
-  if (score >= 75) return "0 0 24px rgba(59,130,246,0.38)";
-  if (score <= 35) return "0 0 18px rgba(30,64,175,0.20)";
-  return "0 0 10px rgba(59,130,246,0.12)";
+  if (score >= 75) return "0 0 24px rgba(59,130,246,0.34)";
+  if (score <= 35) return "0 0 18px rgba(30,64,175,0.18)";
+  return "0 0 12px rgba(59,130,246,0.10)";
+}
+
+function cardBase(isChanged = false) {
+  return {
+    background: "linear-gradient(180deg, rgba(11,18,32,0.98) 0%, rgba(5,10,20,0.98) 100%)",
+    border: "1px solid rgba(59,130,246,0.15)",
+    borderRadius: 16,
+    boxShadow: isChanged ? "0 0 18px rgba(59,130,246,0.26)" : "0 0 16px rgba(2,6,23,0.45)"
+  };
 }
 
 function summarizeVisit(prev, next, watchlist) {
@@ -152,8 +205,8 @@ function buildBrief(signals, session, watchlist) {
   const watched = signals.filter((s) => watchlist.includes(s.id));
 
   let mood = "Market conditions are fairly balanced tonight.";
-  if (bullish >= bearish + 4) mood = "Bullish pressure is leading tonight’s tape.";
-  if (bearish >= bullish + 4) mood = "Risk-off pressure is dominating tonight.";
+  if (bullish >= bearish + 3) mood = "Bullish pressure is leading tonight’s tape.";
+  if (bearish >= bullish + 3) mood = "Risk-off pressure is dominating tonight.";
 
   let sessionNote = "Swing mode is looking for usable directional posture.";
   if (session === "scalp") sessionNote = "Scalp mode is prioritizing fast momentum and short bursts.";
@@ -181,14 +234,14 @@ function decisionText(signal) {
 
 function BreakdownBar({ label, value }) {
   const positive = value >= 0;
-  const width = Math.min(100, Math.abs(value) * 5);
+  const width = Math.min(100, Math.abs(value) * 10);
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display:"flex", justifyContent:"space-between", fontSize: 12, color:"#94a3b8" }}>
         <span>{label}</span>
         <span>{value > 0 ? `+${value}` : value}</span>
       </div>
-      <div style={{ height: 8, background:"#111827", borderRadius: 999, overflow:"hidden", marginTop: 4 }}>
+      <div style={{ height: 8, background:"#0b1220", borderRadius: 999, overflow:"hidden", marginTop: 4, border: "1px solid rgba(59,130,246,0.08)" }}>
         <div style={{
           width: `${width}%`,
           height: "100%",
@@ -200,6 +253,7 @@ function BreakdownBar({ label, value }) {
 }
 
 function ConfidenceRing({ value }) {
+  const tone = confidenceColor(value);
   return (
     <div style={{
       width: 86,
@@ -207,8 +261,8 @@ function ConfidenceRing({ value }) {
       borderRadius: "50%",
       display: "grid",
       placeItems: "center",
-      background: `conic-gradient(#3b82f6 ${value * 3.6}deg, #0f172a 0deg)`,
-      boxShadow: "0 0 20px rgba(59,130,246,0.25)"
+      background: `conic-gradient(${tone} ${value * 3.6}deg, #0f172a 0deg)`,
+      boxShadow: value >= 70 ? "0 0 20px rgba(59,130,246,0.25)" : "0 0 12px rgba(2,6,23,0.45)"
     }}>
       <div style={{
         width: 60,
@@ -219,7 +273,8 @@ function ConfidenceRing({ value }) {
         placeItems: "center",
         fontSize: 14,
         color: "#e5e7eb",
-        border: "1px solid #1e293b"
+        border: "1px solid #1e293b",
+        textShadow: value >= 70 ? "0 0 10px rgba(59,130,246,0.6)" : "none"
       }}>
         {value}
       </div>
@@ -275,10 +330,14 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
-    fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=24&page=1&sparkline=false")
+    fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false")
       .then((r) => r.json())
       .then((res) => {
-        const built = res.map((asset) => buildSignal(asset, session));
+        const filtered = (Array.isArray(res) ? res : [])
+          .filter((asset) => ALLOWED_ASSETS.includes(asset.id) || ALLOWED_SYMBOLS.includes((asset.symbol || "").toUpperCase()))
+          .slice(0, 18);
+
+        const built = filtered.map((asset) => buildSignal(asset, session));
         const previous = JSON.parse(localStorage.getItem(VISIT_KEY) || "[]");
         const summary = summarizeVisit(previous, built, watchlist);
         localStorage.setItem(VISIT_KEY, JSON.stringify(built));
@@ -353,7 +412,7 @@ export default function Page() {
     localStorage.removeItem(PREMIUM_KEY);
     setUser("");
     setEmailDraft("");
-    setPremium(false)
+    setPremium(false);
   }
 
   const sorted = useMemo(() => [...signals].sort((a, b) => b.score - a.score), [signals]);
@@ -370,11 +429,18 @@ export default function Page() {
   const tonightBrief = buildBrief(signals, session, watchlist);
 
   return (
-    <main style={{ padding: 28, maxWidth: 1180, margin: "0 auto" }}>
+    <main style={{
+      padding: 28,
+      maxWidth: 1180,
+      margin: "0 auto",
+      color: "#e5e7eb",
+      minHeight: "100vh",
+      background: "radial-gradient(circle at top, rgba(37,99,235,0.10), transparent 28%)"
+    }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap: 16, flexWrap:"wrap" }}>
         <div>
-          <div style={{ fontSize: 28, fontWeight: 700 }}>🌙 Midnight Signal</div>
-          <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10 · backend-ready auth + billing structure</div>
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em" }}>🌙 Midnight Signal</div>
+          <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.1 · premium visual reset + cleaner market universe</div>
         </div>
         <div style={{ display:"flex", gap: 8, flexWrap:"wrap" }}>
           {["scalp", "swing", "position"].map((item) => (
@@ -412,9 +478,7 @@ export default function Page() {
       <section style={{
         marginTop: 18,
         padding: 16,
-        borderRadius: 16,
-        background: "linear-gradient(180deg, rgba(2,6,23,1) 0%, rgba(1,4,12,1) 100%)",
-        border: "1px solid #1e293b",
+        ...cardBase(),
         boxShadow: "0 0 20px rgba(59,130,246,0.14)"
       }}>
         <div style={{ fontSize: 14, color:"#93c5fd", marginBottom: 8 }}>Environment Status</div>
@@ -431,12 +495,7 @@ export default function Page() {
         gridTemplateColumns: "minmax(0, 1.3fr) minmax(320px, .9fr)",
         gap: 16
       }}>
-        <section style={{
-          padding: 18,
-          borderRadius: 16,
-          background: "#020617",
-          border: "1px solid #1e293b"
-        }}>
+        <section style={{ padding: 18, ...cardBase() }}>
           <div style={{ fontSize: 14, color:"#93c5fd", marginBottom: 8 }}>Identity + Access</div>
           <div style={{ display:"flex", gap: 8, flexWrap:"wrap" }}>
             <input
@@ -448,51 +507,27 @@ export default function Page() {
                 minWidth: 220,
                 padding: "11px 12px",
                 borderRadius: 12,
-                border: "1px solid #334155",
+                border: "1px solid rgba(59,130,246,0.18)",
                 background: "#01030a",
                 color: "#e5e7eb",
-                outline: "none"
+                outline: "none",
+                boxShadow: "inset 0 0 0 1px rgba(15,23,42,0.6)"
               }}
             />
-            <button
-              onClick={saveUser}
-              style={{
-                padding: "11px 14px",
-                borderRadius: 12,
-                border: "1px solid #334155",
-                background: "#1e293b",
-                color: "#e5e7eb",
-                cursor: "pointer"
-              }}
-            >
+            <button onClick={saveUser} style={{ padding: "11px 14px", borderRadius: 12, border: "1px solid #334155", background: "#1e293b", color: "#e5e7eb", cursor: "pointer" }}>
               Save identity
             </button>
-            <button
-              onClick={startUpgrade}
-              style={{
-                padding: "11px 14px",
-                borderRadius: 12,
-                border: "1px solid #2563eb",
-                background: "#1d4ed8",
-                color: "#fff",
-                cursor: "pointer"
-              }}
-            >
+            <button onClick={startUpgrade} style={{ padding: "11px 14px", borderRadius: 12, border: "1px solid #2563eb", background: "#1d4ed8", color: "#fff", cursor: "pointer" }}>
               Upgrade
             </button>
             {!configStatus.stripeReady && (
-              <button
-                onClick={simulatePremium}
-                style={{
-                  padding: "11px 14px",
-                  borderRadius: 12,
-                  border: "1px solid #334155",
-                  background: "#020617",
-                  color: "#93c5fd",
-                  cursor: "pointer"
-                }}
-              >
+              <button onClick={simulatePremium} style={{ padding: "11px 14px", borderRadius: 12, border: "1px solid #334155", background: "#020617", color: "#93c5fd", cursor: "pointer" }}>
                 Local premium unlock
+              </button>
+            )}
+            {(user || premium) && (
+              <button onClick={signOut} style={{ padding: "11px 14px", borderRadius: 12, border: "1px solid #334155", background: "#020617", color: "#94a3b8", cursor: "pointer" }}>
+                Clear local state
               </button>
             )}
           </div>
@@ -516,12 +551,7 @@ export default function Page() {
           )}
         </section>
 
-        <section style={{
-          padding: 18,
-          borderRadius: 16,
-          background: "#020617",
-          border: "1px solid #1e293b"
-        }}>
+        <section style={{ padding: 18, ...cardBase() }}>
           <div style={{ fontSize: 14, color:"#93c5fd", marginBottom: 8 }}>Tonight’s Brief</div>
           <div style={{ fontSize: 15, lineHeight: 1.6 }}>{tonightBrief}</div>
         </section>
@@ -535,10 +565,8 @@ export default function Page() {
       }}>
         <section style={{
           padding: 18,
-          borderRadius: 16,
-          background: "#020617",
-          border: "1px solid #1e293b",
-          boxShadow: topSignal ? glow(topSignal.score) : "none"
+          ...cardBase(),
+          boxShadow: topSignal ? glow(topSignal.score) : "0 0 16px rgba(2,6,23,0.45)"
         }}>
           <div style={{ fontSize: 13, color:"#94a3b8" }}>Tonight’s Top Signal</div>
           {topSignal ? (
@@ -579,7 +607,7 @@ export default function Page() {
                 <div style={{ fontSize: 13, color:"#cbd5e1" }}>Signal Breakdown</div>
                 <BreakdownBar label="Momentum" value={topSignal.breakdown.momentum} />
                 <BreakdownBar label="Volume" value={topSignal.breakdown.volume} />
-                <BreakdownBar label="Price Position" value={topSignal.breakdown.position} />
+                <BreakdownBar label="Trend" value={topSignal.breakdown.trend} />
                 <BreakdownBar label="Market Rank" value={topSignal.breakdown.rank} />
                 <BreakdownBar label="Compression" value={topSignal.breakdown.compression} />
               </div>
@@ -589,12 +617,7 @@ export default function Page() {
           )}
         </section>
 
-        <section style={{
-          padding: 18,
-          borderRadius: 16,
-          background: "#020617",
-          border: "1px solid #1e293b"
-        }}>
+        <section style={{ padding: 18, ...cardBase() }}>
           <div style={{ fontSize: 13, color:"#94a3b8" }}>Since your last visit</div>
           <div style={{ marginTop: 10, color:"#e5e7eb", lineHeight: 1.55 }}>{visitSummary.headline}</div>
           <div style={{ marginTop: 12 }}>
@@ -619,13 +642,7 @@ export default function Page() {
 
       <section style={{ marginTop: 20 }}>
         <div style={{ fontSize: 14, color:"#cbd5e1" }}>Access Tier</div>
-        <div style={{
-          marginTop: 12,
-          padding: 16,
-          borderRadius: 16,
-          background: "#020617",
-          border: "1px solid #1e293b"
-        }}>
+        <div style={{ marginTop: 12, padding: 16, ...cardBase() }}>
           <div style={{ fontSize: 14, color:"#e5e7eb" }}>
             {premium ? "Premium is active. Full signal list unlocked." : "Free tier is active. Top 5 priority signals are unlocked."}
           </div>
@@ -650,6 +667,7 @@ export default function Page() {
           {visibleSignals.map((coin, index) => {
             const isWatched = watchlist.includes(coin.id);
             const changed = visitSummary.changedIds.includes(coin.id);
+            const confTone = confidenceColor(coin.confidence);
             return (
               <div
                 key={coin.id}
@@ -657,10 +675,9 @@ export default function Page() {
                 style={{
                   cursor: "pointer",
                   padding: 14,
-                  borderRadius: 14,
-                  background: "#020617",
-                  border: "1px solid #1e293b",
-                  boxShadow: changed ? "0 0 16px rgba(59,130,246,0.35)" : glow(coin.score)
+                  ...cardBase(changed),
+                  boxShadow: changed ? "0 0 18px rgba(59,130,246,0.28)" : glow(coin.score),
+                  transition: "all 0.2s ease"
                 }}
               >
                 <div style={{ display:"flex", justifyContent:"space-between", gap: 8 }}>
@@ -670,7 +687,12 @@ export default function Page() {
                   </div>
                   <div style={{ fontSize: 12, color: badgeColor(coin.label) }}>{coin.label}</div>
                 </div>
-                <div style={{ marginTop: 10, fontSize: 13, color:"#cbd5e1" }}>
+                <div style={{
+                  marginTop: 10,
+                  fontSize: 13,
+                  color: confTone,
+                  textShadow: coin.confidence >= 70 ? "0 0 10px rgba(59,130,246,0.6)" : "none"
+                }}>
                   Score {coin.score} · Conf {coin.confidence}
                 </div>
                 <div style={{ marginTop: 6, fontSize: 12, color:"#64748b" }}>
