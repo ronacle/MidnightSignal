@@ -1,26 +1,4 @@
-
-
-// --- v10.4 smarter signal engine ---
 'use client';
-
-function computeSignal(coin) {
-  const momentum = coin.price_change_percentage_24h || 0;
-  const volume = coin.total_volume || 0;
-  const trend = coin.market_cap_rank ? 1 / coin.market_cap_rank : 0;
-
-  const score =
-    momentum * 0.5 +
-    (volume > 0 ? Math.log(volume) : 0) * 0.2 +
-    trend * 0.3;
-
-  let label = "Neutral";
-  if (score > 2) label = "Bullish";
-  if (score < -2) label = "Bearish";
-
-  const confidence = Math.min(100, Math.abs(score) * 20);
-
-  return { label, confidence };
-}
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -30,6 +8,7 @@ const MODE_KEY = "midnight:viewMode";
 const SESSION_KEY = "midnight:session";
 const USER_KEY = "midnight:user";
 const PREMIUM_KEY = "midnight:premium";
+const SIGNAL_MEMORY_KEY = "midnight:signalMemory";
 
 const FALLBACK_ASSETS = [
   {
@@ -89,14 +68,72 @@ const FALLBACK_ASSETS = [
   }
 ];
 
-function processAssets(assets, session, watchlist, source = "live") {
-  const built = assets.map((asset) => buildSignal(asset, session));
-  const previous = JSON.parse(localStorage.getItem(VISIT_KEY) || "[]");
-  const summary = summarizeVisit(previous, built, watchlist);
-  localStorage.setItem(VISIT_KEY, JSON.stringify(built));
-  return { built, summary, source };
+
+function blendedLabel(score, previousLabel = "Neutral") {
+  if (previousLabel === "Bullish" && score >= 58) return "Bullish";
+  if (previousLabel === "Bearish" && score <= 42) return "Bearish";
+  if (score >= 65) return "Bullish";
+  if (score <= 40) return "Bearish";
+  return "Neutral";
 }
 
+function smoothSignal(current, previousMemory) {
+  if (!previousMemory) {
+    return {
+      ...current,
+      streak: 1,
+      stability: 52
+    };
+  }
+
+  const weightedScore = Math.round((current.score * 0.68) + (previousMemory.score * 0.32));
+  const weightedConfidence = clamp(
+    Math.round((current.confidence * 0.72) + ((previousMemory.confidence || 0) * 0.28))
+  );
+  const label = blendedLabel(weightedScore, previousMemory.label);
+  const sameDirection = label === previousMemory.label;
+  const streak = sameDirection ? Math.min((previousMemory.streak || 1) + 1, 6) : 1;
+  const stability = clamp(
+    Math.round(45 + (streak * 8) - (Math.min(Math.abs(current.score - (previousMemory.score || current.score)), 18) * 1.2))
+  );
+
+  return {
+    ...current,
+    score: weightedScore,
+    confidence: weightedConfidence,
+    label,
+    streak,
+    stability
+  };
+}
+
+
+function processAssets(assets, session, watchlist, source = "live") {
+  const built = assets.map((asset) => buildSignal(asset, session));
+  const previousVisit = JSON.parse(localStorage.getItem(VISIT_KEY) || "[]");
+  const memory = JSON.parse(localStorage.getItem(SIGNAL_MEMORY_KEY) || "{}");
+
+  const smoothed = built.map((signal) => smoothSignal(signal, memory[signal.id]));
+
+  const nextMemory = Object.fromEntries(
+    smoothed.map((signal) => [
+      signal.id,
+      {
+        score: signal.score,
+        confidence: signal.confidence,
+        label: signal.label,
+        streak: signal.streak || 1
+      }
+    ])
+  );
+
+  const summary = summarizeVisit(previousVisit, smoothed, watchlist);
+
+  localStorage.setItem(VISIT_KEY, JSON.stringify(smoothed));
+  localStorage.setItem(SIGNAL_MEMORY_KEY, JSON.stringify(nextMemory));
+
+  return { built: smoothed, summary, source };
+}
 
 function clamp(n, min = 0, max = 100) {
   return Math.max(min, Math.min(max, n));
@@ -157,6 +194,7 @@ function buildSignal(asset, session) {
     name: asset.name,
     price: currentPrice,
     change24h: momentum24h,
+    rawScore: score,
     score,
     label,
     confidence,
@@ -171,7 +209,9 @@ function buildSignal(asset, session) {
       rank: rankScore,
       compression: compressionScore
     },
-    teaching
+    teaching,
+    streak: 1,
+    stability: 50
   };
 }
 
@@ -465,7 +505,13 @@ export default function Page() {
     setPremium(false)
   }
 
-  const sorted = useMemo(() => [...signals].sort((a, b) => b.score - a.score), [signals]);
+  const sorted = useMemo(() => {
+    return [...signals].sort((a, b) => {
+      const aPower = a.score + (a.confidence * 0.22) + ((a.stability || 50) * 0.12) + ((a.streak || 1) * 1.5);
+      const bPower = b.score + (b.confidence * 0.22) + ((b.stability || 50) * 0.12) + ((b.streak || 1) * 1.5);
+      return bPower - aPower;
+    });
+  }, [signals]);
   const fallbackTopSignal = buildSignal(FALLBACK_ASSETS[0], session);
   const topSignal = sorted[0] || fallbackTopSignal;
 
@@ -485,7 +531,7 @@ export default function Page() {
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap: 16, flexWrap:"wrap" }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 700 }}>🌙 Midnight Signal</div>
-          <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.3 · data hydration + fallback</div>
+          <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.4.1 · anti-noise + persistence</div>
         </div>
         <div style={{ display:"flex", gap: 8, flexWrap:"wrap", alignItems:"center" }}>
           <div style={{ padding: "8px 10px", borderRadius: 999, border: "1px solid #334155", background: dataSource === "live" ? "rgba(15,23,42,0.95)" : "rgba(30,41,59,0.95)", color: dataSource === "live" ? "#86efac" : "#fbbf24", fontSize: 12 }}>
@@ -795,7 +841,7 @@ export default function Page() {
       </section>
 
       <div style={{ marginTop: 18, textAlign: "center", fontSize: 12, color: "#64748b" }}>
-        v10.3 · data hydration + fallback
+        v10.4.1 · anti-noise + persistence
       </div>
     </main>
   );
