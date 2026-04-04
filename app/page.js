@@ -1,3 +1,25 @@
+
+
+// --- v10.4 smarter signal engine ---
+function computeSignal(coin) {
+  const momentum = coin.price_change_percentage_24h || 0;
+  const volume = coin.total_volume || 0;
+  const trend = coin.market_cap_rank ? 1 / coin.market_cap_rank : 0;
+
+  const score =
+    momentum * 0.5 +
+    (volume > 0 ? Math.log(volume) : 0) * 0.2 +
+    trend * 0.3;
+
+  let label = "Neutral";
+  if (score > 2) label = "Bullish";
+  if (score < -2) label = "Bearish";
+
+  const confidence = Math.min(100, Math.abs(score) * 20);
+
+  return { label, confidence };
+}
+
 'use client';
 import { useEffect, useMemo, useState } from "react";
 
