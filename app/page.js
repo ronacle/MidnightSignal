@@ -1,12 +1,12 @@
 'use client';
 
-// --- v10.5 paywall ---
+// --- v10.6 paywall ---
 function usePremium() {
   const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
     setIsPremium(localStorage.getItem("midnight:premium") === "true");
-  }, []);
+  }, [refreshTick]);
 
   const enable = () => {
     localStorage.setItem("midnight:premium", "true");
@@ -27,6 +27,8 @@ const USER_KEY = "midnight:user";
 
 const PREMIUM_KEY = "midnight:premium";
 const SIGNAL_MEMORY_KEY = "midnight:signalMemory";
+const LIVE_REFRESH_MS = 90 * 1000;
+const LIVE_PULSE_MS = 2200;
 
 const FALLBACK_ASSETS = [
   {
@@ -525,6 +527,20 @@ export default function Page() {
 
   const { isPremium, enable } = usePremium();
 
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    setRefreshTick((tick) => tick + 1);
+    setLastRefreshAt(Date.now());
+    setLivePulse(true);
+    window.setTimeout(() => setLivePulse(false), LIVE_PULSE_MS);
+  }, LIVE_REFRESH_MS);
+
+  return () => clearInterval(interval);
+}, []);
+
+const secondsSinceRefresh = Math.max(0, Math.floor((Date.now() - lastRefreshAt) / 1000));
+
 const sorted = useMemo(() => {
     return [...signals].sort((a, b) => {
       const aPower = a.score + (a.confidence * 0.22) + ((a.stability || 50) * 0.12) + ((a.streak || 1) * 1.5);
@@ -551,7 +567,7 @@ const sorted = useMemo(() => {
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap: 16, flexWrap:"wrap" }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 700 }}>🌙 Midnight Signal</div>
-          <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.5 · anti-noise + persistence</div>
+          <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.6 · live refresh</div>
         </div>
         <div style={{ display:"flex", gap: 8, flexWrap:"wrap", alignItems:"center" }}>
           <div style={{ padding: "8px 10px", borderRadius: 999, border: "1px solid #334155", background: dataSource === "live" ? "rgba(15,23,42,0.95)" : "rgba(30,41,59,0.95)", color: dataSource === "live" ? "#86efac" : "#fbbf24", fontSize: 12 }}>
@@ -861,7 +877,7 @@ const sorted = useMemo(() => {
       </section>
 
       <div style={{ marginTop: 18, textAlign: "center", fontSize: 12, color: "#64748b" }}>
-        v10.5 · anti-noise + persistence
+        v10.6 · live refresh
       </div>
     </main>
   );
