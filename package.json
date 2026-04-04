@@ -1,6 +1,6 @@
 {
   "name": "midnight-signal",
-  "version": "7.4.0",
+  "version": "7.4.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,5 +12,10 @@
     "next": "15.3.8",
     "react": "19.2.0",
     "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "@types/node": "^22.15.2",
+    "@types/react": "^19.1.2"
   }
 }
