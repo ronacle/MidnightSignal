@@ -1,2 +1,1 @@
-v8.4.1 Render Polish Bundle
-This represents the corrected build with cleaner UI and reduced motion.
+This buildfix bundle removes TypeScript files so Vercel won't ask for typescript/@types packages.
