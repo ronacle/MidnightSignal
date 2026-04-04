@@ -1,20 +1,17 @@
-# Midnight Signal v8.3.0 Stable
+# Midnight Signal v8.4.0 Alive
 
-This bundle is designed to be deployment-safe on Vercel.
+This bundle keeps the stable v8.3.0 deployment-safe foundation and adds subtle motion, pulse, hover depth, and a more alive visual layer.
 
-## What is fixed
+## What changed
+- Top signal pulse ring and glow
+- Hover lift on tracked assets and leaderboard rows
+- Slight animated background energy
+- Optional sound toggle UI placeholder (default off)
+- Version bumped to `8.4.0`
+
+## Still safe
 - No top-level `BUILD` usage
 - No `refreshTick` usage
 - No prerender-time live API dependency on `/`
 - Market data fetches are guarded with timeout + fallback
 - Includes `/api/market` and `/api/version`
-
-## Deploy
-1. Upload contents to your GitHub repo root
-2. Push to Vercel
-3. Build command: `npm run vercel-build`
-
-## Notes
-- Home page renders from fallback data first, then refreshes client-side
-- Version endpoint: `/api/version`
-- Market endpoint: `/api/market`
