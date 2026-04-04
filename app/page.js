@@ -8,30 +8,72 @@ const SESSION_KEY = "midnight:session";
 const USER_KEY = "midnight:user";
 const PREMIUM_KEY = "midnight:premium";
 
-const ALLOWED_ASSETS = [
-  "bitcoin",
-  "ethereum",
-  "cardano",
-  "solana",
-  "chainlink",
-  "avalanche-2",
-  "matic-network",
-  "polkadot",
-  "dogecoin",
-  "ripple",
-  "litecoin",
-  "uniswap",
-  "near",
-  "internet-computer",
-  "aptos",
-  "render-token",
-  "arbitrum",
-  "optimism"
+const FALLBACK_ASSETS = [
+  {
+    id: "bitcoin",
+    symbol: "btc",
+    name: "Bitcoin",
+    current_price: 68000,
+    price_change_percentage_24h: 2.8,
+    market_cap_rank: 1,
+    total_volume: 42000000000,
+    high_24h: 69250,
+    low_24h: 66120
+  },
+  {
+    id: "ethereum",
+    symbol: "eth",
+    name: "Ethereum",
+    current_price: 3200,
+    price_change_percentage_24h: 1.9,
+    market_cap_rank: 2,
+    total_volume: 21000000000,
+    high_24h: 3268,
+    low_24h: 3124
+  },
+  {
+    id: "cardano",
+    symbol: "ada",
+    name: "Cardano",
+    current_price: 0.65,
+    price_change_percentage_24h: 3.6,
+    market_cap_rank: 9,
+    total_volume: 980000000,
+    high_24h: 0.67,
+    low_24h: 0.62
+  },
+  {
+    id: "solana",
+    symbol: "sol",
+    name: "Solana",
+    current_price: 140,
+    price_change_percentage_24h: 2.2,
+    market_cap_rank: 5,
+    total_volume: 3200000000,
+    high_24h: 144,
+    low_24h: 135
+  },
+  {
+    id: "chainlink",
+    symbol: "link",
+    name: "Chainlink",
+    current_price: 18.4,
+    price_change_percentage_24h: 1.2,
+    market_cap_rank: 13,
+    total_volume: 640000000,
+    high_24h: 18.9,
+    low_24h: 17.8
+  }
 ];
 
-const ALLOWED_SYMBOLS = [
-  "BTC","ETH","ADA","SOL","LINK","AVAX","MATIC","DOT","DOGE","XRP","LTC","UNI","NEAR","ICP","APT","RENDER","ARB","OP"
-];
+function processAssets(assets, session, watchlist, source = "live") {
+  const built = assets.map((asset) => buildSignal(asset, session));
+  const previous = JSON.parse(localStorage.getItem(VISIT_KEY) || "[]");
+  const summary = summarizeVisit(previous, built, watchlist);
+  localStorage.setItem(VISIT_KEY, JSON.stringify(built));
+  return { built, summary, source };
+}
+
 
 function clamp(n, min = 0, max = 100) {
   return Math.max(min, Math.min(max, n));
@@ -46,7 +88,7 @@ function buildSignal(asset, session) {
   const low24h = asset.low_24h || currentPrice || 0;
 
   const pricePosition = high24h === low24h
-    ? 50
+    ? 0
     : ((currentPrice - low24h) / (high24h - low24h)) * 100;
 
   const rangePct = currentPrice > 0 ? ((high24h - low24h) / currentPrice) * 100 : 0;
@@ -56,48 +98,35 @@ function buildSignal(asset, session) {
   let compressionAdj = 0;
 
   if (session === "scalp") {
-    momentumWeight = 2.0;
-    compressionAdj = rangePct < 4 ? 6 : -2;
+    momentumWeight = 2.2;
+    compressionAdj = rangePct < 4 ? 5 : -2;
   } else if (session === "position") {
-    momentumWeight = 1.1;
+    momentumWeight = 1.0;
     rankBonus = marketCapRank <= 10 ? 6 : marketCapRank <= 25 ? 2 : -2;
     compressionAdj = rangePct < 6 ? 3 : 0;
   } else {
+    momentumWeight = 1.5;
     compressionAdj = rangePct < 5 ? 3 : -1;
   }
 
-  const normalizedMomentum = clamp(50 + momentum24h * momentumWeight * 3, 0, 100);
-  const normalizedVolume =
-    volume > 25000000000 ? 95 :
-    volume > 10000000000 ? 85 :
-    volume > 2500000000 ? 72 :
-    volume > 500000000 ? 60 :
-    volume > 100000000 ? 48 : 32;
+  const momentumScore = momentum24h * momentumWeight;
+  const volumeScore = volume > 1000000000 ? 10 : volume > 250000000 ? 5 : volume < 50000000 ? -10 : 0;
+  const positionScore = pricePosition > 70 ? 8 : pricePosition < 30 ? -8 : 0;
+  const rankScore = rankBonus;
+  const compressionScore = compressionAdj;
 
-  const normalizedTrend =
-    marketCapRank <= 5 ? 78 :
-    marketCapRank <= 10 ? 72 :
-    marketCapRank <= 20 ? 64 :
-    marketCapRank <= 40 ? 56 : 46;
-
-  const score = clamp(Math.round(
-    normalizedMomentum * 0.4 +
-    normalizedVolume * 0.3 +
-    normalizedTrend * 0.3 +
-    rankBonus +
-    compressionAdj +
-    ((pricePosition - 50) * 0.12)
-  ));
+  let score = 50 + momentumScore + volumeScore + positionScore + rankScore + compressionScore;
+  score = clamp(Math.round(score));
 
   let label = "Neutral";
-  if (score >= 61) label = "Bullish";
-  else if (score <= 39) label = "Bearish";
+  if (score >= 65) label = "Bullish";
+  if (score <= 40) label = "Bearish";
 
   const confidence = clamp(Math.round(Math.abs(score - 50) * 2));
 
   let teaching = "Signal is balanced.";
-  if (label === "Bullish") teaching = "Momentum, liquidity, and trend posture are leaning upward.";
-  if (label === "Bearish") teaching = "Weak trend posture and pressure are dragging the signal lower.";
+  if (label === "Bullish") teaching = "Momentum and positioning are leaning upward.";
+  if (label === "Bearish") teaching = "Weak positioning and pressure are dragging the signal lower.";
 
   return {
     id: asset.id,
@@ -113,11 +142,11 @@ function buildSignal(asset, session) {
     pricePosition: Math.round(pricePosition),
     rangePct: Math.round(rangePct * 100) / 100,
     breakdown: {
-      momentum: Math.round((normalizedMomentum - 50) / 5),
-      volume: Math.round((normalizedVolume - 50) / 5),
-      trend: Math.round((normalizedTrend - 50) / 5),
-      rank: rankBonus,
-      compression: compressionAdj
+      momentum: Math.round(momentumScore),
+      volume: volumeScore,
+      position: positionScore,
+      rank: rankScore,
+      compression: compressionScore
     },
     teaching
   };
@@ -136,25 +165,10 @@ function badgeColor(label) {
   return "#94a3b8";
 }
 
-function confidenceColor(confidence) {
-  if (confidence >= 70) return "#60a5fa";
-  if (confidence <= 45) return "#1d4ed8";
-  return "#94a3b8";
-}
-
 function glow(score) {
-  if (score >= 75) return "0 0 24px rgba(59,130,246,0.34)";
-  if (score <= 35) return "0 0 18px rgba(30,64,175,0.18)";
-  return "0 0 12px rgba(59,130,246,0.10)";
-}
-
-function cardBase(isChanged = false) {
-  return {
-    background: "linear-gradient(180deg, rgba(11,18,32,0.98) 0%, rgba(5,10,20,0.98) 100%)",
-    border: "1px solid rgba(59,130,246,0.15)",
-    borderRadius: 16,
-    boxShadow: isChanged ? "0 0 18px rgba(59,130,246,0.26)" : "0 0 16px rgba(2,6,23,0.45)"
-  };
+  if (score >= 75) return "0 0 24px rgba(59,130,246,0.38)";
+  if (score <= 35) return "0 0 18px rgba(30,64,175,0.20)";
+  return "0 0 10px rgba(59,130,246,0.12)";
 }
 
 function summarizeVisit(prev, next, watchlist) {
@@ -198,15 +212,15 @@ function summarizeVisit(prev, next, watchlist) {
 }
 
 function buildBrief(signals, session, watchlist) {
-  if (!signals.length) return "Loading tonight’s brief...";
+  if (!signals.length) return "Using fallback market snapshot while Midnight Signal warms up.";
   const bullish = signals.filter((s) => s.label === "Bullish").length;
   const bearish = signals.filter((s) => s.label === "Bearish").length;
   const top = [...signals].sort((a, b) => b.score - a.score)[0];
   const watched = signals.filter((s) => watchlist.includes(s.id));
 
   let mood = "Market conditions are fairly balanced tonight.";
-  if (bullish >= bearish + 3) mood = "Bullish pressure is leading tonight’s tape.";
-  if (bearish >= bullish + 3) mood = "Risk-off pressure is dominating tonight.";
+  if (bullish >= bearish + 4) mood = "Bullish pressure is leading tonight’s tape.";
+  if (bearish >= bullish + 4) mood = "Risk-off pressure is dominating tonight.";
 
   let sessionNote = "Swing mode is looking for usable directional posture.";
   if (session === "scalp") sessionNote = "Scalp mode is prioritizing fast momentum and short bursts.";
@@ -234,14 +248,14 @@ function decisionText(signal) {
 
 function BreakdownBar({ label, value }) {
   const positive = value >= 0;
-  const width = Math.min(100, Math.abs(value) * 10);
+  const width = Math.min(100, Math.abs(value) * 5);
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display:"flex", justifyContent:"space-between", fontSize: 12, color:"#94a3b8" }}>
         <span>{label}</span>
         <span>{value > 0 ? `+${value}` : value}</span>
       </div>
-      <div style={{ height: 8, background:"#0b1220", borderRadius: 999, overflow:"hidden", marginTop: 4, border: "1px solid rgba(59,130,246,0.08)" }}>
+      <div style={{ height: 8, background:"#111827", borderRadius: 999, overflow:"hidden", marginTop: 4 }}>
         <div style={{
           width: `${width}%`,
           height: "100%",
@@ -253,7 +267,6 @@ function BreakdownBar({ label, value }) {
 }
 
 function ConfidenceRing({ value }) {
-  const tone = confidenceColor(value);
   return (
     <div style={{
       width: 86,
@@ -261,9 +274,8 @@ function ConfidenceRing({ value }) {
       borderRadius: "50%",
       display: "grid",
       placeItems: "center",
-      background: `conic-gradient(${tone} ${value * 3.6}deg, #0f172a 0deg)`,
-      boxShadow: value >= 70 ? "0 0 20px rgba(59,130,246,0.25)" : "0 0 12px rgba(2,6,23,0.45)",
-      animation: value >= 70 ? "msCardBreathe 2.8s ease-in-out infinite" : "none"
+      background: `conic-gradient(#3b82f6 ${value * 3.6}deg, #0f172a 0deg)`,
+      boxShadow: "0 0 20px rgba(59,130,246,0.25)"
     }}>
       <div style={{
         width: 60,
@@ -274,8 +286,7 @@ function ConfidenceRing({ value }) {
         placeItems: "center",
         fontSize: 14,
         color: "#e5e7eb",
-        border: "1px solid #1e293b",
-        textShadow: value >= 70 ? "0 0 10px rgba(59,130,246,0.6)" : "none"
+        border: "1px solid #1e293b"
       }}>
         {value}
       </div>
@@ -298,38 +309,6 @@ function StatusPill({ label, active }) {
   );
 }
 
-
-function LivePulse({ active = true }) {
-  return (
-    <div style={{ display:"flex", alignItems:"center", gap: 8 }}>
-      <div style={{ position:"relative", width: 12, height: 12 }}>
-        <span className={active ? "ms-pulse-dot" : ""} style={{
-          position:"absolute",
-          inset:0,
-          borderRadius:"50%",
-          background: active ? "#60a5fa" : "#475569",
-          boxShadow: active ? "0 0 14px rgba(96,165,250,0.9)" : "none"
-        }} />
-      </div>
-      <span style={{ fontSize: 12, color: active ? "#93c5fd" : "#64748b", letterSpacing: ".04em", textTransform:"uppercase" }}>
-        {active ? "Live pulse" : "Idle"}
-      </span>
-    </div>
-  );
-}
-
-function BeaconMark() {
-  return (
-    <div style={{ position:"relative", width: 58, height: 58, display:"grid", placeItems:"center" }}>
-      <div className="ms-beacon-ring ms-r1" />
-      <div className="ms-beacon-ring ms-r2" />
-      <div className="ms-beacon-ring ms-r3" />
-      <div className="ms-beacon-orbit" />
-      <div className="ms-beacon-core" />
-    </div>
-  );
-}
-
 export default function Page() {
   const [signals, setSignals] = useState([]);
   const [viewMode, setViewMode] = useState("beginner");
@@ -341,7 +320,7 @@ export default function Page() {
   const [emailDraft, setEmailDraft] = useState("");
   const [premium, setPremium] = useState(false);
   const [billingMessage, setBillingMessage] = useState("");
-  const [pulseTick, setPulseTick] = useState(0);
+  const [dataSource, setDataSource] = useState("loading");
 
   useEffect(() => {
     const savedMode = localStorage.getItem(MODE_KEY);
@@ -364,27 +343,36 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
-    fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false")
-      .then((r) => r.json())
-      .then((res) => {
-        const filtered = (Array.isArray(res) ? res : [])
-          .filter((asset) => ALLOWED_ASSETS.includes(asset.id) || ALLOWED_SYMBOLS.includes((asset.symbol || "").toUpperCase()))
-          .slice(0, 18);
+    let isActive = true;
 
-        const built = filtered.map((asset) => buildSignal(asset, session));
-        const previous = JSON.parse(localStorage.getItem(VISIT_KEY) || "[]");
-        const summary = summarizeVisit(previous, built, watchlist);
-        localStorage.setItem(VISIT_KEY, JSON.stringify(built));
+    async function loadSignals() {
+      try {
+        const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=24&page=1&sparkline=false", { cache: "no-store" });
+        const json = await res.json();
+
+        if (!Array.isArray(json) || json.length === 0) {
+          throw new Error("empty market response");
+        }
+
+        const { built, summary, source } = processAssets(json, session, watchlist, "live");
+        if (!isActive) return;
         setVisitSummary(summary);
         setSignals(built);
-      })
-      .catch(() => setSignals([]));
-  }, [session, watchlist]);
+        setDataSource(source);
+      } catch (error) {
+        const { built, summary, source } = processAssets(FALLBACK_ASSETS, session, watchlist, "fallback");
+        if (!isActive) return;
+        setVisitSummary(summary);
+        setSignals(built);
+        setDataSource(source);
+      }
+    }
 
-  useEffect(() => {
-    const timer = setInterval(() => setPulseTick((v) => (v + 1) % 1000), 1800);
-    return () => clearInterval(timer);
-  }, []);
+    loadSignals();
+    return () => {
+      isActive = false;
+    };
+  }, [session, watchlist]);
 
   function toggleWatch(id) {
     const next = watchlist.includes(id) ? watchlist.filter((x) => x !== id) : [...watchlist, id];
@@ -451,11 +439,12 @@ export default function Page() {
     localStorage.removeItem(PREMIUM_KEY);
     setUser("");
     setEmailDraft("");
-    setPremium(false);
+    setPremium(false)
   }
 
   const sorted = useMemo(() => [...signals].sort((a, b) => b.score - a.score), [signals]);
-  const topSignal = sorted[0];
+  const fallbackTopSignal = buildSignal(FALLBACK_ASSETS[0], session);
+  const topSignal = sorted[0] || fallbackTopSignal;
 
   const prioritized = useMemo(() => {
     const watched = sorted.filter((s) => watchlist.includes(s.id));
@@ -463,94 +452,22 @@ export default function Page() {
     return [...watched, ...rest];
   }, [sorted, watchlist]);
 
+  const fallbackSignals = FALLBACK_ASSETS.map((asset) => buildSignal(asset, session));
   const topFive = prioritized.slice(0, 5);
-  const visibleSignals = premium ? prioritized : topFive;
+  const visibleSignals = (premium ? prioritized : topFive).length ? (premium ? prioritized : topFive) : fallbackSignals;
   const tonightBrief = buildBrief(signals, session, watchlist);
 
   return (
-    <main style={{
-      padding: 28,
-      maxWidth: 1180,
-      margin: "0 auto",
-      color: "#e5e7eb",
-      minHeight: "100vh",
-      background: "radial-gradient(circle at top, rgba(37,99,235,0.10), transparent 28%)"
-    }}>
-      <style>{`
-        @keyframes msPulse {
-          0% { transform: scale(0.9); opacity: 0.9; }
-          70% { transform: scale(1.9); opacity: 0; }
-          100% { transform: scale(1.9); opacity: 0; }
-        }
-        @keyframes msFloat {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-3px); }
-        }
-        @keyframes msOrbit {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes msCardBreathe {
-          0%, 100% { box-shadow: 0 0 16px rgba(2,6,23,0.45); }
-          50% { box-shadow: 0 0 26px rgba(59,130,246,0.18); }
-        }
-        .ms-pulse-dot::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          border-radius: 999px;
-          background: rgba(96,165,250,0.55);
-          animation: msPulse 1.8s ease-out infinite;
-        }
-        .ms-beacon-ring {
-          position:absolute;
-          inset:0;
-          border-radius:50%;
-          border:1px solid rgba(96,165,250,0.18);
-        }
-        .ms-r1 { transform: scale(.48); }
-        .ms-r2 { transform: scale(.72); }
-        .ms-r3 { transform: scale(.98); opacity:.6; }
-        .ms-beacon-orbit {
-          position:absolute;
-          inset:4px;
-          border-radius:50%;
-          border:1px dashed rgba(96,165,250,0.28);
-          animation: msOrbit 12s linear infinite;
-        }
-        .ms-beacon-core {
-          width:12px;
-          height:12px;
-          border-radius:999px;
-          background:#60a5fa;
-          box-shadow:0 0 18px rgba(96,165,250,0.95);
-          animation: msFloat 2.6s ease-in-out infinite;
-        }
-        .ms-signal-card {
-          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-          animation: msCardBreathe 4.2s ease-in-out infinite;
-        }
-        .ms-signal-card:hover {
-          transform: translateY(-3px);
-          border-color: rgba(96,165,250,0.32) !important;
-          box-shadow: 0 0 28px rgba(59,130,246,0.24) !important;
-        }
-        .ms-changed-card {
-          animation: msCardBreathe 2.4s ease-in-out infinite;
-        }
-      `}</style>
+    <main style={{ padding: 28, maxWidth: 1180, margin: "0 auto" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap: 16, flexWrap:"wrap" }}>
-        <div style={{ display:"flex", alignItems:"center", gap: 14 }}>
-          <BeaconMark />
-          <div>
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em", display:"flex", alignItems:"center", gap: 10, flexWrap:"wrap" }}>
-              <span>🌙 Midnight Signal</span>
-              <LivePulse active={signals.length > 0} />
-            </div>
-            <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.2 · motion + pulse + liveliness</div>
-          </div>
+        <div>
+          <div style={{ fontSize: 28, fontWeight: 700 }}>🌙 Midnight Signal</div>
+          <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.3 · data hydration + fallback</div>
         </div>
-        <div style={{ display:"flex", gap: 8, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap: 8, flexWrap:"wrap", alignItems:"center" }}>
+          <div style={{ padding: "8px 10px", borderRadius: 999, border: "1px solid #334155", background: dataSource === "live" ? "rgba(15,23,42,0.95)" : "rgba(30,41,59,0.95)", color: dataSource === "live" ? "#86efac" : "#fbbf24", fontSize: 12 }}>
+            {dataSource === "live" ? "Live data" : dataSource === "fallback" ? "Fallback mode" : "Loading"}
+          </div>
           {["scalp", "swing", "position"].map((item) => (
             <button
               key={item}
@@ -586,7 +503,9 @@ export default function Page() {
       <section style={{
         marginTop: 18,
         padding: 16,
-        ...cardBase(),
+        borderRadius: 16,
+        background: "linear-gradient(180deg, rgba(2,6,23,1) 0%, rgba(1,4,12,1) 100%)",
+        border: "1px solid #1e293b",
         boxShadow: "0 0 20px rgba(59,130,246,0.14)"
       }}>
         <div style={{ fontSize: 14, color:"#93c5fd", marginBottom: 8 }}>Environment Status</div>
@@ -597,43 +516,18 @@ export default function Page() {
         </div>
       </section>
 
-      <section style={{
-        marginTop: 18,
-        padding: 14,
-        ...cardBase(),
-        background: "linear-gradient(180deg, rgba(9,15,28,0.98) 0%, rgba(3,8,18,0.98) 100%)"
-      }}>
-        <div style={{ display:"flex", justifyContent:"space-between", gap: 12, flexWrap:"wrap", alignItems:"center" }}>
-          <div>
-            <div style={{ fontSize: 13, color:"#93c5fd" }}>Signal activity</div>
-            <div style={{ fontSize: 12, color:"#64748b", marginTop: 4 }}>
-              {signals.length ? `${signals.filter((s) => s.label === "Bullish").length} bullish · ${signals.filter((s) => s.label === "Bearish").length} bearish · ${watchlist.length} watched` : "Waiting for live market posture..."}
-            </div>
-          </div>
-          <div style={{ display:"flex", gap: 8, flexWrap:"wrap" }}>
-            {(signals.slice(0, 4)).map((s, idx) => (
-              <div key={s.id + pulseTick + idx} style={{
-                padding: "8px 10px",
-                borderRadius: 999,
-                background: "rgba(2,6,23,0.9)",
-                border: "1px solid rgba(59,130,246,0.14)",
-                color: s.confidence >= 70 ? "#93c5fd" : "#cbd5e1",
-                boxShadow: s.confidence >= 70 ? "0 0 14px rgba(59,130,246,0.18)" : "none"
-              }}>
-                {s.symbol} · {s.label}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <div style={{
         marginTop: 18,
         display: "grid",
         gridTemplateColumns: "minmax(0, 1.3fr) minmax(320px, .9fr)",
         gap: 16
       }}>
-        <section style={{ padding: 18, ...cardBase() }}>
+        <section style={{
+          padding: 18,
+          borderRadius: 16,
+          background: "#020617",
+          border: "1px solid #1e293b"
+        }}>
           <div style={{ fontSize: 14, color:"#93c5fd", marginBottom: 8 }}>Identity + Access</div>
           <div style={{ display:"flex", gap: 8, flexWrap:"wrap" }}>
             <input
@@ -645,27 +539,51 @@ export default function Page() {
                 minWidth: 220,
                 padding: "11px 12px",
                 borderRadius: 12,
-                border: "1px solid rgba(59,130,246,0.18)",
+                border: "1px solid #334155",
                 background: "#01030a",
                 color: "#e5e7eb",
-                outline: "none",
-                boxShadow: "inset 0 0 0 1px rgba(15,23,42,0.6)"
+                outline: "none"
               }}
             />
-            <button onClick={saveUser} style={{ padding: "11px 14px", borderRadius: 12, border: "1px solid #334155", background: "#1e293b", color: "#e5e7eb", cursor: "pointer" }}>
+            <button
+              onClick={saveUser}
+              style={{
+                padding: "11px 14px",
+                borderRadius: 12,
+                border: "1px solid #334155",
+                background: "#1e293b",
+                color: "#e5e7eb",
+                cursor: "pointer"
+              }}
+            >
               Save identity
             </button>
-            <button onClick={startUpgrade} style={{ padding: "11px 14px", borderRadius: 12, border: "1px solid #2563eb", background: "#1d4ed8", color: "#fff", cursor: "pointer" }}>
+            <button
+              onClick={startUpgrade}
+              style={{
+                padding: "11px 14px",
+                borderRadius: 12,
+                border: "1px solid #2563eb",
+                background: "#1d4ed8",
+                color: "#fff",
+                cursor: "pointer"
+              }}
+            >
               Upgrade
             </button>
             {!configStatus.stripeReady && (
-              <button onClick={simulatePremium} style={{ padding: "11px 14px", borderRadius: 12, border: "1px solid #334155", background: "#020617", color: "#93c5fd", cursor: "pointer" }}>
+              <button
+                onClick={simulatePremium}
+                style={{
+                  padding: "11px 14px",
+                  borderRadius: 12,
+                  border: "1px solid #334155",
+                  background: "#020617",
+                  color: "#93c5fd",
+                  cursor: "pointer"
+                }}
+              >
                 Local premium unlock
-              </button>
-            )}
-            {(user || premium) && (
-              <button onClick={signOut} style={{ padding: "11px 14px", borderRadius: 12, border: "1px solid #334155", background: "#020617", color: "#94a3b8", cursor: "pointer" }}>
-                Clear local state
               </button>
             )}
           </div>
@@ -689,7 +607,12 @@ export default function Page() {
           )}
         </section>
 
-        <section style={{ padding: 18, ...cardBase() }}>
+        <section style={{
+          padding: 18,
+          borderRadius: 16,
+          background: "#020617",
+          border: "1px solid #1e293b"
+        }}>
           <div style={{ fontSize: 14, color:"#93c5fd", marginBottom: 8 }}>Tonight’s Brief</div>
           <div style={{ fontSize: 15, lineHeight: 1.6 }}>{tonightBrief}</div>
         </section>
@@ -703,10 +626,12 @@ export default function Page() {
       }}>
         <section style={{
           padding: 18,
-          ...cardBase(),
-          boxShadow: topSignal ? glow(topSignal.score) : "0 0 16px rgba(2,6,23,0.45)"
+          borderRadius: 16,
+          background: "#020617",
+          border: "1px solid #1e293b",
+          boxShadow: topSignal ? glow(topSignal.score) : "none"
         }}>
-          <div style={{ display:"flex", justifyContent:"space-between", gap: 12, alignItems:"center", flexWrap:"wrap" }}><div style={{ fontSize: 13, color:"#94a3b8" }}>Tonight’s Top Signal</div><div style={{ fontSize: 12, color:"#64748b" }}>Adaptive pulse is active</div></div>
+          <div style={{ fontSize: 13, color:"#94a3b8" }}>Tonight’s Top Signal</div>
           {topSignal ? (
             <>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap: 16, marginTop: 10, flexWrap:"wrap" }}>
@@ -745,17 +670,20 @@ export default function Page() {
                 <div style={{ fontSize: 13, color:"#cbd5e1" }}>Signal Breakdown</div>
                 <BreakdownBar label="Momentum" value={topSignal.breakdown.momentum} />
                 <BreakdownBar label="Volume" value={topSignal.breakdown.volume} />
-                <BreakdownBar label="Trend" value={topSignal.breakdown.trend} />
+                <BreakdownBar label="Price Position" value={topSignal.breakdown.position} />
                 <BreakdownBar label="Market Rank" value={topSignal.breakdown.rank} />
                 <BreakdownBar label="Compression" value={topSignal.breakdown.compression} />
               </div>
             </>
-          ) : (
-            <div style={{ marginTop: 12, color:"#94a3b8" }}>Loading top signal...</div>
-          )}
+          ) : null}
         </section>
 
-        <section style={{ padding: 18, ...cardBase() }}>
+        <section style={{
+          padding: 18,
+          borderRadius: 16,
+          background: "#020617",
+          border: "1px solid #1e293b"
+        }}>
           <div style={{ fontSize: 13, color:"#94a3b8" }}>Since your last visit</div>
           <div style={{ marginTop: 10, color:"#e5e7eb", lineHeight: 1.55 }}>{visitSummary.headline}</div>
           <div style={{ marginTop: 12 }}>
@@ -769,9 +697,8 @@ export default function Page() {
                 background: "#01030a",
                 border: "1px solid #0f172a",
                 fontSize: 13,
-                color: "#93c5fd",
-                boxShadow: "0 0 16px rgba(59,130,246,0.10)"
-              }}><span className="ms-pulse-dot" style={{ display:"inline-block", width:8, height:8, borderRadius:"50%", background:"#60a5fa", marginRight:8, position:"relative", verticalAlign:"middle" }} />
+                color: "#93c5fd"
+              }}>
                 {item.text}
               </div>
             ))}
@@ -781,7 +708,13 @@ export default function Page() {
 
       <section style={{ marginTop: 20 }}>
         <div style={{ fontSize: 14, color:"#cbd5e1" }}>Access Tier</div>
-        <div style={{ marginTop: 12, padding: 16, ...cardBase() }}>
+        <div style={{
+          marginTop: 12,
+          padding: 16,
+          borderRadius: 16,
+          background: "#020617",
+          border: "1px solid #1e293b"
+        }}>
           <div style={{ fontSize: 14, color:"#e5e7eb" }}>
             {premium ? "Premium is active. Full signal list unlocked." : "Free tier is active. Top 5 priority signals are unlocked."}
           </div>
@@ -806,18 +739,17 @@ export default function Page() {
           {visibleSignals.map((coin, index) => {
             const isWatched = watchlist.includes(coin.id);
             const changed = visitSummary.changedIds.includes(coin.id);
-            const confTone = confidenceColor(coin.confidence);
             return (
               <div
                 key={coin.id}
                 onClick={() => toggleWatch(coin.id)}
-                className={`ms-signal-card ${changed ? "ms-changed-card" : ""}`}
                 style={{
                   cursor: "pointer",
                   padding: 14,
-                  ...cardBase(changed),
-                  boxShadow: changed ? "0 0 18px rgba(59,130,246,0.28)" : glow(coin.score),
-                  transition: "all 0.2s ease"
+                  borderRadius: 14,
+                  background: "#020617",
+                  border: "1px solid #1e293b",
+                  boxShadow: changed ? "0 0 16px rgba(59,130,246,0.35)" : glow(coin.score)
                 }}
               >
                 <div style={{ display:"flex", justifyContent:"space-between", gap: 8 }}>
@@ -827,12 +759,7 @@ export default function Page() {
                   </div>
                   <div style={{ fontSize: 12, color: badgeColor(coin.label) }}>{coin.label}</div>
                 </div>
-                <div style={{
-                  marginTop: 10,
-                  fontSize: 13,
-                  color: confTone,
-                  textShadow: coin.confidence >= 70 ? "0 0 10px rgba(59,130,246,0.6)" : "none"
-                }}>
+                <div style={{ marginTop: 10, fontSize: 13, color:"#cbd5e1" }}>
                   Score {coin.score} · Conf {coin.confidence}
                 </div>
                 <div style={{ marginTop: 6, fontSize: 12, color:"#64748b" }}>
@@ -844,9 +771,8 @@ export default function Page() {
         </div>
       </section>
 
-      <div style={{ marginTop: 22, display:"flex", justifyContent:"space-between", gap: 12, flexWrap:"wrap", fontSize: 12, color:"#64748b" }}>
-        <div>Pulse cycle #{pulseTick}</div>
-        <div>v10.2 · motion + pulse + liveliness</div>
+      <div style={{ marginTop: 18, textAlign: "center", fontSize: 12, color: "#64748b" }}>
+        v10.3 · data hydration + fallback
       </div>
     </main>
   );
