@@ -23,6 +23,15 @@ export type MarketSummary = {
   brief: string[];
 };
 
+export type VisitSnapshot = {
+  capturedAt: string;
+  posture: string;
+  topSignalSymbol: string;
+  topSignalLabel: SignalLabel;
+  topSignalConfidence: number;
+  assetMap: Record<string, { label: SignalLabel; confidence: number; price: number; dayChange: number }>;
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
@@ -129,4 +138,27 @@ export function buildMarketSummary(coins: MarketCoin[]): MarketSummary {
   ];
 
   return { posture, topSignal, assets, brief };
+}
+
+export function buildVisitSnapshot(summary: MarketSummary): VisitSnapshot {
+  const assetMap = Object.fromEntries(
+    summary.assets.map((asset) => [
+      asset.symbol,
+      {
+        label: asset.label,
+        confidence: asset.confidence,
+        price: asset.price,
+        dayChange: asset.dayChange
+      }
+    ])
+  );
+
+  return {
+    capturedAt: new Date().toISOString(),
+    posture: summary.posture,
+    topSignalSymbol: summary.topSignal.symbol,
+    topSignalLabel: summary.topSignal.label,
+    topSignalConfidence: summary.topSignal.confidence,
+    assetMap
+  };
 }

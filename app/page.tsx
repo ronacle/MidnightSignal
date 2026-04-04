@@ -1,8 +1,9 @@
 import Beacon from "../components/Beacon";
+import SinceLastVisit from "../components/SinceLastVisit";
 import { fetchMarketData } from "../lib/coingecko";
-import { buildMarketSummary } from "../lib/signal-engine";
+import { buildMarketSummary, buildVisitSnapshot } from "../lib/signal-engine";
 
-const build = process.env.NEXT_PUBLIC_BUILD ?? "7.2.2";
+const build = process.env.NEXT_PUBLIC_BUILD ?? "7.3.0";
 
 function cardStyle(): React.CSSProperties {
   return {
@@ -30,6 +31,7 @@ function formatPrice(value: number) {
 export default async function Page() {
   const { coins, usingFallback } = await fetchMarketData();
   const summary = buildMarketSummary(coins);
+  const snapshot = buildVisitSnapshot(summary);
 
   return (
     <main
@@ -198,6 +200,8 @@ export default async function Page() {
             </div>
           </aside>
         </div>
+
+        <SinceLastVisit snapshot={snapshot} />
 
         <section style={{ ...cardStyle(), marginTop: 20 }}>
           <div
