@@ -12,6 +12,8 @@ const STORAGE_KEYS = {
   watchlist: "ms_watchlist",
   timeframe: "ms_timeframe",
   sound: "ms_sound_ping",
+  snapshot: "ms_last_snapshot_v1",
+  seenAt: "ms_last_seen_at",
 };
 
 const SEED = [
@@ -64,6 +66,9 @@ function sparkline(points, positive=true){
 function pillTone(value){ if(value==="Bullish"||value==="Enter") return {bg:"rgba(96,103,249,.18)",color:"#8BA8FF",border:"rgba(96,103,249,.45)"}; if(value==="Bearish"||value==="Reduce") return {bg:"rgba(0,51,173,.16)",color:"#2A6BFF",border:"rgba(42,107,255,.42)"}; return {bg:"rgba(247,247,247,.04)",color:"#e5e7eb",border:"rgba(247,247,247,.14)"}; }
 function Pill({children,tone}){ const s=pillTone(tone||children); return <span style={{display:"inline-flex",alignItems:"center",gap:8,borderRadius:999,padding:"8px 12px",border:`1px solid ${s.border}`,background:s.bg,fontSize:12,color:s.color,fontWeight:700}}>{children}</span>; }
 
+function deltaTone(delta){ if(delta>0) return "#8BA8FF"; if(delta<0) return "#2A6BFF"; return "#cbd5e1"; }
+function postureArrow(from,to){ if(from===to) return "→"; if(to==="Bullish") return "↑"; if(to==="Bearish") return "↓"; return "→"; }
+
 export default function Page(){
   const [agreed, setAgreed] = useState(false);
   const [checkedEducation, setCheckedEducation] = useState(false);
@@ -76,6 +81,8 @@ export default function Page(){
   const [soundOn, setSoundOn] = useState(false);
   const [coins, setCoins] = useState(() => SEED.map(enrich));
     const [lastInsight, setLastInsight] = useState("");
+  const [visitDelta, setVisitDelta] = useState(null);
+  const [lastSeenAt, setLastSeenAt] = useState("");
 
   useEffect(() => {
     try {
@@ -96,6 +103,78 @@ export default function Page(){
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.selectedAsset, selected); } catch {} }, [selected]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.watchlist, JSON.stringify(watchlist)); } catch {} }, [watchlist]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.sound, soundOn ? "true" : "false"); } catch {} }, [soundOn]);
+
+
+  useEffect(() => {
+    try {
+      const rawSnapshot = window.localStorage.getItem(STORAGE_KEYS.snapshot);
+      const rawSeenAt = window.localStorage.getItem(STORAGE_KEYS.seenAt);
+      if (rawSeenAt) setLastSeenAt(rawSeenAt);
+      if (!rawSnapshot) return;
+      const prev = JSON.parse(rawSnapshot);
+      if (!Array.isArray(prev)) return;
+
+      const prevMap = new Map(prev.map((item) => [item.symbol, item]));
+      const current = SEED.map(enrich);
+
+      const postureChanges = [];
+      const confidenceShifts = [];
+      const movers = current
+        .map((c) => ({ symbol: c.symbol, name: c.name, change24h: c.change24h, confidence: c.confidence }))
+        .sort((a, b) => Math.abs(b.change24h) - Math.abs(a.change24h))
+        .slice(0, 4);
+
+      for (const coin of current) {
+        const oldCoin = prevMap.get(coin.symbol);
+        if (!oldCoin) continue;
+        if (oldCoin.posture !== coin.posture) {
+          postureChanges.push({
+            symbol: coin.symbol,
+            from: oldCoin.posture,
+            to: coin.posture,
+            confidenceDelta: coin.confidence - oldCoin.confidence,
+          });
+        }
+        const confidenceDelta = coin.confidence - oldCoin.confidence;
+        if (Math.abs(confidenceDelta) >= 4) {
+          confidenceShifts.push({
+            symbol: coin.symbol,
+            from: oldCoin.confidence,
+            to: coin.confidence,
+            delta: confidenceDelta,
+            posture: coin.posture,
+          });
+        }
+      }
+
+      confidenceShifts.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+      postureChanges.sort((a, b) => Math.abs(b.confidenceDelta) - Math.abs(a.confidenceDelta));
+
+      const prevTop = prev.slice().sort((a, b) => b.confidence - a.confidence)[0];
+      const nextTop = current.slice().sort((a, b) => b.confidence - a.confidence)[0];
+
+      setVisitDelta({
+        postureChanges: postureChanges.slice(0, 5),
+        confidenceShifts: confidenceShifts.slice(0, 5),
+        movers,
+        prevTop,
+        nextTop,
+      });
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      const snapshot = coins.map((coin) => ({
+        symbol: coin.symbol,
+        posture: coin.posture,
+        confidence: coin.confidence,
+        change24h: coin.change24h,
+      }));
+      window.localStorage.setItem(STORAGE_KEYS.snapshot, JSON.stringify(snapshot));
+      window.localStorage.setItem(STORAGE_KEYS.seenAt, new Date().toLocaleString());
+    } catch {}
+  }, [coins]);
 
   useEffect(() => {
     const id=window.setInterval(() => {
@@ -188,8 +267,110 @@ export default function Page(){
           </div>
         </section>
 
-        {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal</div><div style={{fontSize:34,fontWeight:900,marginTop:4}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • beacon identity pass • static</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile</div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
+        {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal</div><div style={{fontSize:34,fontWeight:900,marginTop:4}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • beacon identity pass • since last visit</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile</div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
           <aside className="ms-card"><div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div><div style={{display:"grid",gap:14}}><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div><select className="select" value={strategy} onChange={(e)=>setStrategy(e.target.value)}><option value="scalp">Scalp</option><option value="swing">Swing</option><option value="position">Position</option></select></label><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div><select className="select" value={timeframe} onChange={(e)=>setTimeframe(e.target.value)}><option value="7">7D</option><option value="30">30D</option><option value="90">90D</option></select></label><label style={{display:"flex",alignItems:"center",gap:10}}><input type="checkbox" checked={soundOn} onChange={(e)=>setSoundOn(e.target.checked)}/><span>Signal ping on leader change</span></label><div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div></div></aside></section>}
+
+
+        {visitDelta && <section className="ms-card">
+          <div className="ms-row">
+            <div>
+              <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>Since your last visit</div>
+              <div style={{fontSize:28,fontWeight:800}}>What changed since you were last here</div>
+              <div className="ms-sub" style={{marginTop:8}}>
+                {lastSeenAt ? `Previous snapshot saved: ${lastSeenAt}` : "Comparing against your previous local snapshot."}
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <Pill>{visitDelta.postureChanges.length} posture shifts</Pill>
+              <Pill>{visitDelta.confidenceShifts.length} confidence moves</Pill>
+              <Pill>{visitDelta.movers.length} notable movers</Pill>
+            </div>
+          </div>
+
+          <div className="ms-grid ms-hero" style={{marginTop:18}}>
+            <div className="ms-metric">
+              <div className="ms-metric-label">Signal Changes</div>
+              <div style={{display:"grid",gap:12,marginTop:12}}>
+                {visitDelta.postureChanges.length ? visitDelta.postureChanges.map((item) => (
+                  <div key={item.symbol} style={{display:"flex",justifyContent:"space-between",gap:12,padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>
+                    <div>
+                      <div style={{fontSize:18,fontWeight:700}}>{item.symbol}</div>
+                      <div className="ms-sub">{item.from} {postureArrow(item.from, item.to)} {item.to}</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:14,color:deltaTone(item.confidenceDelta),fontWeight:700}}>
+                        {item.confidenceDelta >= 0 ? "+" : ""}{item.confidenceDelta} pts
+                      </div>
+                      <div className="ms-sub">confidence shift</div>
+                    </div>
+                  </div>
+                )) : <div className="ms-sub" style={{marginTop:4}}>No posture changes captured from the previous snapshot.</div>}
+              </div>
+            </div>
+
+            <div className="ms-metric">
+              <div className="ms-metric-label">Top Signal Shift</div>
+              <div style={{display:"grid",gap:14,marginTop:12}}>
+                <div style={{padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>
+                  <div className="ms-sub">Previous leader</div>
+                  <div style={{fontSize:22,fontWeight:800,marginTop:6}}>
+                    {visitDelta.prevTop ? `${visitDelta.prevTop.symbol} • ${visitDelta.prevTop.confidence}%` : "—"}
+                  </div>
+                </div>
+                <div style={{padding:14,borderRadius:16,background:"rgba(96,103,249,.10)",border:"1px solid rgba(96,103,249,.24)"}}>
+                  <div className="ms-sub">Current leader</div>
+                  <div style={{fontSize:22,fontWeight:800,marginTop:6}}>
+                    {visitDelta.nextTop ? `${visitDelta.nextTop.symbol} • ${visitDelta.nextTop.confidence}%` : "—"}
+                  </div>
+                </div>
+                <div className="ms-sub">
+                  {visitDelta.prevTop && visitDelta.nextTop && visitDelta.prevTop.symbol !== visitDelta.nextTop.symbol
+                    ? `${visitDelta.prevTop.symbol} handed off the lead to ${visitDelta.nextTop.symbol}.`
+                    : "The top signal remains the same since your last snapshot."}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="ms-grid ms-hero" style={{marginTop:18}}>
+            <div className="ms-metric">
+              <div className="ms-metric-label">Biggest Movers</div>
+              <div style={{display:"grid",gap:12,marginTop:12}}>
+                {visitDelta.movers.map((item) => (
+                  <div key={item.symbol} style={{display:"flex",justifyContent:"space-between",gap:12,padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>
+                    <div>
+                      <div style={{fontSize:18,fontWeight:700}}>{item.symbol}</div>
+                      <div className="ms-sub">{item.name}</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:16,fontWeight:700,color:deltaTone(item.change24h)}}>
+                        {item.change24h >= 0 ? "+" : ""}{item.change24h.toFixed(1)}%
+                      </div>
+                      <div className="ms-sub">{item.confidence}% confidence</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="ms-metric">
+              <div className="ms-metric-label">Confidence Shifts</div>
+              <div style={{display:"grid",gap:12,marginTop:12}}>
+                {visitDelta.confidenceShifts.length ? visitDelta.confidenceShifts.map((item) => (
+                  <div key={item.symbol} style={{display:"flex",justifyContent:"space-between",gap:12,padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>
+                    <div>
+                      <div style={{fontSize:18,fontWeight:700}}>{item.symbol}</div>
+                      <div className="ms-sub">{item.from}% → {item.to}% • {item.posture}</div>
+                    </div>
+                    <div style={{textAlign:"right",fontSize:16,fontWeight:700,color:deltaTone(item.delta)}}>
+                      {item.delta >= 0 ? "+" : ""}{item.delta} pts
+                    </div>
+                  </div>
+                )) : <div className="ms-sub" style={{marginTop:4}}>No major confidence swings from the stored snapshot.</div>}
+              </div>
+            </div>
+          </div>
+        </section>}
 
         <section className="ms-card"><div className="ms-grid ms-stats">{stats.map(([label,value]) => <div className="ms-metric" key={label}><div className="ms-metric-label">{label}</div><div className="ms-metric-value">{value}</div></div>)}</div></section>
 
@@ -199,7 +380,7 @@ export default function Page(){
 
         {active && <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Signal Detail Panel</div><div style={{fontSize:30,fontWeight:900,marginTop:4}}>{active.symbol} • {active.posture}</div><div className="ms-sub" style={{marginTop:8}}>{active.change24h>=0?"+":""}{active.change24h.toFixed(1)}% today</div></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{active.posture}</Pill><Pill tone={active.timing}>{active.timing}</Pill><Pill>{timeframe}D derived history</Pill></div></div><div className="ms-grid ms-stats" style={{marginTop:16}}><div className="ms-metric"><div className="ms-metric-label">Signal Confidence</div><div className="ms-metric-value">{active.confidence}%</div></div><div className="ms-metric"><div className="ms-metric-label">Opportunity Score</div><div className="ms-metric-value">{Math.min(100, Math.max(0, active.confidence + (active.timing==="Enter"?8:active.timing==="Reduce"?-8:0)))}/100</div></div><div className="ms-metric"><div className="ms-metric-label">RSI State</div><div className="ms-metric-value">{active.rsi}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile</div><div className="ms-metric-value">{active.risk}</div></div></div><div className="ms-grid ms-hero" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Tonight’s Top Signal Detail</div><div style={{fontSize:18,fontWeight:700,marginTop:10}}>{active.brief}</div>{mode==="Beginner"?<div className="ms-sub" style={{marginTop:12,lineHeight:1.7}}>Confidence reflects the app’s weighted read on posture, momentum, and stability. It is a learning aid, not certainty.</div>:<div className="ms-sub" style={{marginTop:12,lineHeight:1.7}}>Derived from weighted momentum, trend rank, and volatility normalization against the seeded market basket.</div>}</div><div className="ms-metric"><div className="ms-metric-label">Derived Sparkline</div><div style={{marginTop:12}}>{sparkline(active.history, active.change24h>=0)}</div><div className="ms-sub" style={{marginTop:12}}>This safe motion build leaves the background alone and concentrates movement on the top signal and card interactions only.</div></div></div></section>}
 
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v8.4.2 • static logo pass</div></section>
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v8.5.0 • since your last visit</div></section>
       </div>
     </main>
   );
