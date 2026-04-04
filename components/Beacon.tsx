@@ -1,40 +1,62 @@
-export default function Beacon() {
+type BeaconProps = {
+  size?: number;
+  labels?: boolean;
+};
+
+const words = ["Data", "Information", "Knowledge", "Understanding", "Wisdom"];
+
+export default function Beacon({ size = 128, labels = false }: BeaconProps) {
+  const center = size / 2;
+  const ring1 = size * 0.28;
+  const ring2 = size * 0.46;
+  const ring3 = size * 0.66;
+  const dotSize = Math.max(6, Math.round(size * 0.045));
+  const coreSize = Math.max(14, Math.round(size * 0.1));
+
   return (
-    <div style={{ position: "relative", width: 128, height: 128, margin: "0 auto" }}>
-      {[1, 2, 3].map((i) => (
+    <div
+      style={{
+        position: "relative",
+        width: size,
+        height: labels ? size + 44 : size,
+        margin: "0 auto",
+      }}
+    >
+      {[ring1, ring2, ring3].map((ring, i) => (
         <div
           key={i}
           style={{
             position: "absolute",
-            top: "50%",
-            left: "50%",
-            width: 36 * i,
-            height: 36 * i,
+            top: center,
+            left: center,
+            width: ring,
+            height: ring,
             borderRadius: "50%",
             border: "1px solid rgba(96,165,250,0.35)",
             transform: "translate(-50%, -50%)",
-            boxShadow: i === 3 ? "0 0 30px rgba(96,165,250,0.08)" : "none"
+            boxShadow: i === 2 ? "0 0 30px rgba(96,165,250,0.08)" : "none",
           }}
         />
       ))}
 
-      {[0, 1, 2, 3, 4, 5].map((i) => {
+      {Array.from({ length: 6 }).map((_, i) => {
         const angle = (Math.PI * 2 * i) / 6;
-        const x = Math.cos(angle) * 46;
-        const y = Math.sin(angle) * 46;
+        const x = Math.cos(angle) * (ring2 / 2);
+        const y = Math.sin(angle) * (ring2 / 2);
+
         return (
           <div
             key={i}
             style={{
               position: "absolute",
-              top: "50%",
-              left: "50%",
-              width: 6,
-              height: 6,
+              top: center + y,
+              left: center + x,
+              width: dotSize,
+              height: dotSize,
               borderRadius: "50%",
               background: "rgba(147,197,253,0.95)",
-              transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-              boxShadow: "0 0 10px rgba(147,197,253,0.5)"
+              transform: "translate(-50%, -50%)",
+              boxShadow: "0 0 10px rgba(147,197,253,0.5)",
             }}
           />
         );
@@ -42,17 +64,35 @@ export default function Beacon() {
 
       <div
         style={{
-          width: 14,
-          height: 14,
+          width: coreSize,
+          height: coreSize,
           background: "#60a5fa",
           borderRadius: "50%",
           position: "absolute",
-          top: "50%",
-          left: "50%",
+          top: center,
+          left: center,
           transform: "translate(-50%, -50%)",
-          boxShadow: "0 0 18px rgba(96,165,250,0.8)"
+          boxShadow: "0 0 18px rgba(96,165,250,0.8)",
         }}
       />
+
+      {labels && (
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 0,
+            transform: "translateX(-50%)",
+            width: "100%",
+            textAlign: "center",
+            fontSize: Math.max(11, Math.round(size * 0.04)),
+            opacity: 0.78,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {words.join(" • ")}
+        </div>
+      )}
     </div>
   );
 }
