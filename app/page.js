@@ -1,6 +1,8 @@
 
 
 // --- v10.4 smarter signal engine ---
+'use client';
+
 function computeSignal(coin) {
   const momentum = coin.price_change_percentage_24h || 0;
   const volume = coin.total_volume || 0;
@@ -20,7 +22,6 @@ function computeSignal(coin) {
   return { label, confidence };
 }
 
-'use client';
 import { useEffect, useMemo, useState } from "react";
 
 const VISIT_KEY = "midnight:lastSignals";
