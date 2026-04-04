@@ -1,0 +1,10 @@
+DELETE THESE FROM YOUR REPO BEFORE DEPLOYING THIS BUNDLE:
+
+1) tsconfig.json
+2) any .ts file
+3) any .tsx file
+4) old app/, components/, lib/, pages/ folders from previous builds
+
+Then upload ONLY the contents of this folder to the repo root.
+
+If Vercel still says TypeScript packages are missing after that, the repo still contains an old tsconfig.json or .tsx/.ts file.
