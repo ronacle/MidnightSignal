@@ -1,60 +1,58 @@
-export default function Beacon({ size = 320, labels = true }: { size?: number; labels?: boolean }) {
+export default function Beacon() {
   return (
-    <div className="signal-wrap">
-      <svg viewBox="0 0 320 320" className="signal-svg" style={{maxWidth:size}} fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="beacon-grad" x1="50" y1="285" x2="270" y2="35">
-            <stop stopColor="#3E6FFF" />
-            <stop offset="0.55" stopColor="#63C8FF" />
-            <stop offset="1" stopColor="#9AF1FF" />
-          </linearGradient>
-        </defs>
+    <div style={{ position: "relative", width: 128, height: 128, margin: "0 auto" }}>
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: 36 * i,
+            height: 36 * i,
+            borderRadius: "50%",
+            border: "1px solid rgba(96,165,250,0.35)",
+            transform: "translate(-50%, -50%)",
+            boxShadow: i === 3 ? "0 0 30px rgba(96,165,250,0.08)" : "none"
+          }}
+        />
+      ))}
 
-        <g className="beacon-glow">
-          <g className="ring-slow">
-            <circle cx="160" cy="160" r="88" stroke="url(#beacon-grad)" strokeWidth="8" strokeLinecap="round" pathLength="360" strokeDasharray="20 16" />
-          </g>
-          <g className="ring-reverse">
-            <circle cx="160" cy="160" r="60" stroke="url(#beacon-grad)" strokeWidth="8" strokeLinecap="round" pathLength="360" strokeDasharray="56 16" />
-          </g>
-          <g className="ring-mid">
-            <circle cx="160" cy="160" r="34" stroke="url(#beacon-grad)" strokeWidth="8" strokeLinecap="round" pathLength="360" strokeDasharray="342 18" />
-          </g>
-        </g>
+      {[0, 1, 2, 3, 4, 5].map((i) => {
+        const angle = (Math.PI * 2 * i) / 6;
+        const x = Math.cos(angle) * 46;
+        const y = Math.sin(angle) * 46;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "rgba(147,197,253,0.95)",
+              transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+              boxShadow: "0 0 10px rgba(147,197,253,0.5)"
+            }}
+          />
+        );
+      })}
 
-        <g transform="translate(160 160)">
-          {Array.from({ length: 36 }).map((_, i) => {
-            const a = (i * 10 * Math.PI) / 180;
-            const cx = Math.cos(a) * 108;
-            const cy = Math.sin(a) * 108;
-            return (
-              <circle
-                key={i}
-                className={i % 2 === 0 ? "data-dot beacon-glow" : "data-dot alt beacon-glow"}
-                cx={cx}
-                cy={cy}
-                r={i % 2 === 0 ? 2.65 : 2.15}
-                fill="#C8F6FF"
-              />
-            );
-          })}
-        </g>
-
-        <g className="core-pulse beacon-glow">
-          <circle cx="160" cy="160" r="18" fill="rgba(154,241,255,.18)" />
-          <circle cx="160" cy="160" r="10" fill="url(#beacon-grad)" />
-        </g>
-
-        {labels ? (
-          <>
-            <text x="160" y="24" fill="#8C99AD" fontSize="12" letterSpacing="0.22em" textAnchor="middle">DATA</text>
-            <text x="284" y="120" fill="#8C99AD" fontSize="12" letterSpacing="0.18em" textAnchor="middle">INFO</text>
-            <text x="252" y="250" fill="#8C99AD" fontSize="12" letterSpacing="0.10em" textAnchor="middle">KNOWLEDGE</text>
-            <text x="70" y="250" fill="#8C99AD" fontSize="12" letterSpacing="0.08em" textAnchor="middle">UNDERSTANDING</text>
-            <text x="160" y="164" fill="#F5F7FB" fontSize="12" letterSpacing="0.18em" textAnchor="middle">WISDOM</text>
-          </>
-        ) : null}
-      </svg>
+      <div
+        style={{
+          width: 14,
+          height: 14,
+          background: "#60a5fa",
+          borderRadius: "50%",
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          boxShadow: "0 0 18px rgba(96,165,250,0.8)"
+        }}
+      />
     </div>
   );
 }
