@@ -100,6 +100,70 @@ function deltaTone(delta){ if(delta>0) return "#8BA8FF"; if(delta<0) return "#2A
 function postureArrow(from,to){ if(from===to) return "→"; if(to==="Bullish") return "↑"; if(to==="Bearish") return "↓"; return "→"; }
 function barColor(label){ return label==="Momentum" ? "linear-gradient(90deg, #6067F9, #8BA8FF)" : label==="Trend" ? "linear-gradient(90deg, #0033AD, #6067F9)" : "linear-gradient(90deg, #334155, #8BA8FF)"; }
 
+
+const LEARN_TOPICS = {
+  signal: {
+    title: "Signal",
+    what: "A signal is the app’s combined read on posture, timing, and confidence for a specific asset.",
+    why: "It helps you avoid staring at dozens of disconnected indicators and instead focus on a synthesized read.",
+    appUse: "Midnight Signal blends momentum, trend, and volatility into a single posture and confidence score."
+  },
+  momentum: {
+    title: "Momentum",
+    what: "Momentum measures how strongly price is moving right now.",
+    why: "Strong momentum often means traders are aligned in one direction, which can support continuation.",
+    appUse: "Momentum is one of the biggest contributors to confidence and helps shape Enter / Wait / Reduce timing."
+  },
+  trend: {
+    title: "Trend",
+    what: "Trend is the direction and structure of the broader move, not just the latest candle.",
+    why: "A strong trend can support price movement even when short-term noise appears.",
+    appUse: "The app uses trend weighting to decide whether current strength is supported or fragile."
+  },
+  volatility: {
+    title: "Volatility",
+    what: "Volatility measures how erratic price movement is.",
+    why: "Higher volatility can create opportunity, but it also lowers reliability and makes timing harder.",
+    appUse: "Volatility affects confidence by reducing conviction when price action becomes unstable."
+  },
+  confidence: {
+    title: "Confidence",
+    what: "Confidence shows how aligned the signal components are.",
+    why: "High confidence does not mean certainty. It means more parts of the setup are pointing in the same direction.",
+    appUse: "Confidence is derived from the weighted signal components and powers the app’s ranking and guidance language."
+  },
+  posture: {
+    title: "Posture",
+    what: "Posture is the app’s directional stance: Bullish, Neutral, or Bearish.",
+    why: "It helps users interpret the market state quickly before going deeper into the details.",
+    appUse: "Posture is set from the weighted signal score and becomes the headline read across the dashboard."
+  },
+  timing: {
+    title: "Timing",
+    what: "Timing is the app’s action posture: Enter, Wait, or Reduce.",
+    why: "It translates raw analysis into a more intuitive decision-support frame.",
+    appUse: "Timing combines confidence, posture, and movement quality to suggest whether conditions are constructive or defensive."
+  },
+  risk: {
+    title: "Risk Profile",
+    what: "Risk Profile estimates how aggressive current movement feels.",
+    why: "Two strong-looking signals can behave very differently if one is much more unstable.",
+    appUse: "The app classifies recent movement into Low, Medium, or High risk to keep the signal grounded."
+  },
+  rsi: {
+    title: "RSI",
+    what: "RSI is a momentum oscillator often used to judge whether price is stretched.",
+    why: "It can help explain whether momentum is overheating or still developing.",
+    appUse: "Midnight Signal shows RSI as supporting context, not as a single source of truth."
+  },
+  sinceLastVisit: {
+    title: "Since Your Last Visit",
+    what: "This section compares the current snapshot against the last snapshot saved on your device.",
+    why: "It gives returning users a quick answer to what changed without making them re-scan the whole dashboard.",
+    appUse: "The app saves a local snapshot and surfaces posture shifts, confidence moves, notable movers, and top-signal changes."
+  }
+};
+
 export default function Page(){
   const [agreed, setAgreed] = useState(false);
   const [checkedEducation, setCheckedEducation] = useState(false);
@@ -119,6 +183,8 @@ export default function Page(){
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [unlockSeenAt, setUnlockSeenAt] = useState("");
+  const [learnOpen, setLearnOpen] = useState(false);
+  const [learnTopic, setLearnTopic] = useState("signal");
 
   useEffect(() => {
     try {
@@ -134,6 +200,8 @@ export default function Page(){
       setIsPremium(window.localStorage.getItem(STORAGE_KEYS.premium)==="true");
       setEmail(window.localStorage.getItem(STORAGE_KEYS.email)||"");
       setUnlockSeenAt(window.localStorage.getItem(STORAGE_KEYS.unlockSeenAt)||"");
+      const storedMode = window.localStorage.getItem(STORAGE_KEYS.mode)||"Beginner";
+      if (storedMode === "Beginner") setLearnOpen(true);
     } catch {}
   }, []);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.mode, mode); } catch {} }, [mode]);
@@ -224,7 +292,15 @@ export default function Page(){
         return enrich([coin.symbol, coin.name, Number(nextPrice.toFixed(coin.price>=1?2:4)), Number(nextChange.toFixed(1)), coin.volumeNum], i);
       }));
     }, 5000);
-    return () => window.clearInterval(id);
+  
+  function openLearn(topic) {
+    setLearnTopic(topic);
+    setLearnOpen(true);
+  }
+
+  const activeTopic = LEARN_TOPICS[learnTopic] || LEARN_TOPICS.signal;
+
+  return () => window.clearInterval(id);
   }, []);
 
   const ordered=useMemo(() => {
@@ -289,6 +365,14 @@ export default function Page(){
     } catch {}
   }
 
+
+  function openLearn(topic) {
+    setLearnTopic(topic);
+    setLearnOpen(true);
+  }
+
+  const activeTopic = LEARN_TOPICS[learnTopic] || LEARN_TOPICS.signal;
+
   return (
     <main style={{minHeight:"100vh",color:"#f7f7f7",background:"radial-gradient(circle at top, rgba(42,107,255,.14), transparent 28%), linear-gradient(135deg, #0d1530 0%, #181c2f 45%, #0f1330 100%)",padding:"24px 0 40px"}}>
       <style>{`
@@ -302,6 +386,7 @@ export default function Page(){
         .watch-card{border:1px solid rgba(96,103,249,.35);background:linear-gradient(135deg, rgba(96,103,249,.16), rgba(0,51,173,.18));border-radius:24px;padding:16px;text-align:left;color:#fff;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}.watch-card:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(0,0,0,.28)}
         .top-signal-shell{position:relative;overflow:hidden}.top-signal-shell::after{content:"";position:absolute;inset:-120px;pointer-events:none;background:radial-gradient(circle, rgba(139,168,255,.08) 0%, rgba(139,168,255,0) 58%);opacity:.5}
         .focus-chip{border-radius:16px;padding:12px 14px;font-weight:900;font-size:22px}.btn,.select{width:100%;padding:11px 14px;border-radius:16px;border:1px solid rgba(247,247,247,.12);background:rgba(247,247,247,.04);color:#fff}.btn-strong{border:0;cursor:pointer;padding:12px 16px;border-radius:14px;font-weight:800;background:linear-gradient(135deg,#2563eb,#4f46e5);color:white}
+.learn-fab{position:fixed;right:24px;bottom:24px;z-index:55;border:1px solid rgba(139,168,255,.28);background:linear-gradient(135deg, rgba(96,103,249,.92), rgba(0,51,173,.92));color:#fff;border-radius:999px;padding:14px 18px;font-weight:800;box-shadow:0 18px 50px rgba(0,0,0,.35);cursor:pointer}.learn-panel{position:fixed;top:0;right:0;height:100vh;width:min(420px,92vw);z-index:70;background:rgba(11,18,39,.96);border-left:1px solid rgba(247,247,247,.1);backdrop-filter:blur(14px);box-shadow:-18px 0 60px rgba(0,0,0,.4);transform:translateX(0);display:grid;grid-template-rows:auto 1fr}.learn-panel-body{overflow:auto;padding:20px 20px 28px}.learn-chip{border:1px solid rgba(247,247,247,.1);background:rgba(247,247,247,.04);color:#fff;border-radius:999px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer}.learn-chip.active{border-color:rgba(139,168,255,.45);background:rgba(96,103,249,.16);color:#dbe8ff}.learn-hot{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1px solid rgba(139,168,255,.28);background:rgba(96,103,249,.12);color:#dbe8ff;font-size:11px;font-weight:800;cursor:pointer;margin-left:8px;vertical-align:middle}.learn-overlay{position:fixed;inset:0;background:rgba(0,0,0,.36);z-index:65}
         @media (max-width:1100px){.ms-hero,.ms-stats,.ms-watch,.ms-coins{grid-template-columns:repeat(2,minmax(0,1fr))}} @media (max-width:700px){.ms-wrap{padding:0 14px}.ms-hero,.ms-stats,.ms-watch,.ms-coins{grid-template-columns:1fr}.ms-row{flex-direction:column;align-items:stretch}.ms-title{font-size:26px}}
       `}</style>
 
@@ -316,7 +401,7 @@ export default function Page(){
               </div>
               <div>
                 <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>Midnight Signal Panel</div>
-                <h1 className="ms-title">What’s the signal tonight? 🌙</h1>
+                <h1 className="ms-title">What’s the signal tonight? 🌙<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></h1>
                 <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: "rgba(247,247,247,.64)", letterSpacing: ".03em" }}>
                   <span>Data</span>
                   <span>•</span>
@@ -331,8 +416,8 @@ export default function Page(){
               </div>
             </div>
             <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
-              <button onClick={()=>setMode("Beginner")} className="btn-strong" style={{background:mode==="Beginner"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Beginner</button>
-              <button onClick={()=>setMode("Pro")} className="btn-strong" style={{background:mode==="Pro"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Pro</button>
+              <button onClick={()=>{setMode("Beginner"); setLearnOpen(true);}} className="btn-strong" style={{background:mode==="Beginner"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Beginner</button>
+              <button onClick={()=>{setMode("Pro"); setLearnOpen(false);}} className="btn-strong" style={{background:mode==="Pro"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Pro</button>
             </div>
           </div>
         </section>
@@ -383,14 +468,14 @@ export default function Page(){
           </div>
         </section>
 
-        {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal</div><div style={{fontSize:34,fontWeight:900,marginTop:4}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • beacon identity pass • premium soft gate</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile</div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
+        {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></div><div style={{fontSize:34,fontWeight:900,marginTop:4}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • beacon identity pass • premium soft gate</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile<button className="learn-hot" type="button" onClick={()=>openLearn("risk")}>?</button></div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
           <aside className="ms-card"><div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div><div style={{display:"grid",gap:14}}><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div><select className="select" value={strategy} onChange={(e)=>setStrategy(e.target.value)}><option value="scalp">Scalp</option><option value="swing">Swing</option><option value="position">Position</option></select></label><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div><select className="select" value={timeframe} onChange={(e)=>setTimeframe(e.target.value)}><option value="7">7D</option><option value="30">30D</option><option value="90">90D</option></select></label><label style={{display:"flex",alignItems:"center",gap:10}}><input type="checkbox" checked={soundOn} onChange={(e)=>setSoundOn(e.target.checked)}/><span>Signal ping on leader change</span></label><div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div></div></aside></section>}
 
 
         {visitDelta && <section className="ms-card">
           <div className="ms-row">
             <div>
-              <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>Since your last visit</div>
+              <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>Since your last visit<button className="learn-hot" type="button" onClick={()=>openLearn("sinceLastVisit")}>?</button></div>
               <div style={{fontSize:28,fontWeight:800}}>What changed since you were last here</div>
               <div className="ms-sub" style={{marginTop:8}}>
                 {lastSeenAt ? `Previous snapshot saved: ${lastSeenAt}` : "Comparing against your previous local snapshot."}
@@ -490,11 +575,11 @@ export default function Page(){
 
         <section className="ms-card"><div className="ms-grid ms-stats">{stats.map(([label,value]) => <div className="ms-metric" key={label}><div className="ms-metric-label">{label}</div><div className="ms-metric-value">{value}</div></div>)}</div></section>
 
-        <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>Watchlist</div><div className="ms-sub">Your pinned Midnight Signal picks, persisted on this device.</div></div><div style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>{watchlist.length} tracked</div></div><div className="ms-grid ms-watch" style={{marginTop:14}}>{ordered.filter(c=>watchlist.includes(c.symbol)).map(coin => <button className="watch-card" key={coin.symbol} onClick={()=>setSelected(coin.symbol)}><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><Pill>{coin.posture}</Pill></div><div style={{fontSize:28,fontWeight:700,marginTop:10}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{marginTop:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:12,color:"rgba(247,247,247,.5)"}}><span>{timeframe}D derived sparkline</span><span>{coin.confidence}%</span></div>{sparkline(coin.history, coin.change24h>=0)}</div></button>)}</div></section>
+        <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>Watchlist</div><div className="ms-sub">Your pinned Midnight Signal picks, persisted on this device.</div></div><div style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>{watchlist.length} tracked</div></div><div className="ms-grid ms-watch" style={{marginTop:14}}>{ordered.filter(c=>watchlist.includes(c.symbol)).map(coin => <button className="watch-card" key={coin.symbol} onClick={()=>{setSelected(coin.symbol); if(mode==="Beginner"){openLearn("momentum");}}}><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><Pill>{coin.posture}</Pill></div><div style={{fontSize:28,fontWeight:700,marginTop:10}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{marginTop:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:12,color:"rgba(247,247,247,.5)"}}><span>{timeframe}D derived sparkline</span><span>{coin.confidence}%</span></div>{sparkline(coin.history, coin.change24h>=0)}</div></button>)}</div></section>
 
-        <section className="ms-card"><div className="ms-row"><div><div style={{display:"flex",gap:8,alignItems:"center"}}><h2 style={{fontSize:24,margin:0}}>Top 20 Opportunity Grid</h2>{mode==="Beginner"?<span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>ⓘ Higher scores = stronger alignment, not certainty.</span>:null}</div><div className="ms-sub">Click a coin to open the detail panel.</div></div></div><div className="ms-grid ms-coins" style={{marginTop:16}}>{ordered.map(coin => <button key={coin.symbol} className={`coin-btn ${active?.symbol===coin.symbol?"active":""} ${topSignal?.symbol!==coin.symbol?"dim":""}`} onClick={()=>setSelected(coin.symbol)}><div className="ms-row"><button type="button" onClick={(e)=>{e.stopPropagation();toggleWatch(coin.symbol);}} style={{border:"1px solid rgba(247,247,247,.12)",background:"rgba(247,247,247,.04)",color:"#fff",borderRadius:14,padding:"8px 10px",cursor:"pointer"}}>{watchlist.includes(coin.symbol)?"★":"☆"}</button><Pill>{coin.posture}</Pill></div><div><div style={{fontSize:22,fontWeight:800}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><div style={{fontSize:28,fontWeight:700}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill tone={coin.timing}>{coin.timing}</Pill><Pill tone={coin.posture}>{coin.posture}</Pill></div><div><div className="ms-row" style={{marginBottom:8}}><span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>Signal Confidence</span><span style={{fontSize:12,color:"rgba(247,247,247,.7)"}}>{coin.confidence}%</span></div><div style={{height:8,width:"100%",borderRadius:999,background:"rgba(247,247,247,.1)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${coin.confidence}%`,borderRadius:999,background:"linear-gradient(90deg, #0033AD, #6067F9, #8BA8FF)"}}></span></div></div></button>)}</div></section>
+        <section className="ms-card"><div className="ms-row"><div><div style={{display:"flex",gap:8,alignItems:"center"}}><h2 style={{fontSize:24,margin:0}}>Top 20 Opportunity Grid</h2>{mode==="Beginner"?<span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>ⓘ Higher scores = stronger alignment, not certainty.</span>:null}</div><div className="ms-sub">Click a coin to open the detail panel.</div></div></div><div className="ms-grid ms-coins" style={{marginTop:16}}>{ordered.map(coin => <button key={coin.symbol} className={`coin-btn ${active?.symbol===coin.symbol?"active":""} ${topSignal?.symbol!==coin.symbol?"dim":""}`} onClick={()=>{setSelected(coin.symbol); if(mode==="Beginner"){openLearn("confidence");}}}><div className="ms-row"><button type="button" onClick={(e)=>{e.stopPropagation();toggleWatch(coin.symbol);}} style={{border:"1px solid rgba(247,247,247,.12)",background:"rgba(247,247,247,.04)",color:"#fff",borderRadius:14,padding:"8px 10px",cursor:"pointer"}}>{watchlist.includes(coin.symbol)?"★":"☆"}</button><Pill>{coin.posture}</Pill></div><div><div style={{fontSize:22,fontWeight:800}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><div style={{fontSize:28,fontWeight:700}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill tone={coin.timing}>{coin.timing}</Pill><Pill tone={coin.posture}>{coin.posture}</Pill></div><div><div className="ms-row" style={{marginBottom:8}}><span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>Signal Confidence</span><span style={{fontSize:12,color:"rgba(247,247,247,.7)"}}>{coin.confidence}%</span></div><div style={{height:8,width:"100%",borderRadius:999,background:"rgba(247,247,247,.1)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${coin.confidence}%`,borderRadius:999,background:"linear-gradient(90deg, #0033AD, #6067F9, #8BA8FF)"}}></span></div></div></button>)}</div></section>
 
-        {active && <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Signal Detail Panel</div><div style={{fontSize:30,fontWeight:900,marginTop:4}}>{active.symbol} • {active.posture}</div><div className="ms-sub" style={{marginTop:8}}>{active.change24h>=0?"+":""}{active.change24h.toFixed(1)}% today</div></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{active.posture}</Pill><Pill tone={active.timing}>{active.timing}</Pill><Pill>{active.confidenceBand} confidence</Pill></div></div><div className="ms-grid ms-stats" style={{marginTop:16}}><div className="ms-metric"><div className="ms-metric-label">Signal Confidence</div><div className="ms-metric-value">{active.confidence}%</div></div><div className="ms-metric"><div className="ms-metric-label">Opportunity Score</div><div className="ms-metric-value">{Math.min(100, Math.max(0, active.confidence + (active.timing==="Enter"?8:active.timing==="Reduce"?-8:0)))}/100</div></div><div className="ms-metric"><div className="ms-metric-label">RSI State</div><div className="ms-metric-value">{active.rsi}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile</div><div className="ms-metric-value">{active.risk}</div></div></div><div className="ms-grid ms-hero" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Why This Signal</div><div style={{fontSize:18,fontWeight:700,marginTop:10}}>{active.brief}</div>
+        {active && <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Signal Detail Panel</div><div style={{fontSize:30,fontWeight:900,marginTop:4}}>{active.symbol} • {active.posture}</div><div className="ms-sub" style={{marginTop:8}}>{active.change24h>=0?"+":""}{active.change24h.toFixed(1)}% today</div></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{active.posture}</Pill><Pill tone={active.timing}>{active.timing}</Pill><Pill>{active.confidenceBand} confidence</Pill></div></div><div className="ms-grid ms-stats" style={{marginTop:16}}><div className="ms-metric"><div className="ms-metric-label">Signal Confidence<button className="learn-hot" type="button" onClick={()=>openLearn("confidence")}>?</button></div><div className="ms-metric-value">{active.confidence}%</div></div><div className="ms-metric"><div className="ms-metric-label">Opportunity Score</div><div className="ms-metric-value">{Math.min(100, Math.max(0, active.confidence + (active.timing==="Enter"?8:active.timing==="Reduce"?-8:0)))}/100</div></div><div className="ms-metric"><div className="ms-metric-label">RSI State</div><div className="ms-metric-value">{active.rsi}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile</div><div className="ms-metric-value">{active.risk}</div></div></div><div className="ms-grid ms-hero" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Why This Signal</div><div style={{fontSize:18,fontWeight:700,marginTop:10}}>{active.brief}</div>
                 <div style={{marginTop:14,lineHeight:1.75,color:"#e2e8f0"}}>{isPremium ? active.explanation : `${active.explanation.slice(0, 110)}...`}</div>
                 <div style={{position:"relative",marginTop:16}}>
                   <div style={{padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)",filter:isPremium?"none":"blur(0px)"}}>
@@ -507,14 +592,78 @@ export default function Page(){
                 <div style={{marginTop:16,padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)",opacity:isPremium?1:.72}}>
                   <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>What would weaken this signal?</div>
                   <div className="ms-sub" style={{lineHeight:1.7}}>{isPremium ? active.invalidation : "Premium reveals the invalidation context for this signal."}</div>
-                </div></div><div className="ms-metric"><div className="ms-metric-label">Factor Breakdown</div>
+                </div></div><div className="ms-metric"><div className="ms-metric-label">Factor Breakdown<button className="learn-hot" type="button" onClick={()=>openLearn("momentum")}>?</button></div>
                 <div style={{marginTop:12,display:"grid",gap:14,position:"relative"}}>
                   {[{label:"Momentum",value:active.breakdown.momentum},{label:"Trend",value:active.breakdown.trend},{label:"Volatility",value:active.breakdown.volatility}].map((item, index)=><div key={item.label} style={{opacity:isPremium ? 1 : index === 0 ? 1 : .42, filter:isPremium ? "none" : index === 0 ? "none" : "blur(2px)"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:14,fontWeight:700}}>{item.label}</span><span style={{fontSize:13,color:"rgba(247,247,247,.68)"}}>{isPremium || index === 0 ? `${item.value}% contribution` : "Premium"}</span></div><div style={{height:10,width:"100%",borderRadius:999,background:"rgba(247,247,247,.08)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${isPremium || index===0 ? item.value : 68}%`,borderRadius:999,background:barColor(item.label)}}></span></div></div>)}
                   {!isPremium ? <div style={{position:"absolute",inset:0,borderRadius:16,background:"linear-gradient(180deg, rgba(13,21,48,.08), rgba(13,21,48,.68))",display:"flex",alignItems:"end",justifyContent:"center",padding:16}}><div style={{textAlign:"center"}}><div style={{fontWeight:800,marginBottom:8}}>Unlock full factor breakdown</div><button onClick={startCheckout} className="btn-strong" style={{width:"auto"}}>Go premium</button></div></div> : null}
                 </div>
                 <div style={{marginTop:18}}><div className="ms-metric-label">Derived Sparkline</div><div style={{marginTop:12}}>{sparkline(active.history, active.change24h>=0)}</div></div><div className="ms-sub" style={{marginTop:14,lineHeight:1.7}}>This breakdown exposes the weighted parts behind the signal so the app feels more like guidance than a raw dashboard.</div></div></div></section>}
 
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v8.7.0 • premium soft gate</div></section>
+
+        <button type="button" className="learn-fab" onClick={()=>setLearnOpen(true)}>
+          Learn
+        </button>
+
+        {learnOpen ? <div className="learn-overlay" onClick={()=>setLearnOpen(false)}></div> : null}
+        {learnOpen ? (
+          <aside className="learn-panel">
+            <div style={{padding:"18px 20px",borderBottom:"1px solid rgba(247,247,247,.08)",display:"flex",justifyContent:"space-between",gap:12,alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:14,color:"#94a3b8",marginBottom:4}}>Adaptive Learning</div>
+                <div style={{fontSize:24,fontWeight:800}}>Midnight Signal Glossary</div>
+              </div>
+              <button type="button" className="btn" onClick={()=>setLearnOpen(false)} style={{width:"auto",padding:"10px 12px"}}>Close</button>
+            </div>
+            <div className="learn-panel-body">
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
+                {Object.entries(LEARN_TOPICS).map(([key, value]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`learn-chip ${learnTopic===key ? "active" : ""}`}
+                    onClick={()=>setLearnTopic(key)}
+                  >
+                    {value.title}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{padding:16,borderRadius:18,background:"rgba(247,247,247,.04)",border:"1px solid rgba(247,247,247,.08)",marginBottom:16}}>
+                <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Topic</div>
+                <div style={{fontSize:26,fontWeight:800,marginBottom:10}}>{activeTopic.title}</div>
+                <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>What it is</div>
+                <div style={{lineHeight:1.7,color:"#e2e8f0",marginBottom:14}}>{activeTopic.what}</div>
+                <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>Why it matters</div>
+                <div style={{lineHeight:1.7,color:"#e2e8f0",marginBottom:14}}>{activeTopic.why}</div>
+                <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>How Midnight Signal uses it</div>
+                <div style={{lineHeight:1.7,color:"#e2e8f0"}}>{activeTopic.appUse}</div>
+              </div>
+
+              <div style={{padding:16,borderRadius:18,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.12))",border:"1px solid rgba(96,103,249,.22)",marginBottom:16}}>
+                <div style={{fontSize:13,color:"#bcd0ff",marginBottom:8}}>Mode-aware behavior</div>
+                <div style={{fontWeight:800,marginBottom:8}}>{mode==="Beginner" ? "Beginner mode is prioritizing guidance." : "Pro mode keeps learning available but out of your way."}</div>
+                <div className="ms-sub" style={{lineHeight:1.7}}>
+                  {mode==="Beginner"
+                    ? "In Beginner mode, the app keeps learning closer to the decision flow so non-experts can understand what they are seeing without clutter."
+                    : "In Pro mode, the panel becomes an on-demand reference so you can move faster while still having definitions when needed."}
+                </div>
+              </div>
+
+              <div style={{padding:16,borderRadius:18,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>
+                <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Suggested next concepts</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {["momentum","trend","volatility","confidence","timing"].filter((key)=>key!==learnTopic).slice(0,4).map((key)=>(
+                    <button key={key} type="button" className="learn-chip" onClick={()=>setLearnTopic(key)}>
+                      {LEARN_TOPICS[key].title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </aside>
+        ) : null}
+
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v8.8.1 • adaptive learning</div></section>
       </div>
     </main>
   );
