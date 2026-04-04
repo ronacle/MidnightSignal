@@ -14,6 +14,9 @@ const STORAGE_KEYS = {
   sound: "ms_sound_ping",
   snapshot: "ms_last_snapshot_v1",
   seenAt: "ms_last_seen_at",
+  premium: "ms_premium_unlocked",
+  unlockSeenAt: "ms_unlock_seen_at",
+  email: "ms_user_email",
 };
 
 const SEED = [
@@ -111,6 +114,11 @@ export default function Page(){
     const [lastInsight, setLastInsight] = useState("");
   const [visitDelta, setVisitDelta] = useState(null);
   const [lastSeenAt, setLastSeenAt] = useState("");
+  const [isPremium, setIsPremium] = useState(false);
+  const [email, setEmail] = useState("");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [unlockSeenAt, setUnlockSeenAt] = useState("");
 
   useEffect(() => {
     try {
@@ -123,6 +131,9 @@ export default function Page(){
       const raw=window.localStorage.getItem(STORAGE_KEYS.watchlist);
       if(raw){ const parsed=JSON.parse(raw); if(Array.isArray(parsed)&&parsed.every((x)=>typeof x==="string")) setWatchlist(parsed); }
       setLastInsight(window.localStorage.getItem("ms_last_insight")||"");
+      setIsPremium(window.localStorage.getItem(STORAGE_KEYS.premium)==="true");
+      setEmail(window.localStorage.getItem(STORAGE_KEYS.email)||"");
+      setUnlockSeenAt(window.localStorage.getItem(STORAGE_KEYS.unlockSeenAt)||"");
     } catch {}
   }, []);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.mode, mode); } catch {} }, [mode]);
@@ -131,6 +142,7 @@ export default function Page(){
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.selectedAsset, selected); } catch {} }, [selected]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.watchlist, JSON.stringify(watchlist)); } catch {} }, [watchlist]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.sound, soundOn ? "true" : "false"); } catch {} }, [soundOn]);
+  useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.email, email); } catch {} }, [email]);
 
 
   useEffect(() => {
@@ -247,6 +259,36 @@ export default function Page(){
 
   const stats=[["Bullish Regimes", `${coins.filter(c=>c.posture==="Bullish").length}/20`],["Enter Signals", `${coins.filter(c=>c.timing==="Enter").length}`],["Average Confidence", `${Math.round(coins.reduce((s,c)=>s+c.confidence,0)/coins.length)}%`],["Top Opportunity", topSignal?topSignal.symbol:"—"]];
 
+  async function startCheckout() {
+    setCheckoutLoading(true);
+    setCheckoutError("");
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.message || "Unable to start checkout.");
+      }
+      window.location.href = data.url;
+    } catch (error) {
+      setCheckoutError(error?.message || "Unable to start checkout.");
+      setCheckoutLoading(false);
+    }
+  }
+
+  function unlockLocally() {
+    setIsPremium(true);
+    const now = new Date().toLocaleString();
+    setUnlockSeenAt(now);
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.premium, "true");
+      window.localStorage.setItem(STORAGE_KEYS.unlockSeenAt, now);
+    } catch {}
+  }
+
   return (
     <main style={{minHeight:"100vh",color:"#f7f7f7",background:"radial-gradient(circle at top, rgba(42,107,255,.14), transparent 28%), linear-gradient(135deg, #0d1530 0%, #181c2f 45%, #0f1330 100%)",padding:"24px 0 40px"}}>
       <style>{`
@@ -295,7 +337,53 @@ export default function Page(){
           </div>
         </section>
 
-        {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal</div><div style={{fontSize:34,fontWeight:900,marginTop:4}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • beacon identity pass • why this signal</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile</div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
+        <section className="ms-card">
+          <div className="ms-row">
+            <div>
+              <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>Premium access</div>
+              <div style={{fontSize:28,fontWeight:800}}>Unlock deeper signal intelligence</div>
+              <div className="ms-sub" style={{marginTop:8}}>
+                Soft gate mode: keep exploring for free, or unlock the full reasoning layer for $9/month early access.
+              </div>
+            </div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+              <Pill>{isPremium ? "Premium active" : "$9/mo early access"}</Pill>
+              {unlockSeenAt ? <Pill>{unlockSeenAt}</Pill> : null}
+            </div>
+          </div>
+          <div className="ms-grid ms-hero" style={{marginTop:18}}>
+            <div className="ms-metric">
+              <div className="ms-metric-label">What unlocks</div>
+              <div style={{display:"grid",gap:10,marginTop:12}}>
+                <div style={{padding:12,borderRadius:14,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>Full Why This Signal explanation and confidence context</div>
+                <div style={{padding:12,borderRadius:14,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>Complete Since Your Last Visit layer</div>
+                <div style={{padding:12,borderRadius:14,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>Factor breakdown bars and deeper signal guidance</div>
+              </div>
+            </div>
+            <div className="ms-metric">
+              <div className="ms-metric-label">Upgrade</div>
+              <div style={{display:"grid",gap:12,marginTop:12}}>
+                <input
+                  className="select"
+                  type="email"
+                  placeholder="Email for checkout"
+                  value={email}
+                  onChange={(e)=>setEmail(e.target.value)}
+                />
+                <button onClick={startCheckout} className="btn-strong" disabled={checkoutLoading}>
+                  {checkoutLoading ? "Starting checkout..." : "Unlock Full Signal Intelligence"}
+                </button>
+                <button onClick={unlockLocally} className="btn" type="button">
+                  Local premium preview
+                </button>
+                <div className="ms-sub">If Stripe env vars are missing, checkout safely falls back to a mock success route so the app still deploys cleanly.</div>
+                {checkoutError ? <div style={{color:"#fca5a5",fontSize:13}}>{checkoutError}</div> : null}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal</div><div style={{fontSize:34,fontWeight:900,marginTop:4}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • beacon identity pass • premium soft gate</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile</div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
           <aside className="ms-card"><div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div><div style={{display:"grid",gap:14}}><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div><select className="select" value={strategy} onChange={(e)=>setStrategy(e.target.value)}><option value="scalp">Scalp</option><option value="swing">Swing</option><option value="position">Position</option></select></label><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div><select className="select" value={timeframe} onChange={(e)=>setTimeframe(e.target.value)}><option value="7">7D</option><option value="30">30D</option><option value="90">90D</option></select></label><label style={{display:"flex",alignItems:"center",gap:10}}><input type="checkbox" checked={soundOn} onChange={(e)=>setSoundOn(e.target.checked)}/><span>Signal ping on leader change</span></label><div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div></div></aside></section>}
 
 
@@ -406,9 +494,27 @@ export default function Page(){
 
         <section className="ms-card"><div className="ms-row"><div><div style={{display:"flex",gap:8,alignItems:"center"}}><h2 style={{fontSize:24,margin:0}}>Top 20 Opportunity Grid</h2>{mode==="Beginner"?<span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>ⓘ Higher scores = stronger alignment, not certainty.</span>:null}</div><div className="ms-sub">Click a coin to open the detail panel.</div></div></div><div className="ms-grid ms-coins" style={{marginTop:16}}>{ordered.map(coin => <button key={coin.symbol} className={`coin-btn ${active?.symbol===coin.symbol?"active":""} ${topSignal?.symbol!==coin.symbol?"dim":""}`} onClick={()=>setSelected(coin.symbol)}><div className="ms-row"><button type="button" onClick={(e)=>{e.stopPropagation();toggleWatch(coin.symbol);}} style={{border:"1px solid rgba(247,247,247,.12)",background:"rgba(247,247,247,.04)",color:"#fff",borderRadius:14,padding:"8px 10px",cursor:"pointer"}}>{watchlist.includes(coin.symbol)?"★":"☆"}</button><Pill>{coin.posture}</Pill></div><div><div style={{fontSize:22,fontWeight:800}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><div style={{fontSize:28,fontWeight:700}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill tone={coin.timing}>{coin.timing}</Pill><Pill tone={coin.posture}>{coin.posture}</Pill></div><div><div className="ms-row" style={{marginBottom:8}}><span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>Signal Confidence</span><span style={{fontSize:12,color:"rgba(247,247,247,.7)"}}>{coin.confidence}%</span></div><div style={{height:8,width:"100%",borderRadius:999,background:"rgba(247,247,247,.1)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${coin.confidence}%`,borderRadius:999,background:"linear-gradient(90deg, #0033AD, #6067F9, #8BA8FF)"}}></span></div></div></button>)}</div></section>
 
-        {active && <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Signal Detail Panel</div><div style={{fontSize:30,fontWeight:900,marginTop:4}}>{active.symbol} • {active.posture}</div><div className="ms-sub" style={{marginTop:8}}>{active.change24h>=0?"+":""}{active.change24h.toFixed(1)}% today</div></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{active.posture}</Pill><Pill tone={active.timing}>{active.timing}</Pill><Pill>{active.confidenceBand} confidence</Pill></div></div><div className="ms-grid ms-stats" style={{marginTop:16}}><div className="ms-metric"><div className="ms-metric-label">Signal Confidence</div><div className="ms-metric-value">{active.confidence}%</div></div><div className="ms-metric"><div className="ms-metric-label">Opportunity Score</div><div className="ms-metric-value">{Math.min(100, Math.max(0, active.confidence + (active.timing==="Enter"?8:active.timing==="Reduce"?-8:0)))}/100</div></div><div className="ms-metric"><div className="ms-metric-label">RSI State</div><div className="ms-metric-value">{active.rsi}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile</div><div className="ms-metric-value">{active.risk}</div></div></div><div className="ms-grid ms-hero" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Why This Signal</div><div style={{fontSize:18,fontWeight:700,marginTop:10}}>{active.brief}</div><div style={{marginTop:14,lineHeight:1.75,color:"#e2e8f0"}}>{active.explanation}</div><div style={{marginTop:16,padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Confidence context</div><div style={{fontSize:16,fontWeight:700,marginBottom:8}}>{active.confidenceBand} confidence</div><div className="ms-sub" style={{lineHeight:1.7}}>{active.confidenceContext}</div></div><div style={{marginTop:16,padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>What would weaken this signal?</div><div className="ms-sub" style={{lineHeight:1.7}}>{active.invalidation}</div></div></div><div className="ms-metric"><div className="ms-metric-label">Factor Breakdown</div><div style={{marginTop:12,display:"grid",gap:14}}>{[{label:"Momentum",value:active.breakdown.momentum},{label:"Trend",value:active.breakdown.trend},{label:"Volatility",value:active.breakdown.volatility}].map((item)=><div key={item.label}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:14,fontWeight:700}}>{item.label}</span><span style={{fontSize:13,color:"rgba(247,247,247,.68)"}}>{item.value}% contribution</span></div><div style={{height:10,width:"100%",borderRadius:999,background:"rgba(247,247,247,.08)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${item.value}%`,borderRadius:999,background:barColor(item.label)}}></span></div></div>)}</div><div style={{marginTop:18}}><div className="ms-metric-label">Derived Sparkline</div><div style={{marginTop:12}}>{sparkline(active.history, active.change24h>=0)}</div></div><div className="ms-sub" style={{marginTop:14,lineHeight:1.7}}>This breakdown exposes the weighted parts behind the signal so the app feels more like guidance than a raw dashboard.</div></div></div></section>}
+        {active && <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Signal Detail Panel</div><div style={{fontSize:30,fontWeight:900,marginTop:4}}>{active.symbol} • {active.posture}</div><div className="ms-sub" style={{marginTop:8}}>{active.change24h>=0?"+":""}{active.change24h.toFixed(1)}% today</div></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{active.posture}</Pill><Pill tone={active.timing}>{active.timing}</Pill><Pill>{active.confidenceBand} confidence</Pill></div></div><div className="ms-grid ms-stats" style={{marginTop:16}}><div className="ms-metric"><div className="ms-metric-label">Signal Confidence</div><div className="ms-metric-value">{active.confidence}%</div></div><div className="ms-metric"><div className="ms-metric-label">Opportunity Score</div><div className="ms-metric-value">{Math.min(100, Math.max(0, active.confidence + (active.timing==="Enter"?8:active.timing==="Reduce"?-8:0)))}/100</div></div><div className="ms-metric"><div className="ms-metric-label">RSI State</div><div className="ms-metric-value">{active.rsi}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile</div><div className="ms-metric-value">{active.risk}</div></div></div><div className="ms-grid ms-hero" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Why This Signal</div><div style={{fontSize:18,fontWeight:700,marginTop:10}}>{active.brief}</div>
+                <div style={{marginTop:14,lineHeight:1.75,color:"#e2e8f0"}}>{isPremium ? active.explanation : `${active.explanation.slice(0, 110)}...`}</div>
+                <div style={{position:"relative",marginTop:16}}>
+                  <div style={{padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)",filter:isPremium?"none":"blur(0px)"}}>
+                    <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Confidence context</div>
+                    <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>{active.confidenceBand} confidence</div>
+                    <div className="ms-sub" style={{lineHeight:1.7}}>{isPremium ? active.confidenceContext : "Unlock premium to read the full confidence interpretation and usage context."}</div>
+                  </div>
+                  {!isPremium ? <div style={{position:"absolute",inset:0,borderRadius:16,background:"linear-gradient(180deg, rgba(13,21,48,.18), rgba(13,21,48,.72))",display:"flex",alignItems:"end",justifyContent:"center",padding:16}}><button onClick={startCheckout} className="btn-strong" style={{width:"auto"}}>Unlock full reasoning</button></div> : null}
+                </div>
+                <div style={{marginTop:16,padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)",opacity:isPremium?1:.72}}>
+                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>What would weaken this signal?</div>
+                  <div className="ms-sub" style={{lineHeight:1.7}}>{isPremium ? active.invalidation : "Premium reveals the invalidation context for this signal."}</div>
+                </div></div><div className="ms-metric"><div className="ms-metric-label">Factor Breakdown</div>
+                <div style={{marginTop:12,display:"grid",gap:14,position:"relative"}}>
+                  {[{label:"Momentum",value:active.breakdown.momentum},{label:"Trend",value:active.breakdown.trend},{label:"Volatility",value:active.breakdown.volatility}].map((item, index)=><div key={item.label} style={{opacity:isPremium ? 1 : index === 0 ? 1 : .42, filter:isPremium ? "none" : index === 0 ? "none" : "blur(2px)"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:14,fontWeight:700}}>{item.label}</span><span style={{fontSize:13,color:"rgba(247,247,247,.68)"}}>{isPremium || index === 0 ? `${item.value}% contribution` : "Premium"}</span></div><div style={{height:10,width:"100%",borderRadius:999,background:"rgba(247,247,247,.08)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${isPremium || index===0 ? item.value : 68}%`,borderRadius:999,background:barColor(item.label)}}></span></div></div>)}
+                  {!isPremium ? <div style={{position:"absolute",inset:0,borderRadius:16,background:"linear-gradient(180deg, rgba(13,21,48,.08), rgba(13,21,48,.68))",display:"flex",alignItems:"end",justifyContent:"center",padding:16}}><div style={{textAlign:"center"}}><div style={{fontWeight:800,marginBottom:8}}>Unlock full factor breakdown</div><button onClick={startCheckout} className="btn-strong" style={{width:"auto"}}>Go premium</button></div></div> : null}
+                </div>
+                <div style={{marginTop:18}}><div className="ms-metric-label">Derived Sparkline</div><div style={{marginTop:12}}>{sparkline(active.history, active.change24h>=0)}</div></div><div className="ms-sub" style={{marginTop:14,lineHeight:1.7}}>This breakdown exposes the weighted parts behind the signal so the app feels more like guidance than a raw dashboard.</div></div></div></section>}
 
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v8.6.0 • why this signal</div></section>
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v8.7.0 • premium soft gate</div></section>
       </div>
     </main>
   );
