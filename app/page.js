@@ -1,5 +1,24 @@
 'use client';
 
+// --- v10.5 paywall ---
+const PREMIUM_KEY = "midnight:premium";
+
+function usePremium() {
+  const [isPremium, setIsPremium] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsPremium(localStorage.getItem(PREMIUM_KEY) === "true");
+  }, []);
+
+  const enable = () => {
+    localStorage.setItem(PREMIUM_KEY, "true");
+    location.reload();
+  };
+
+  return { isPremium, enable };
+}
+
+
 import { useEffect, useMemo, useState } from "react";
 
 const VISIT_KEY = "midnight:lastSignals";
@@ -505,7 +524,10 @@ export default function Page() {
     setPremium(false)
   }
 
-  const sorted = useMemo(() => {
+  
+const { isPremium, enable } = usePremium();
+
+const sorted = useMemo(() => {
     return [...signals].sort((a, b) => {
       const aPower = a.score + (a.confidence * 0.22) + ((a.stability || 50) * 0.12) + ((a.streak || 1) * 1.5);
       const bPower = b.score + (b.confidence * 0.22) + ((b.stability || 50) * 0.12) + ((b.streak || 1) * 1.5);
@@ -531,7 +553,7 @@ export default function Page() {
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap: 16, flexWrap:"wrap" }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 700 }}>🌙 Midnight Signal</div>
-          <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.4.1 · anti-noise + persistence</div>
+          <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.5 · anti-noise + persistence</div>
         </div>
         <div style={{ display:"flex", gap: 8, flexWrap:"wrap", alignItems:"center" }}>
           <div style={{ padding: "8px 10px", borderRadius: 999, border: "1px solid #334155", background: dataSource === "live" ? "rgba(15,23,42,0.95)" : "rgba(30,41,59,0.95)", color: dataSource === "live" ? "#86efac" : "#fbbf24", fontSize: 12 }}>
@@ -841,7 +863,7 @@ export default function Page() {
       </section>
 
       <div style={{ marginTop: 18, textAlign: "center", fontSize: 12, color: "#64748b" }}>
-        v10.4.1 · anti-noise + persistence
+        v10.5 · anti-noise + persistence
       </div>
     </main>
   );
