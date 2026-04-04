@@ -262,7 +262,8 @@ function ConfidenceRing({ value }) {
       display: "grid",
       placeItems: "center",
       background: `conic-gradient(${tone} ${value * 3.6}deg, #0f172a 0deg)`,
-      boxShadow: value >= 70 ? "0 0 20px rgba(59,130,246,0.25)" : "0 0 12px rgba(2,6,23,0.45)"
+      boxShadow: value >= 70 ? "0 0 20px rgba(59,130,246,0.25)" : "0 0 12px rgba(2,6,23,0.45)",
+      animation: value >= 70 ? "msCardBreathe 2.8s ease-in-out infinite" : "none"
     }}>
       <div style={{
         width: 60,
@@ -297,6 +298,38 @@ function StatusPill({ label, active }) {
   );
 }
 
+
+function LivePulse({ active = true }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap: 8 }}>
+      <div style={{ position:"relative", width: 12, height: 12 }}>
+        <span className={active ? "ms-pulse-dot" : ""} style={{
+          position:"absolute",
+          inset:0,
+          borderRadius:"50%",
+          background: active ? "#60a5fa" : "#475569",
+          boxShadow: active ? "0 0 14px rgba(96,165,250,0.9)" : "none"
+        }} />
+      </div>
+      <span style={{ fontSize: 12, color: active ? "#93c5fd" : "#64748b", letterSpacing: ".04em", textTransform:"uppercase" }}>
+        {active ? "Live pulse" : "Idle"}
+      </span>
+    </div>
+  );
+}
+
+function BeaconMark() {
+  return (
+    <div style={{ position:"relative", width: 58, height: 58, display:"grid", placeItems:"center" }}>
+      <div className="ms-beacon-ring ms-r1" />
+      <div className="ms-beacon-ring ms-r2" />
+      <div className="ms-beacon-ring ms-r3" />
+      <div className="ms-beacon-orbit" />
+      <div className="ms-beacon-core" />
+    </div>
+  );
+}
+
 export default function Page() {
   const [signals, setSignals] = useState([]);
   const [viewMode, setViewMode] = useState("beginner");
@@ -308,6 +341,7 @@ export default function Page() {
   const [emailDraft, setEmailDraft] = useState("");
   const [premium, setPremium] = useState(false);
   const [billingMessage, setBillingMessage] = useState("");
+  const [pulseTick, setPulseTick] = useState(0);
 
   useEffect(() => {
     const savedMode = localStorage.getItem(MODE_KEY);
@@ -346,6 +380,11 @@ export default function Page() {
       })
       .catch(() => setSignals([]));
   }, [session, watchlist]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setPulseTick((v) => (v + 1) % 1000), 1800);
+    return () => clearInterval(timer);
+  }, []);
 
   function toggleWatch(id) {
     const next = watchlist.includes(id) ? watchlist.filter((x) => x !== id) : [...watchlist, id];
@@ -437,10 +476,79 @@ export default function Page() {
       minHeight: "100vh",
       background: "radial-gradient(circle at top, rgba(37,99,235,0.10), transparent 28%)"
     }}>
+      <style>{`
+        @keyframes msPulse {
+          0% { transform: scale(0.9); opacity: 0.9; }
+          70% { transform: scale(1.9); opacity: 0; }
+          100% { transform: scale(1.9); opacity: 0; }
+        }
+        @keyframes msFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-3px); }
+        }
+        @keyframes msOrbit {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes msCardBreathe {
+          0%, 100% { box-shadow: 0 0 16px rgba(2,6,23,0.45); }
+          50% { box-shadow: 0 0 26px rgba(59,130,246,0.18); }
+        }
+        .ms-pulse-dot::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: 999px;
+          background: rgba(96,165,250,0.55);
+          animation: msPulse 1.8s ease-out infinite;
+        }
+        .ms-beacon-ring {
+          position:absolute;
+          inset:0;
+          border-radius:50%;
+          border:1px solid rgba(96,165,250,0.18);
+        }
+        .ms-r1 { transform: scale(.48); }
+        .ms-r2 { transform: scale(.72); }
+        .ms-r3 { transform: scale(.98); opacity:.6; }
+        .ms-beacon-orbit {
+          position:absolute;
+          inset:4px;
+          border-radius:50%;
+          border:1px dashed rgba(96,165,250,0.28);
+          animation: msOrbit 12s linear infinite;
+        }
+        .ms-beacon-core {
+          width:12px;
+          height:12px;
+          border-radius:999px;
+          background:#60a5fa;
+          box-shadow:0 0 18px rgba(96,165,250,0.95);
+          animation: msFloat 2.6s ease-in-out infinite;
+        }
+        .ms-signal-card {
+          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+          animation: msCardBreathe 4.2s ease-in-out infinite;
+        }
+        .ms-signal-card:hover {
+          transform: translateY(-3px);
+          border-color: rgba(96,165,250,0.32) !important;
+          box-shadow: 0 0 28px rgba(59,130,246,0.24) !important;
+        }
+        .ms-changed-card {
+          animation: msCardBreathe 2.4s ease-in-out infinite;
+        }
+      `}</style>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap: 16, flexWrap:"wrap" }}>
-        <div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em" }}>🌙 Midnight Signal</div>
-          <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.1 · premium visual reset + cleaner market universe</div>
+        <div style={{ display:"flex", alignItems:"center", gap: 14 }}>
+          <BeaconMark />
+          <div>
+            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em", display:"flex", alignItems:"center", gap: 10, flexWrap:"wrap" }}>
+              <span>🌙 Midnight Signal</span>
+              <LivePulse active={signals.length > 0} />
+            </div>
+            <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.2 · motion + pulse + liveliness</div>
+          </div>
         </div>
         <div style={{ display:"flex", gap: 8, flexWrap:"wrap" }}>
           {["scalp", "swing", "position"].map((item) => (
@@ -486,6 +594,36 @@ export default function Page() {
           <StatusPill label="Site URL" active={configStatus.siteUrlReady} />
           <StatusPill label="Stripe" active={configStatus.stripeReady} />
           <StatusPill label="Supabase" active={configStatus.supabaseReady} />
+        </div>
+      </section>
+
+      <section style={{
+        marginTop: 18,
+        padding: 14,
+        ...cardBase(),
+        background: "linear-gradient(180deg, rgba(9,15,28,0.98) 0%, rgba(3,8,18,0.98) 100%)"
+      }}>
+        <div style={{ display:"flex", justifyContent:"space-between", gap: 12, flexWrap:"wrap", alignItems:"center" }}>
+          <div>
+            <div style={{ fontSize: 13, color:"#93c5fd" }}>Signal activity</div>
+            <div style={{ fontSize: 12, color:"#64748b", marginTop: 4 }}>
+              {signals.length ? `${signals.filter((s) => s.label === "Bullish").length} bullish · ${signals.filter((s) => s.label === "Bearish").length} bearish · ${watchlist.length} watched` : "Waiting for live market posture..."}
+            </div>
+          </div>
+          <div style={{ display:"flex", gap: 8, flexWrap:"wrap" }}>
+            {(signals.slice(0, 4)).map((s, idx) => (
+              <div key={s.id + pulseTick + idx} style={{
+                padding: "8px 10px",
+                borderRadius: 999,
+                background: "rgba(2,6,23,0.9)",
+                border: "1px solid rgba(59,130,246,0.14)",
+                color: s.confidence >= 70 ? "#93c5fd" : "#cbd5e1",
+                boxShadow: s.confidence >= 70 ? "0 0 14px rgba(59,130,246,0.18)" : "none"
+              }}>
+                {s.symbol} · {s.label}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -568,7 +706,7 @@ export default function Page() {
           ...cardBase(),
           boxShadow: topSignal ? glow(topSignal.score) : "0 0 16px rgba(2,6,23,0.45)"
         }}>
-          <div style={{ fontSize: 13, color:"#94a3b8" }}>Tonight’s Top Signal</div>
+          <div style={{ display:"flex", justifyContent:"space-between", gap: 12, alignItems:"center", flexWrap:"wrap" }}><div style={{ fontSize: 13, color:"#94a3b8" }}>Tonight’s Top Signal</div><div style={{ fontSize: 12, color:"#64748b" }}>Adaptive pulse is active</div></div>
           {topSignal ? (
             <>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap: 16, marginTop: 10, flexWrap:"wrap" }}>
@@ -631,8 +769,9 @@ export default function Page() {
                 background: "#01030a",
                 border: "1px solid #0f172a",
                 fontSize: 13,
-                color: "#93c5fd"
-              }}>
+                color: "#93c5fd",
+                boxShadow: "0 0 16px rgba(59,130,246,0.10)"
+              }}><span className="ms-pulse-dot" style={{ display:"inline-block", width:8, height:8, borderRadius:"50%", background:"#60a5fa", marginRight:8, position:"relative", verticalAlign:"middle" }} />
                 {item.text}
               </div>
             ))}
@@ -672,6 +811,7 @@ export default function Page() {
               <div
                 key={coin.id}
                 onClick={() => toggleWatch(coin.id)}
+                className={`ms-signal-card ${changed ? "ms-changed-card" : ""}`}
                 style={{
                   cursor: "pointer",
                   padding: 14,
@@ -703,6 +843,11 @@ export default function Page() {
           })}
         </div>
       </section>
+
+      <div style={{ marginTop: 22, display:"flex", justifyContent:"space-between", gap: 12, flexWrap:"wrap", fontSize: 12, color:"#64748b" }}>
+        <div>Pulse cycle #{pulseTick}</div>
+        <div>v10.2 · motion + pulse + liveliness</div>
+      </div>
     </main>
   );
 }
