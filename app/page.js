@@ -6,7 +6,7 @@ function usePremium() {
 
   useEffect(() => {
     setIsPremium(localStorage.getItem("midnight:premium") === "true");
-  }, [refreshTick]);
+  }, []);
 
   const enable = () => {
     localStorage.setItem("midnight:premium", "true");
@@ -404,6 +404,9 @@ export default function Page() {
   const [premium, setPremium] = useState(false);
   const [billingMessage, setBillingMessage] = useState("");
   const [dataSource, setDataSource] = useState("loading");
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [lastRefreshAt, setLastRefreshAt] = useState(Date.now());
+  const [livePulse, setLivePulse] = useState(false);
 
   useEffect(() => {
     const savedMode = localStorage.getItem(MODE_KEY);
@@ -455,7 +458,21 @@ export default function Page() {
     return () => {
       isActive = false;
     };
-  }, [session, watchlist]);
+  }, [session, watchlist, refreshTick]);
+
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    setRefreshTick((tick) => tick + 1);
+    setLastRefreshAt(Date.now());
+    setLivePulse(true);
+    window.setTimeout(() => setLivePulse(false), LIVE_PULSE_MS);
+  }, LIVE_REFRESH_MS);
+
+  return () => clearInterval(interval);
+}, []);
+
+const secondsSinceRefresh = Math.max(0, Math.floor((Date.now() - lastRefreshAt) / 1000));
 
   function toggleWatch(id) {
     const next = watchlist.includes(id) ? watchlist.filter((x) => x !== id) : [...watchlist, id];
@@ -527,20 +544,6 @@ export default function Page() {
 
   const { isPremium, enable } = usePremium();
 
-
-useEffect(() => {
-  const interval = setInterval(() => {
-    setRefreshTick((tick) => tick + 1);
-    setLastRefreshAt(Date.now());
-    setLivePulse(true);
-    window.setTimeout(() => setLivePulse(false), LIVE_PULSE_MS);
-  }, LIVE_REFRESH_MS);
-
-  return () => clearInterval(interval);
-}, []);
-
-const secondsSinceRefresh = Math.max(0, Math.floor((Date.now() - lastRefreshAt) / 1000));
-
 const sorted = useMemo(() => {
     return [...signals].sort((a, b) => {
       const aPower = a.score + (a.confidence * 0.22) + ((a.stability || 50) * 0.12) + ((a.streak || 1) * 1.5);
@@ -568,6 +571,43 @@ const sorted = useMemo(() => {
         <div>
           <div style={{ fontSize: 28, fontWeight: 700 }}>🌙 Midnight Signal</div>
           <div style={{ fontSize: 13, color:"#94a3b8", marginTop: 4 }}>v10.6 · live refresh</div>
+
+<div style={{ display:"flex", gap: 8, alignItems:"center", flexWrap:"wrap", marginTop: 8 }}>
+  <div style={{
+    padding: "8px 12px",
+    borderRadius: 999,
+    border: "1px solid rgba(59,130,246,0.25)",
+    background: livePulse ? "rgba(59,130,246,0.14)" : "rgba(15,23,42,0.78)",
+    color: "#dbeafe",
+    fontSize: 12,
+    boxShadow: livePulse ? "0 0 18px rgba(59,130,246,0.18)" : "none",
+    transition: "all 220ms ease"
+  }}>
+    {livePulse ? "Refreshing signals…" : "Live refresh every 90s"}
+  </div>
+  <div style={{ fontSize: 12, color:"#94a3b8" }}>
+    Last refresh: {secondsSinceRefresh < 2 ? "just now" : `${secondsSinceRefresh}s ago`}
+  </div>
+  <button
+    onClick={() => {
+      setRefreshTick((tick) => tick + 1);
+      setLastRefreshAt(Date.now());
+      setLivePulse(true);
+      window.setTimeout(() => setLivePulse(false), LIVE_PULSE_MS);
+    }}
+    style={{
+      padding: "8px 12px",
+      borderRadius: 999,
+      border: "1px solid #334155",
+      background: "#020617",
+      color: "#e5e7eb",
+      cursor: "pointer"
+    }}
+  >
+    Refresh now
+  </button>
+</div>
+
         </div>
         <div style={{ display:"flex", gap: 8, flexWrap:"wrap", alignItems:"center" }}>
           <div style={{ padding: "8px 10px", borderRadius: 999, border: "1px solid #334155", background: dataSource === "live" ? "rgba(15,23,42,0.95)" : "rgba(30,41,59,0.95)", color: dataSource === "live" ? "#86efac" : "#fbbf24", fontSize: 12 }}>
@@ -877,7 +917,7 @@ const sorted = useMemo(() => {
       </section>
 
       <div style={{ marginTop: 18, textAlign: "center", fontSize: 12, color: "#64748b" }}>
-        v10.6 · live refresh
+        v10.6 · anti-noise + persistence
       </div>
     </main>
   );
