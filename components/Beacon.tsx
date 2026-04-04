@@ -19,7 +19,7 @@ export default function Beacon({ size = 128, labels = false }: BeaconProps) {
         position: "relative",
         width: size,
         height: labels ? size + 44 : size,
-        margin: "0 auto",
+        margin: "0 auto"
       }}
     >
       {[ring1, ring2, ring3].map((ring, i) => (
@@ -34,7 +34,7 @@ export default function Beacon({ size = 128, labels = false }: BeaconProps) {
             borderRadius: "50%",
             border: "1px solid rgba(96,165,250,0.35)",
             transform: "translate(-50%, -50%)",
-            boxShadow: i === 2 ? "0 0 30px rgba(96,165,250,0.08)" : "none",
+            boxShadow: i === 2 ? "0 0 30px rgba(96,165,250,0.08)" : "none"
           }}
         />
       ))}
@@ -56,7 +56,7 @@ export default function Beacon({ size = 128, labels = false }: BeaconProps) {
               borderRadius: "50%",
               background: "rgba(147,197,253,0.95)",
               transform: "translate(-50%, -50%)",
-              boxShadow: "0 0 10px rgba(147,197,253,0.5)",
+              boxShadow: "0 0 10px rgba(147,197,253,0.5)"
             }}
           />
         );
@@ -72,7 +72,7 @@ export default function Beacon({ size = 128, labels = false }: BeaconProps) {
           top: center,
           left: center,
           transform: "translate(-50%, -50%)",
-          boxShadow: "0 0 18px rgba(96,165,250,0.8)",
+          boxShadow: "0 0 18px rgba(96,165,250,0.8)"
         }}
       />
 
@@ -87,7 +87,7 @@ export default function Beacon({ size = 128, labels = false }: BeaconProps) {
             textAlign: "center",
             fontSize: Math.max(11, Math.round(size * 0.04)),
             opacity: 0.78,
-            whiteSpace: "nowrap",
+            whiteSpace: "nowrap"
           }}
         >
           {words.join(" • ")}

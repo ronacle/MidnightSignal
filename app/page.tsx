@@ -2,7 +2,7 @@ import Beacon from "../components/Beacon";
 import { fetchMarketData } from "../lib/coingecko";
 import { buildMarketSummary } from "../lib/signal-engine";
 
-const build = process.env.NEXT_PUBLIC_BUILD ?? "7.2.0";
+const build = process.env.NEXT_PUBLIC_BUILD ?? "7.2.1";
 
 function cardStyle(): React.CSSProperties {
   return {
@@ -28,8 +28,8 @@ function formatPrice(value: number) {
 }
 
 export default async function Page() {
-  const data = await fetchMarketData();
-  const summary = buildMarketSummary(data);
+  const { coins, usingFallback } = await fetchMarketData();
+  const summary = buildMarketSummary(coins);
 
   return (
     <main
@@ -41,13 +41,23 @@ export default async function Page() {
     >
       <div style={{ maxWidth: 1220, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 26 }}>
-          <Beacon />
+          <Beacon labels />
           <h1 style={{ margin: "16px 0 6px", fontSize: "2.7rem", letterSpacing: "-0.03em" }}>
             Midnight Signal
           </h1>
           <p style={{ opacity: 0.72, margin: 0 }}>
-            Data • Information • Knowledge • Understanding • Wisdom
+            Market intelligence with explainable signals
           </p>
+          <div
+            style={{
+              marginTop: 10,
+              fontSize: 12,
+              opacity: 0.82,
+              color: usingFallback ? "#fde68a" : "#86efac"
+            }}
+          >
+            {usingFallback ? "Using fallback market data" : "Live market data active"}
+          </div>
         </div>
 
         <div
@@ -151,7 +161,7 @@ export default async function Page() {
                 ["Mode", "Beginner"],
                 ["Strategy", "Swing"],
                 ["Timeframe", "1H"],
-                ["Data", "CoinGecko live"]
+                ["Data", usingFallback ? "Fallback sample" : "CoinGecko live"]
               ].map(([label, value]) => (
                 <div
                   key={label}
