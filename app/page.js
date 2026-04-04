@@ -1,17 +1,15 @@
 'use client';
 
 // --- v10.5 paywall ---
-const PREMIUM_KEY = "midnight:premium";
-
 function usePremium() {
-  const [isPremium, setIsPremium] = React.useState(false);
+  const [isPremium, setIsPremium] = useState(false);
 
-  React.useEffect(() => {
-    setIsPremium(localStorage.getItem(PREMIUM_KEY) === "true");
+  useEffect(() => {
+    setIsPremium(localStorage.getItem("midnight:premium") === "true");
   }, []);
 
   const enable = () => {
-    localStorage.setItem(PREMIUM_KEY, "true");
+    localStorage.setItem("midnight:premium", "true");
     location.reload();
   };
 
@@ -26,6 +24,7 @@ const WATCH_KEY = "midnight:watchlist";
 const MODE_KEY = "midnight:viewMode";
 const SESSION_KEY = "midnight:session";
 const USER_KEY = "midnight:user";
+
 const PREMIUM_KEY = "midnight:premium";
 const SIGNAL_MEMORY_KEY = "midnight:signalMemory";
 
@@ -524,8 +523,7 @@ export default function Page() {
     setPremium(false)
   }
 
-  
-const { isPremium, enable } = usePremium();
+  const { isPremium, enable } = usePremium();
 
 const sorted = useMemo(() => {
     return [...signals].sort((a, b) => {
