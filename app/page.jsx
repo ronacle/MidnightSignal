@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "10.4";
-const BUILD_LABEL = "real email alerts";
+const BUILD_VERSION = "10.5";
+const BUILD_LABEL = "live context RSS + X integration";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -345,7 +345,7 @@ function buildRitualLoop(topSignal, visitDelta) {
 }
 
 function buildContextFallback(topSignal, watchlist) {
-  if (!topSignal) return { sentiment: "neutral", drivers: [], news: [], pulse: [] };
+  if (!topSignal) return { sentiment: "neutral", alignment: "Mixed", drivers: [], news: [], pulse: [], meta: { live: false, newsCount: 0, pulseCount: 0, pulseMode: "fallback" } };
   const symbol = topSignal.symbol;
   const posture = topSignal.posture;
   const confidence = topSignal.confidence;
@@ -381,7 +381,7 @@ function buildContextFallback(topSignal, watchlist) {
     { text: posture === "Bullish" ? "The tone is constructive, but traders still want confirmation before pressing size." : posture === "Bearish" ? "The tone is cautious, with traders focusing on risk management first." : "The tone is split, with traders waiting for a cleaner break in either direction.", source: "Desk read" },
   ];
 
-  return { sentiment, drivers, news, pulse };
+  return { sentiment, alignment: "Mixed", drivers, news, pulse, meta: { live: false, newsCount: news.length, pulseCount: pulse.length, pulseMode: "fallback" } };
 }
 
 export default function Page(){
@@ -1349,7 +1349,11 @@ export default function Page(){
                     Tonight’s signal is more useful when the narrative sits beside the number.
                   </div>
                 </div>
-                <Pill>{contextLoading ? "Loading context" : `Sentiment: ${signalContext?.sentiment || "mixed"}`}</Pill>
+                <div style={{display:"flex",flexWrap:"wrap",gap:10,justifyContent:"flex-end"}}>
+                  <Pill>{contextLoading ? "Loading context" : `Sentiment: ${signalContext?.sentiment || "mixed"}`}</Pill>
+                  <Pill>{`Alignment: ${signalContext?.alignment || "Mixed"}`}</Pill>
+                  <Pill>{signalContext?.meta?.live ? `Live feed • ${signalContext?.meta?.newsCount || 0} items` : "Fallback context"}</Pill>
+                </div>
               </div>
               <div style={{display:"grid",gap:12,marginTop:18}}>
                 {(signalContext?.drivers || []).slice(0, 3).map((driver, index) => (
@@ -1380,7 +1384,10 @@ export default function Page(){
                   </div>
                 </div>
                 <div>
-                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Community Pulse</div>
+                  <div className="ms-row" style={{gap:10,alignItems:"center",marginBottom:8}}>
+                    <div style={{fontSize:14,color:"#94a3b8"}}>Community Pulse</div>
+                    <div className="ms-sub">{signalContext?.meta?.pulseMode === "community-feed" ? "Live community feed" : "News-derived pulse"}</div>
+                  </div>
                   <div style={{display:"grid",gap:10}}>
                     {(signalContext?.pulse || []).slice(0, 3).map((item, index) => (
                       <div key={`${item.text}-${index}`} style={{padding:"13px 14px",borderRadius:16,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.10))",border:"1px solid rgba(96,103,249,.18)"}}>
