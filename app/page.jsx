@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "10.9";
-const BUILD_LABEL = "optimization + control";
+const BUILD_VERSION = "11.0";
+const BUILD_LABEL = "launch mode + control panel";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -470,6 +470,7 @@ export default function Page(){
   const [spicyPosts, setSpicyPosts] = useState(false);
   const [xPostStatus, setXPostStatus] = useState("");
   const [xPostRefreshAt, setXPostRefreshAt] = useState("");
+  const [controlPanelOpen, setControlPanelOpen] = useState(false);
 
   const referralCode = useMemo(() => {
     const seed = (email || "midnight").replace(/[^a-z0-9]/gi, "").toUpperCase();
@@ -1204,9 +1205,10 @@ export default function Page(){
                 </div> : null}
               </div>
             </div>
-            <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
+            <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center",justifyContent:"flex-end"}}>
               <button onClick={()=>chooseMode("Beginner")} className="btn-strong" style={{background:mode==="Beginner"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Beginner</button>
               <button onClick={()=>chooseMode("Pro")} className="btn-strong" style={{background:mode==="Pro"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Pro</button>
+              <button type="button" className="btn" style={{width:"auto"}} onClick={()=>setControlPanelOpen(true)}>⚙️ Control Panel</button>
             </div>
           </div>
         </section>
@@ -1420,90 +1422,15 @@ export default function Page(){
                   <div className="ms-sub" style={{lineHeight:1.7}}>Turn high-conviction nights into word of mouth with a public signal preview and one-tap sharing.</div>
                 </div>
               </div>
-              <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div>
-              <div style={{display:"grid",gap:14}}>
-                <label>
-                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div>
-                  <select className="select" value={strategy} onChange={(e) => setStrategy(e.target.value)}>
-                    <option value="scalp">Scalp</option>
-                    <option value="swing">Swing</option>
-                    <option value="position">Position</option>
-                  </select>
-                </label>
-                <label>
-                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div>
-                  <select className="select" value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
-                    <option value="7">7D</option>
-                    <option value="30">30D</option>
-                    <option value="90">90D</option>
-                  </select>
-                </label>
-                <div>
-                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Update Mode</div>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    {[
-                      { key: "calm", label: "Calm", note: "Every 3 minutes" },
-                      { key: "active", label: "Active", note: "Every 1 minute" },
-                      { key: "live", label: isPremium ? "Live" : "Live 🔒", note: "Every 15 seconds" },
-                    ].map((option) => {
-                      const active = updateMode === option.key;
-                      return (
-                        <button
-                          key={option.key}
-                          type="button"
-                          onClick={() => changeUpdateMode(option.key)}
-                          className={active ? "btn-strong" : "btn"}
-                          style={{width:"auto"}}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="ms-sub" style={{marginTop:8}}>
-                    {updateMode === "calm" ? "Stable cadence for the nightly ritual." : updateMode === "active" ? "Faster refresh for engaged sessions." : "Near real-time premium cadence."}
-                  </div>
+              <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Launch Mode</div>
+              <div style={{display:"grid",gap:12}}>
+                <div style={{padding:16,borderRadius:18,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>
+                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Transforming market noise into market wisdom.</div>
+                  <div style={{fontSize:22,fontWeight:800,marginBottom:8}}>Keep the stage focused</div>
+                  <div className="ms-sub" style={{lineHeight:1.75}}>The dashboard now keeps signal, context, and action front-and-center while controls live one click away in a dedicated panel.</div>
                 </div>
-                <label style={{display:"flex",alignItems:"center",gap:10}}>
-                  <input type="checkbox" checked={soundOn} onChange={(e) => setSoundOn(e.target.checked)} />
-                  <span>Signal ping on leader + alert shift</span>
-                </label>
-                <div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div>
-              </div>
-            </aside>
-
-            <aside className="ms-card">
-              <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Email Alerts</div>
-              <div style={{display:"grid",gap:14}}>
-                <label>
-                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Delivery email</div>
-                  <input className="select" type="email" placeholder="you@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
-                </label>
-                <label style={{display:"flex",alignItems:"center",gap:10}}>
-                  <input type="checkbox" checked={emailAlertsEnabled} onChange={(e)=>setEmailAlertsEnabled(e.target.checked)} />
-                  <span>Enable real email alerts</span>
-                </label>
-                <label>
-                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Alert threshold</div>
-                  <select className="select" value={alertSensitivity} onChange={(e)=>setAlertSensitivity(e.target.value)}>
-                    <option value="major">Major shifts only</option>
-                    <option value="all">All meaningful changes</option>
-                  </select>
-                </label>
-                <label>
-                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Delivery mode</div>
-                  <select className="select" value={emailDigestMode} onChange={(e)=>setEmailDigestMode(e.target.value)}>
-                    <option value="instant">Send instantly</option>
-                    <option value="digest">Digest batch</option>
-                  </select>
-                </label>
-                <label style={{display:"flex",alignItems:"center",gap:10}}>
-                  <input type="checkbox" checked={alertOnlyWatchlist} onChange={(e)=>setAlertOnlyWatchlist(e.target.checked)} />
-                  <span>Watchlist priority only</span>
-                </label>
-                <button type="button" className="btn" onClick={sendTestEmailAlert}>Send test email</button>
-                <div className="ms-sub">Live delivery uses Resend when <code>RESEND_API_KEY</code> and <code>ALERTS_FROM_EMAIL</code> are configured in Vercel.</div>
-                {emailAlertStatus ? <div style={{fontSize:13,color:"#cbd5e1"}}>{emailAlertStatus}</div> : null}
+                <button type="button" className="btn-strong" style={{width:"auto"}} onClick={()=>setControlPanelOpen(true)}>Open Control Panel</button>
+                <div className="ms-sub">Settings, update cadence, and email alert delivery have been moved off the main stage for a cleaner launch-ready read.</div>
               </div>
             </aside>
           </section>
@@ -1892,6 +1819,125 @@ export default function Page(){
                   {["signal","momentum","trend","volatility","confidence","timing","risk"].map((key)=>(
                     <button key={key} type="button" className="learn-chip" onClick={()=>openLearn(key)}>{LEARN_TOPICS[key].title}</button>
                   ))}
+                </div>
+              </div>
+            </div>
+          </aside>
+        ) : null}
+
+
+        {controlPanelOpen ? <div className="asset-overlay" onClick={()=>setControlPanelOpen(false)}></div> : null}
+        {controlPanelOpen ? (
+          <aside className="asset-panel">
+            <div style={{padding:"18px 20px",borderBottom:"1px solid rgba(247,247,247,.08)",display:"flex",justifyContent:"space-between",gap:12,alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:14,color:"#94a3b8",marginBottom:4}}>Launch controls</div>
+                <div style={{fontSize:24,fontWeight:800}}>Control Panel</div>
+              </div>
+              <button type="button" className="btn" onClick={()=>setControlPanelOpen(false)} style={{width:"auto",padding:"10px 12px"}}>Close</button>
+            </div>
+            <div className="asset-panel-body">
+              <div className="asset-sheet-handle"></div>
+              <div style={{display:"grid",gap:18}}>
+                <div style={{padding:16,borderRadius:18,background:"linear-gradient(135deg, rgba(96,103,249,.12), rgba(13,21,48,.88))",border:"1px solid rgba(96,103,249,.20)"}}>
+                  <div style={{fontSize:13,color:"#bcd0ff",letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Launch mode</div>
+                  <div style={{fontSize:22,fontWeight:800,marginBottom:8}}>A cleaner main stage</div>
+                  <div className="ms-sub" style={{lineHeight:1.75,color:"#dbe8ff"}}>Move preferences and delivery settings off the dashboard so the first read stays centered on tonight’s signal.</div>
+                </div>
+
+                <div className="ms-card" style={{padding:18}}>
+                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div>
+                  <div style={{display:"grid",gap:14}}>
+                    <label>
+                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Experience mode</div>
+                      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                        <button type="button" onClick={()=>chooseMode("Beginner")} className={mode==="Beginner" ? "btn-strong" : "btn"} style={{width:"auto"}}>Beginner</button>
+                        <button type="button" onClick={()=>chooseMode("Pro")} className={mode==="Pro" ? "btn-strong" : "btn"} style={{width:"auto"}}>Pro</button>
+                      </div>
+                    </label>
+                    <label>
+                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div>
+                      <select className="select" value={strategy} onChange={(e) => setStrategy(e.target.value)}>
+                        <option value="scalp">Scalp</option>
+                        <option value="swing">Swing</option>
+                        <option value="position">Position</option>
+                      </select>
+                    </label>
+                    <label>
+                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div>
+                      <select className="select" value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
+                        <option value="7">7D</option>
+                        <option value="30">30D</option>
+                        <option value="90">90D</option>
+                      </select>
+                    </label>
+                    <label style={{display:"flex",alignItems:"center",gap:10}}>
+                      <input type="checkbox" checked={soundOn} onChange={(e) => setSoundOn(e.target.checked)} />
+                      <span>Signal ping on leader + alert shift</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="ms-card" style={{padding:18}}>
+                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Update Mode</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    {[
+                      { key: "calm", label: "Calm", note: "Every 3 minutes" },
+                      { key: "active", label: "Active", note: "Every 1 minute" },
+                      { key: "live", label: isPremium ? "Live" : "Live 🔒", note: "Every 15 seconds" },
+                    ].map((option) => {
+                      const active = updateMode === option.key;
+                      return (
+                        <button
+                          key={option.key}
+                          type="button"
+                          onClick={() => changeUpdateMode(option.key)}
+                          className={active ? "btn-strong" : "btn"}
+                          style={{width:"auto"}}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="ms-sub" style={{marginTop:10,lineHeight:1.7}}>
+                    {updateMode === "calm" ? "Stable cadence for the nightly ritual." : updateMode === "active" ? "Faster refresh for engaged sessions." : "Near real-time premium cadence."}
+                  </div>
+                </div>
+
+                <div className="ms-card" style={{padding:18}}>
+                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Email Alerts</div>
+                  <div style={{display:"grid",gap:14}}>
+                    <label>
+                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Delivery email</div>
+                      <input className="select" type="email" placeholder="you@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
+                    </label>
+                    <label style={{display:"flex",alignItems:"center",gap:10}}>
+                      <input type="checkbox" checked={emailAlertsEnabled} onChange={(e)=>setEmailAlertsEnabled(e.target.checked)} />
+                      <span>Enable real email alerts</span>
+                    </label>
+                    <label>
+                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Alert threshold</div>
+                      <select className="select" value={alertSensitivity} onChange={(e)=>setAlertSensitivity(e.target.value)}>
+                        <option value="major">Major shifts only</option>
+                        <option value="all">All meaningful changes</option>
+                      </select>
+                    </label>
+                    <label>
+                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Delivery mode</div>
+                      <select className="select" value={emailDigestMode} onChange={(e)=>setEmailDigestMode(e.target.value)}>
+                        <option value="instant">Send instantly</option>
+                        <option value="digest">Digest batch</option>
+                      </select>
+                    </label>
+                    <label style={{display:"flex",alignItems:"center",gap:10}}>
+                      <input type="checkbox" checked={alertOnlyWatchlist} onChange={(e)=>setAlertOnlyWatchlist(e.target.checked)} />
+                      <span>Watchlist priority only</span>
+                    </label>
+                    <button type="button" className="btn" onClick={sendTestEmailAlert}>Send test email</button>
+                    <div className="ms-sub">Live delivery uses Resend when <code>RESEND_API_KEY</code> and <code>ALERTS_FROM_EMAIL</code> are configured in Vercel.</div>
+                    {emailAlertStatus ? <div style={{fontSize:13,color:"#cbd5e1"}}>{emailAlertStatus}</div> : null}
+                  </div>
                 </div>
               </div>
             </div>
