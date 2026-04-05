@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "10.6";
-const BUILD_LABEL = "mobile + UX polish";
+const BUILD_VERSION = "10.7";
+const BUILD_LABEL = "growth loop";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -428,6 +428,11 @@ export default function Page(){
   const [contextLoading, setContextLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
+
+  const referralCode = useMemo(() => {
+    const seed = (email || "midnight").replace(/[^a-z0-9]/gi, "").toUpperCase();
+    return `MS-${(seed || "MIDNIGHT").slice(0, 6)}-7D`;
+  }, [email]);
   const previousCoinsRef = useRef([]);
   const isDevBuild = process.env.NODE_ENV === "development";
 
@@ -498,6 +503,28 @@ export default function Page(){
     setWatchPulseSymbol(symbol);
     window.setTimeout(() => setAlertFeedback(""), 2200);
     if (symbol) window.setTimeout(() => setWatchPulseSymbol((current) => current === symbol ? "" : current), 1000);
+  }
+
+  async function shareTopSignal() {
+    if (!topSignal || typeof window === "undefined") return;
+    const appUrl = window.location.origin;
+    const shareUrl = `${appUrl}/signal/${topSignal.symbol.toLowerCase()}?confidence=${topSignal.confidence}&posture=${encodeURIComponent(topSignal.posture)}`;
+    const text = `🌙 Tonight’s Signal: ${topSignal.symbol} — ${topSignal.posture} (${topSignal.confidence}%)\n\n${tonightBrief?.summary || topSignal.brief}\n\nSee the full breakdown: ${shareUrl}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `Tonight’s Signal: ${topSignal.symbol}`, text, url: shareUrl });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      }
+      fireAlertFeedback(`Share text ready for ${topSignal.symbol}.`, topSignal.symbol);
+    } catch {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          fireAlertFeedback(`Share text copied for ${topSignal.symbol}.`, topSignal.symbol);
+        } catch {}
+      }
+    }
   }
 
   async function sendTestEmailAlert() {
@@ -1213,6 +1240,11 @@ export default function Page(){
         {topSignal && (
           <section className="ms-grid ms-hero">
             <div className={`ms-card top-signal-shell ${topPulseOn ? "signal-pulse" : ""}`}>
+              {topSignal.confidence >= 75 ? (
+                <div style={{marginBottom:14,padding:"12px 14px",borderRadius:16,border:"1px solid rgba(0,255,157,.22)",background:"linear-gradient(135deg, rgba(0,255,157,.10), rgba(96,103,249,.10))",color:"#d1fae5",fontWeight:700}}>
+                  🔥 Strong Signal Detected • {topSignal.symbol} is printing a higher-conviction read tonight.
+                </div>
+              ) : null}
               <div className="ms-row">
                 <div>
                   <div style={{fontSize:14,color:"#94a3b8"}}>
@@ -1247,6 +1279,10 @@ export default function Page(){
                 <div style={{marginTop:14,padding:12,borderRadius:14,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.12))",border:"1px solid rgba(96,103,249,.2)",fontSize:13,color:"#dbe8ff"}}>
                   Beacon read: when leadership changes, this card pulses so the shift feels immediate.
                 </div>
+                <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:14}}>
+                  <button type="button" className="btn-strong" style={{width:"auto"}} onClick={shareTopSignal}>Share Tonight’s Signal</button>
+                  <a href={`/signal/${topSignal.symbol.toLowerCase()}?confidence=${topSignal.confidence}&posture=${encodeURIComponent(topSignal.posture)}`} className="btn" style={{width:"auto",textDecoration:"none",display:"inline-flex",alignItems:"center",justifyContent:"center"}}>Open Public Signal Page</a>
+                </div>
               </div>
 
               <div className="ms-grid ms-stats" style={{marginTop:18}}>
@@ -1275,6 +1311,19 @@ export default function Page(){
             </div>
 
             <aside className="ms-card">
+              <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Growth Loop</div>
+              <div style={{display:"grid",gap:14,marginBottom:18}}>
+                <div style={{padding:16,borderRadius:18,border:"1px solid rgba(247,247,247,.08)",background:"rgba(247,247,247,.03)"}}>
+                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Invite a friend</div>
+                  <div style={{fontSize:20,fontWeight:800,marginBottom:8}}>Unlock 1 week premium</div>
+                  <div className="ms-sub" style={{lineHeight:1.7}}>Referral code: <span style={{color:"#fff",fontWeight:800}}>{referralCode}</span></div>
+                </div>
+                <div style={{padding:16,borderRadius:18,border:"1px solid rgba(247,247,247,.08)",background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(13,21,48,.82))"}}>
+                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Growth copy</div>
+                  <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>Tonight’s edge is shareable</div>
+                  <div className="ms-sub" style={{lineHeight:1.7}}>Turn high-conviction nights into word of mouth with a public signal preview and one-tap sharing.</div>
+                </div>
+              </div>
               <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div>
               <div style={{display:"grid",gap:14}}>
                 <label>
