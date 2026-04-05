@@ -4,6 +4,9 @@
 import { useEffect, useMemo, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
+const BUILD_VERSION = "9.7.2";
+const BUILD_LABEL = "stability + cleanup";
+
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
   mode: "ms_mode",
@@ -297,7 +300,7 @@ export default function Page(){
   const [refreshMessage, setRefreshMessage] = useState("");
   const [alerts, setAlerts] = useState([]);
 
-
+  // === CORE ACTIONS ===
   async function startCheckout() {
     setCheckoutError("");
     setCheckoutLoading(true);
@@ -588,8 +591,10 @@ useEffect(() => {
   }
 
   const ordered = useMemo(() => {
-    const sorted = [...coins].sort((a, b) => b.confidence - a.confidence);
-    sorted.sort((a, b) => watchlist.includes(a.symbol) === watchlist.includes(b.symbol) ? 0 : watchlist.includes(a.symbol) ? -1 : 1);
+    const source = Array.isArray(coins) ? coins : [];
+    const pinned = Array.isArray(watchlist) ? watchlist : [];
+    const sorted = [...source].sort((a, b) => b.confidence - a.confidence);
+    sorted.sort((a, b) => pinned.includes(a.symbol) === pinned.includes(b.symbol) ? 0 : pinned.includes(a.symbol) ? -1 : 1);
     return sorted;
   }, [coins, watchlist]);
 
@@ -1104,7 +1109,7 @@ useEffect(() => {
             </div>
           </div>
           <div style={{marginTop:12,display:"grid",gap:10}}>
-            {alerts.length ? alerts.slice().reverse().slice(0,6).map(a=>(
+            {(alerts || []).length ? (alerts || []).slice().reverse().slice(0,6).map(a=>(
 
               <div key={a.id} style={{padding:10,borderRadius:12,background:"rgba(247,247,247,.03)"}}>
                 <div style={{display:"flex",justifyContent:"space-between"}}>
@@ -1115,7 +1120,7 @@ useEffect(() => {
             )) : <div className="ms-sub">No alerts yet</div>}
           </div>
         </section>
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.7.1 • watchlist alerts build fix</div></section>
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>{`Midnight Signal v${BUILD_VERSION} • ${BUILD_LABEL}`}</div></section>
       </div>
     </main>
   );

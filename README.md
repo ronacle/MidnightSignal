@@ -1,2 +1,3 @@
-# Midnight Signal v8.4 Safe Motion
-Replace the app repo fully before deploying.
+# Midnight Signal
+
+Deploy-ready v9.7.2 stability + cleanup build.
