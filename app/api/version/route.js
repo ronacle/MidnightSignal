@@ -2,7 +2,7 @@ export async function GET() {
   return Response.json({
     ok: true,
     app: "midnight-signal",
-    version: "9.1.0",
-    build: "multi-timeframe-clean-stack",
+    version: "9.2.0",
+    build: "coingecko-on-load",
   });
 }

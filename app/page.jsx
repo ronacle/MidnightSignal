@@ -39,8 +39,8 @@ function movingAverage(prices, length){ const slice=prices.slice(-length); retur
 function calculateRSI(prices, period=14){ if(prices.length<=period) return 50; let gains=0, losses=0; for(let i=1;i<=period;i++){ const diff=prices[i]-prices[i-1]; if(diff>=0) gains+=diff; else losses-=diff; } const avgGain=gains/period; const avgLoss=losses/period; if(avgLoss===0) return 100; const rs=avgGain/avgLoss; return 100-100/(1+rs); }
 
 function enrich(row, index){
-  const [symbol,name,price,change24h,volumeNum]=row;
-  const rank=index+1;
+  const [symbol,name,price,change24h,volumeNum,rankOverride]=row;
+  const rank=rankOverride || index+1;
   const history=buildHistory(price, change24h);
   const signal=Math.max(0.3, Math.min(0.9, scoreMomentum(change24h)*0.4 + scoreTrend(rank,change24h)*0.4 + scoreVolatility(change24h)*0.2));
   const posture=signal>=0.65?"Bullish":signal<=0.45?"Bearish":"Neutral";
@@ -241,6 +241,45 @@ export default function Page(){
   const [learnTopic, setLearnTopic] = useState("signal");
   const [assetPanelOpen, setAssetPanelOpen] = useState(false);
   const [signalHistory, setSignalHistory] = useState({});
+  const [dataSource, setDataSource] = useState("seed");
+  const [marketUpdatedAt, setMarketUpdatedAt] = useState("");
+
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadMarket() {
+      try {
+        const res = await fetch("/api/market", { cache: "no-store" });
+        const data = await res.json();
+        if (!active) return;
+
+        if (data?.ok && Array.isArray(data.items) && data.items.length) {
+          const nextCoins = data.items.map((item, index) =>
+            enrich([item.symbol, item.name, item.price, item.change24h, item.volumeNum, item.rank], index)
+          );
+          setCoins(nextCoins);
+          setDataSource("coingecko");
+          const latest = data.items.find((item) => item.lastUpdated)?.lastUpdated;
+          if (latest) {
+            setMarketUpdatedAt(new Date(latest).toLocaleString());
+          } else {
+            setMarketUpdatedAt(new Date().toLocaleString());
+          }
+        } else {
+          setDataSource("seed");
+        }
+      } catch {
+        if (!active) return;
+        setDataSource("seed");
+      }
+    }
+
+    loadMarket();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -587,7 +626,7 @@ export default function Page(){
           </div>
         </section>
 
-        {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></div><div style={{fontSize:34,fontWeight:900,marginTop:4}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • beacon identity pass • premium soft gate</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile<button className="learn-hot" type="button" onClick={()=>openLearn("risk")}>?</button></div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
+        {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></div><div style={{fontSize:34,fontWeight:900,marginTop:4}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • {dataSource === "coingecko" ? "CoinGecko live-on-load" : "seed fallback"}</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div><div style={{marginTop:14,display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{dataSource === "coingecko" ? "Live market input" : "Fallback seed data"}</Pill>{marketUpdatedAt ? <Pill>{marketUpdatedAt}</Pill> : null}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile<button className="learn-hot" type="button" onClick={()=>openLearn("risk")}>?</button></div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
           <aside className="ms-card"><div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div><div style={{display:"grid",gap:14}}><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div><select className="select" value={strategy} onChange={(e)=>setStrategy(e.target.value)}><option value="scalp">Scalp</option><option value="swing">Swing</option><option value="position">Position</option></select></label><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div><select className="select" value={timeframe} onChange={(e)=>setTimeframe(e.target.value)}><option value="7">7D</option><option value="30">30D</option><option value="90">90D</option></select></label><label style={{display:"flex",alignItems:"center",gap:10}}><input type="checkbox" checked={soundOn} onChange={(e)=>setSoundOn(e.target.checked)}/><span>Signal ping on leader change</span></label><div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div></div></aside></section>}
 
 
@@ -912,7 +951,7 @@ export default function Page(){
           </aside>
         ) : null}
 
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.1.0 • multi-timeframe intelligence</div></section>
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.2.0 • CoinGecko on-load data</div></section>
       </div>
     </main>
   );
