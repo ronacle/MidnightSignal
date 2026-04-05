@@ -20,7 +20,6 @@ const STORAGE_KEYS = {
   history: "ms_signal_history_v1",
   autoRefresh: "ms_auto_refresh_on",
   alerts: "ms_alerts_v1",
-  watchlist: "ms_watchlist_v1",
 };
 
 const SEED = [
@@ -297,7 +296,6 @@ export default function Page(){
   const [autoRefreshOn, setAutoRefreshOn] = useState(true);
   const [refreshMessage, setRefreshMessage] = useState("");
   const [alerts, setAlerts] = useState([]);
-  const [watchlist, setWatchlist] = useState([]);
 
 
   async function loadMarket(reason = "manual") {
@@ -370,8 +368,7 @@ export default function Page(){
       if (savedAuto !== null) setAutoRefreshOn(savedAuto === "true");
       const rawAlerts = window.localStorage.getItem(STORAGE_KEYS.alerts);
       if (rawAlerts) setAlerts(JSON.parse(rawAlerts));
-      const rawWatch = window.localStorage.getItem(STORAGE_KEYS.watchlist);
-      if (rawWatch) setWatchlist(JSON.parse(rawWatch));
+
     } catch {}
   }, []);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.mode, mode); } catch {} }, [mode]);
@@ -382,7 +379,6 @@ export default function Page(){
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.sound, soundOn ? "true" : "false"); } catch {} }, [soundOn]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.email, email); } catch {} }, [email]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.autoRefresh, autoRefreshOn ? "true" : "false"); } catch {} }, [autoRefreshOn]);
-  useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.watchlist, JSON.stringify(watchlist)); } catch {} }, [watchlist]);
 
 
   useEffect(() => {
@@ -585,53 +581,7 @@ function openAsset(symbol, learnTopic = "confidence") {
   }, [topSignal?.symbol, soundOn]);
 
   function acceptAgreement(){ if(!checkedEducation||!checkedRisk) return; setAgreed(true); try { window.localStorage.setItem(STORAGE_KEYS.agreed,"true"); } catch {} }
-  function toggleWatch(symbol){ setWatchlist(prev => prev.includes(symbol)?prev.filter(s=>s!==symbol):[...prev,symbol]); }
-
-  const stats=[["Bullish Regimes", `${coins.filter(c=>c.posture==="Bullish").length}/20`],["Enter Signals", `${coins.filter(c=>c.timing==="Enter").length}`],["Average Confidence", `${Math.round(coins.reduce((s,c)=>s+c.confidence,0)/coins.length)}%`],["Top Opportunity", topSignal?topSignal.symbol:"—"]];
-
-  async function startCheckout() {
-    setCheckoutLoading(true);
-    setCheckoutError("");
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data?.url) {
-        throw new Error(data?.message || "Unable to start checkout.");
-      }
-      window.location.href = data.url;
-    } catch (error) {
-      setCheckoutError(error?.message || "Unable to start checkout.");
-      setCheckoutLoading(false);
-    }
-  }
-
-  function unlockLocally() {
-    setIsPremium(true);
-    const now = new Date().toLocaleString();
-    setUnlockSeenAt(now);
-    try {
-      window.localStorage.setItem(STORAGE_KEYS.premium, "true");
-      window.localStorage.setItem(STORAGE_KEYS.unlockSeenAt, now);
-    } catch {}
-  }
-
-
-  function openLearn(topic) {
-    setLearnTopic(topic);
-    setLearnOpen(true);
-  }
-
   
-function toggleWatch(symbol){
-  setWatchlist(prev=>{
-    if(prev.includes(symbol)) return prev.filter(s=>s!==symbol);
-    return [...prev, symbol];
-  });
-}
 function openAsset(symbol, learnTopic = "confidence") {
     setSelected(symbol);
     setAssetPanelOpen(true);
@@ -874,7 +824,7 @@ function openAsset(symbol, learnTopic = "confidence") {
 
         <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>Watchlist</div><div className="ms-sub">Your pinned Midnight Signal picks, persisted on this device.</div></div><div style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>{watchlist.length} tracked</div></div><div className="ms-grid ms-watch" style={{marginTop:14}}>{ordered.filter(c=>watchlist.includes(c.symbol)).map(coin => <button className="watch-card" key={coin.symbol} onClick={()=>openAsset(coin.symbol, "momentum")}><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><Pill>{coin.posture}</Pill></div><div style={{fontSize:28,fontWeight:700,marginTop:10}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#00ff9d":"#ff4d4d"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{marginTop:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:12,color:"rgba(247,247,247,.5)"}}><span>{timeframe}D derived sparkline</span><span>{coin.confidence}%</span></div>{sparkline(coin.history, coin.change24h>=0)}</div></button>)}</div></section>
 
-        <section className="ms-card"><div className="ms-row"><div><div style={{display:"flex",gap:8,alignItems:"center"}}><h2 style={{fontSize:24,margin:0}}>Top 20 Opportunity Grid</h2>{mode==="Beginner"?<span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>ⓘ Higher scores = stronger alignment, not certainty.</span>:null}</div><div className="ms-sub">Click a coin to open the detail panel.</div></div></div><div className="ms-grid ms-coins" style={{marginTop:16}}>{ordered.map(coin => <button key={coin.symbol} className={`coin-btn ${active?.symbol===coin.symbol?"active":""} ${topSignal?.symbol!==coin.symbol?"dim":""}`} onClick={()=>openAsset(coin.symbol, "confidence")}><div className="ms-row"><button type="button" onClick={(e)=>{e.stopPropagation();toggleWatch(coin.symbol);}} style={{border:"1px solid rgba(247,247,247,.12)",background:"rgba(247,247,247,.04)",color:"#fff",borderRadius:14,padding:"8px 10px",cursor:"pointer"}}>{watchlist.includes(coin.symbol)?"★":"☆"}</button><Pill>{coin.posture}</Pill></div><div><div style={{fontSize:22,fontWeight:800}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><div style={{fontSize:28,fontWeight:700}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#00ff9d":"#ff4d4d"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill tone={coin.timing}>{coin.timing}</Pill></div><div><div className="ms-row" style={{marginBottom:8}}><span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>Signal Confidence</span><span style={{fontSize:12,color:"rgba(247,247,247,.7)"}}>{coin.confidence}%</span></div><div style={{height:8,width:"100%",borderRadius:999,background:"rgba(247,247,247,.1)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${coin.confidence}%`,borderRadius:999,background:"linear-gradient(90deg, #0033AD, #6067F9, #8BA8FF)"}}></span></div></div></button>)}</div></section>
+        <section className="ms-card"><div className="ms-row"><div><div style={{display:"flex",gap:8,alignItems:"center"}}><h2 style={{fontSize:24,margin:0}}>Top 20 Opportunity Grid</h2>{mode==="Beginner"?<span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>ⓘ Higher scores = stronger alignment, not certainty.</span>:null}</div><div className="ms-sub">Click a coin to open the detail panel.</div></div></div><div className="ms-grid ms-coins" style={{marginTop:16}}>{ordered.map(coin => <button key={coin.symbol} className={`coin-btn ${active?.symbol===coin.symbol?"active":""} ${topSignal?.symbol!==coin.symbol?"dim":""}`} onClick={()=>openAsset(coin.symbol, "confidence")}><div className="ms-row"><button type="button" onClick={(e)=>{e.stopPropagation();toggleWatch(coin.symbol);}} style={{border:"1px solid rgba(247,247,247,.12)",background:"rgba(247,247,247,.04)",color:watchlist.includes(coin.symbol)?"#00ff9d":"#fff",borderRadius:14,padding:"8px 10px",cursor:"pointer"}}>{watchlist.includes(coin.symbol)?"★":"☆"}</button><Pill>{coin.posture}</Pill></div><div><div style={{fontSize:22,fontWeight:800}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><div style={{fontSize:28,fontWeight:700}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#00ff9d":"#ff4d4d"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill tone={coin.timing}>{coin.timing}</Pill></div><div><div className="ms-row" style={{marginBottom:8}}><span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>Signal Confidence</span><span style={{fontSize:12,color:"rgba(247,247,247,.7)"}}>{coin.confidence}%</span></div><div style={{height:8,width:"100%",borderRadius:999,background:"rgba(247,247,247,.1)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${coin.confidence}%`,borderRadius:999,background:"linear-gradient(90deg, #0033AD, #6067F9, #8BA8FF)"}}></span></div></div></button>)}</div></section>
 
 
         {assetPanelOpen && active ? <div className="asset-overlay" onClick={()=>setAssetPanelOpen(false)}></div> : null}
@@ -1123,7 +1073,7 @@ function openAsset(symbol, learnTopic = "confidence") {
             )) : <div className="ms-sub">No alerts yet</div>}
           </div>
         </section>
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.7.0 • watchlist priority alerts</div></section>
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.7.1 • watchlist alerts build fix</div></section>
       </div>
     </main>
   );
