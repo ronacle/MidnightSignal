@@ -1,17 +1,17 @@
 {
-  "name": "midnight-signal",
+  "name": "midnight-signal-v11-8-cross-device-sync",
   "private": true,
-  "version": "11.7",
+  "version": "11.8.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "vercel-build": "next build"
+    "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
     "next": "15.3.8",
     "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "stripe": "17.7.0"
+    "react-dom": "19.0.0"
   }
 }

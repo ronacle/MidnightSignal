@@ -1,14 +1,14 @@
+import './globals.css';
+
 export const metadata = {
-  title: "Midnight Signal",
-  description: "Midnight Signal safe motion build",
+  title: 'Midnight Signal v11.8',
+  description: 'Cross-device account sync build for Midnight Signal.'
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, background: "#050816", color: "#e5e7eb", fontFamily: "Inter, system-ui, Arial, sans-serif" }}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
