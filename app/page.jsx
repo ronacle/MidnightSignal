@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "11.3";
-const BUILD_LABEL = "clarity pass";
+const BUILD_VERSION = "11.4";
+const BUILD_LABEL = "conversion polish";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -1191,7 +1191,18 @@ export default function Page(){
               <div>
                 <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>Midnight Signal Panel</div>
                 <h1 className="ms-title">What’s the signal tonight? 🌙<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></h1>
-                <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: "rgba(247,247,247,.64)", letterSpacing: ".03em" }}>
+                <div className="ms-sub" style={{marginTop:10,maxWidth:640,fontSize:15,color:"#dbe8ff"}}>Turn market noise into clear nightly direction. Know the setup, understand the why, and act with more confidence.</div>
+                <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: "rgba(247,247,247,.7)", letterSpacing: ".03em" }}>
+                  <Pill>Nightly signal clarity</Pill>
+                  <Pill>Context built in</Pill>
+                  <Pill>$9/mo early access</Pill>
+                </div>
+                {ritualLoop ? <div style={{marginTop:14,padding:14,borderRadius:18,background:"linear-gradient(135deg, rgba(96,103,249,.14), rgba(13,21,48,.65))",border:"1px solid rgba(139,168,255,.18)",maxWidth:560}}>
+                  <div style={{fontSize:11,letterSpacing:".12em",textTransform:"uppercase",color:"#bcd0ff",marginBottom:8}}>Tonight's opening read</div>
+                  <div style={{fontSize:24,fontWeight:900,marginBottom:6}}>{ritualLoop.opening}</div>
+                  <div className="ms-sub" style={{fontSize:15,color:"#e2e8f0"}}>{ritualLoop.momentum}</div>
+                </div> : null}
+                <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, color: "rgba(247,247,247,.64)", letterSpacing: ".03em" }}>
                   <span>Data</span>
                   <span>•</span>
                   <span>Information</span>
@@ -1202,17 +1213,13 @@ export default function Page(){
                   <span>•</span>
                   <span>Wisdom</span>
                 </div>
-                {ritualLoop ? <div style={{marginTop:14,padding:14,borderRadius:18,background:"linear-gradient(135deg, rgba(96,103,249,.14), rgba(13,21,48,.65))",border:"1px solid rgba(139,168,255,.18)",maxWidth:560}}>
-                  <div style={{fontSize:11,letterSpacing:".12em",textTransform:"uppercase",color:"#bcd0ff",marginBottom:8}}>Tonight's opening read</div>
-                  <div style={{fontSize:24,fontWeight:900,marginBottom:6}}>{ritualLoop.opening}</div>
-                  <div className="ms-sub" style={{fontSize:15,color:"#e2e8f0"}}>{ritualLoop.momentum}</div>
-                </div> : null}
               </div>
             </div>
             <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center",justifyContent:"flex-end"}}>
               <button onClick={()=>chooseMode("Beginner")} className="btn-strong" style={{background:mode==="Beginner"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Beginner</button>
               <button onClick={()=>chooseMode("Pro")} className="btn-strong" style={{background:mode==="Pro"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Pro</button>
               <button type="button" className="btn" style={{width:"auto"}} onClick={()=>setControlPanelOpen(true)}>⚙️ Control Panel</button>
+              <button type="button" className="btn-strong" style={{width:"auto"}} onClick={()=>window.scrollTo({top: document.body.scrollHeight * 0.12, behavior:"smooth"})}>Enter the Signal</button>
             </div>
           </div>
         </section>
@@ -1221,9 +1228,9 @@ export default function Page(){
           <div className="ms-row">
             <div>
               <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>Premium access</div>
-              <div style={{fontSize:28,fontWeight:800}}>Unlock deeper signal intelligence</div>
+              <div style={{fontSize:28,fontWeight:800}}>Unlock the full signal</div>
               <div className="ms-sub" style={{marginTop:8}}>
-                Move beyond noise. See the full structure behind the market with a cleaner premium unlock path.
+                Move beyond noise. Get the full reasoning, confidence layers, and deeper signal guidance for $9/month early access.
               </div>
             </div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
@@ -1431,11 +1438,11 @@ export default function Page(){
               <div style={{display:"grid",gap:12}}>
                 <div style={{padding:16,borderRadius:18,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>
                   <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Transforming market noise into market wisdom.</div>
-                  <div style={{fontSize:22,fontWeight:800,marginBottom:8}}>Keep the stage focused</div>
-                  <div className="ms-sub" style={{lineHeight:1.75}}>The dashboard now keeps signal, context, and action front-and-center while controls live one click away in a dedicated panel.</div>
+                  <div style={{fontSize:22,fontWeight:800,marginBottom:8}}>A clearer first impression</div>
+                  <div className="ms-sub" style={{lineHeight:1.75}}>Know the direction, understand the why, and act with confidence. The dashboard now leads with signal clarity while the controls stay one click away.</div>
                 </div>
-                <button type="button" className="btn-strong" style={{width:"auto"}} onClick={()=>setControlPanelOpen(true)}>Open Control Panel</button>
-                <div className="ms-sub">Settings, update cadence, and email alert delivery have been moved off the main stage for a cleaner launch-ready read.</div>
+                <button type="button" className="btn-strong" style={{width:"auto"}} onClick={()=>window.scrollTo({top: document.body.scrollHeight * 0.12, behavior:"smooth"})}>Enter the Signal</button>
+                <div className="ms-sub">Settings, update cadence, and email alert delivery stay off the main stage so the first read feels cleaner and more conversion-ready.</div>
               </div>
             </aside>
           </section>
