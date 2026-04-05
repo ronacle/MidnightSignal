@@ -1195,8 +1195,13 @@ export default function Page(){
                 <div className="hero-brand">Midnight Signal</div>
                 <div className="hero-app">Midnight Signal</div>
                 <h1 className="ms-title" style={{marginTop:0}}>What’s the signal tonight? 🌙<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></h1>
-                <div className="ms-sub" style={{marginTop:10,maxWidth:620,fontSize:15,color:"#dbe8ff"}}>Turn market noise into clear nightly direction. Know the setup, understand the why, and act with more confidence.</div>
-                <div className="hero-pills">
+<div style={{ marginTop: 10, lineHeight: 1.6, color: "#cbd5f5" }}>
+  Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
+</div>
+
+<div style={{ marginTop: 8, color: "#94a3b8" }}>
+  Know the setup, the why, and act with more confidence.
+</div>                <div className="hero-pills">
                   <Pill>Nightly signal clarity</Pill>
                   <Pill>Context built in</Pill>
                 </div>
@@ -1459,7 +1464,6 @@ export default function Page(){
               <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Launch Mode</div>
               <div style={{display:"grid",gap:12}}>
                 <div style={{padding:16,borderRadius:18,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>
-                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Transforming market noise into market wisdom.</div>
                   <div style={{fontSize:22,fontWeight:800,marginBottom:8}}>A clearer first impression</div>
                   <div className="ms-sub" style={{lineHeight:1.75}}>Know the direction, understand the why, and act with confidence. The dashboard now leads with signal clarity while the controls stay one click away.</div>
                 </div>
