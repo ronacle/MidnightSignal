@@ -1018,11 +1018,155 @@ useEffect(() => {
             </div>
           </div>
         </section>
-        {topSignal && <section className="ms-grid ms-hero"><div className={`ms-card top-signal-shell ${topPulseOn ? "signal-pulse" : ""}`}><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></div><div style={{fontSize:34,fontWeight:900,marginTop:4,color:topAccent.color,textShadow:topAccent.glow}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • {dataSource === "coingecko" ? "CoinGecko live + refresh" : "seed fallback"}</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{tonightBrief ? tonightBrief.summary : topSignal.brief}</div><div style={{marginTop:14,display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{dataSource === "coingecko" ? "Live market input" : "Fallback seed data"}</Pill>{marketUpdatedAt ? <Pill>{marketUpdatedAt}</Pill> : null}</div><div style={{marginTop:14,padding:12,borderRadius:14,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.12))",border:"1px solid rgba(96,103,249,.2)",fontSize:13,color:"#dbe8ff"}}>Beacon read: when leadership changes, this card pulses so the shift feels immediate.</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#00ff9d":"#ff4d4d"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile<button className="learn-hot" type="button" onClick={()=>openLearn("risk")}>?</button></div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
-          <aside className="ms-card"><div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div><div style={{display:"grid",gap:14}}><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div><select className="select" value={strategy} onChange={(e)=>setStrategy(e.target.value)}><option value="scalp">Scalp</option><option value="swing">Swing</option><option value="position">Position</option></select></label><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div><select className="select" value={timeframe} onChange={(e)=>setTimeframe(e.target.value)}><option value="7">7D</option><option value="30">30D</option><option value="90">90D</option></select></label><label style={{display:"flex",alignItems:"center",gap:10}}><input type="checkbox" checked={soundOn} onChange={(e)=>setSoundOn(e.target.checked)}/><span>Signal ping on leader + alert shift</span></label><div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div></div></aside></section>}
+        {topSignal && (
+          <section className="ms-grid ms-hero">
+            <div className={`ms-card top-signal-shell ${topPulseOn ? "signal-pulse" : ""}`}>
+              <div className="ms-row">
+                <div>
+                  <div style={{fontSize:14,color:"#94a3b8"}}>
+                    Tonight’s Top Signal
+                    <button className="learn-hot" type="button" onClick={() => openLearn("signal")}>?</button>
+                  </div>
+                  <div style={{fontSize:34,fontWeight:900,marginTop:4,color:topAccent.color,textShadow:topAccent.glow}}>
+                    {topSignal.symbol} • {topSignal.posture}
+                  </div>
+                  <div className="ms-sub" style={{marginTop:8}}>
+                    Strategy: {strategy} • {timeframe}D derived history • {dataSource === "coingecko" ? "CoinGecko live + refresh" : "seed fallback"}
+                  </div>
+                </div>
+                <div
+                  className="focus-chip"
+                  style={{
+                    background: topSignal.confidence >= 70 ? "rgba(34,197,94,0.12)" : topSignal.confidence < 45 ? "rgba(59,130,246,0.10)" : "rgba(148,163,184,0.10)",
+                    color: topSignal.confidence >= 70 ? "#86efac" : topSignal.confidence < 45 ? "#93c5fd" : "#cbd5e1"
+                  }}
+                >
+                  {topSignal.confidence}%
+                </div>
+              </div>
 
-        {topSignal && <section className="ms-grid ms-context"><div className="ms-card"><div className="ms-row" style={{alignItems:"flex-start"}}><div><div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Why this signal is moving</div><div style={{fontSize:24,fontWeight:800,marginBottom:10}}>Signal Context</div><div className="ms-sub" style={{maxWidth:620,lineHeight:1.7}}>Tonight’s signal is more useful when the narrative sits beside the number.</div></div><Pill>{contextLoading ? "Loading context" : `Sentiment: ${signalContext?.sentiment || "mixed"}`}</Pill></div><div style={{display:"grid",gap:12,marginTop:18}}>{(signalContext?.drivers || []).slice(0,3).map((driver, index)=><div key={`${driver}-${index}`} style={{padding:"14px 16px",borderRadius:18,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)",lineHeight:1.7,color:"#e2e8f0"}}>• {driver}</div>)}</div></div><div className="ms-card"><div style={{display:"grid",gap:18}}><div><div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Latest Context</div><div style={{display:"grid",gap:10}}>{(signalContext?.news || []).slice(0,3).map((item, index)=><a key={`${item.title}-${index}`} href={item.href} target="_blank" rel="noreferrer" style={{display:"block",padding:"13px 14px",borderRadius:16,textDecoration:"none",background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)",color:"#fff"}}><div style={{fontWeight:700,lineHeight:1.45}}>{item.title}</div><div className="ms-sub" style={{marginTop:6}}>{item.source}</div></a>)}</div></div><div><div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Community Pulse</div><div style={{display:"grid",gap:10}}>{(signalContext?.pulse || []).slice(0,3).map((item, index)=><div key={`${item.text}-${index}`} style={{padding:"13px 14px",borderRadius:16,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.10))",border:"1px solid rgba(96,103,249,.18)"}}><div style={{lineHeight:1.65,color:"#e2e8f0"}}>“{item.text}”</div><div className="ms-sub" style={{marginTop:6}}>{item.source}</div></div>)}</div></div></div></div></section>
+              <div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}>
+                <div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div>
+                <div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{tonightBrief ? tonightBrief.summary : topSignal.brief}</div>
+                <div style={{marginTop:14,display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <Pill>{dataSource === "coingecko" ? "Live market input" : "Fallback seed data"}</Pill>
+                  {marketUpdatedAt ? <Pill>{marketUpdatedAt}</Pill> : null}
+                </div>
+                <div style={{marginTop:14,padding:12,borderRadius:14,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.12))",border:"1px solid rgba(96,103,249,.2)",fontSize:13,color:"#dbe8ff"}}>
+                  Beacon read: when leadership changes, this card pulses so the shift feels immediate.
+                </div>
+              </div>
 
+              <div className="ms-grid ms-stats" style={{marginTop:18}}>
+                <div className="ms-metric">
+                  <div className="ms-metric-label">Price</div>
+                  <div className="ms-metric-value">{formatPrice(topSignal.price)}</div>
+                </div>
+                <div className="ms-metric">
+                  <div className="ms-metric-label">24H Change</div>
+                  <div className="ms-metric-value" style={{color: topSignal.change24h >= 0 ? "#00ff9d" : "#ff4d4d"}}>
+                    {topSignal.change24h >= 0 ? "+" : ""}{topSignal.change24h.toFixed(1)}%
+                  </div>
+                </div>
+                <div className="ms-metric">
+                  <div className="ms-metric-label">Volume</div>
+                  <div className="ms-metric-value">{topSignal.volume}</div>
+                </div>
+                <div className="ms-metric">
+                  <div className="ms-metric-label">
+                    Risk Profile
+                    <button className="learn-hot" type="button" onClick={() => openLearn("risk")}>?</button>
+                  </div>
+                  <div className="ms-metric-value">{topSignal.risk}</div>
+                </div>
+              </div>
+            </div>
+
+            <aside className="ms-card">
+              <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div>
+              <div style={{display:"grid",gap:14}}>
+                <label>
+                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div>
+                  <select className="select" value={strategy} onChange={(e) => setStrategy(e.target.value)}>
+                    <option value="scalp">Scalp</option>
+                    <option value="swing">Swing</option>
+                    <option value="position">Position</option>
+                  </select>
+                </label>
+                <label>
+                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div>
+                  <select className="select" value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
+                    <option value="7">7D</option>
+                    <option value="30">30D</option>
+                    <option value="90">90D</option>
+                  </select>
+                </label>
+                <label style={{display:"flex",alignItems:"center",gap:10}}>
+                  <input type="checkbox" checked={soundOn} onChange={(e) => setSoundOn(e.target.checked)} />
+                  <span>Signal ping on leader + alert shift</span>
+                </label>
+                <div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div>
+              </div>
+            </aside>
+          </section>
+        )}
+
+        {topSignal && (
+          <section className="ms-grid ms-context">
+            <div className="ms-card">
+              <div className="ms-row" style={{alignItems:"flex-start"}}>
+                <div>
+                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Why this signal is moving</div>
+                  <div style={{fontSize:24,fontWeight:800,marginBottom:10}}>Signal Context</div>
+                  <div className="ms-sub" style={{maxWidth:620,lineHeight:1.7}}>
+                    Tonight’s signal is more useful when the narrative sits beside the number.
+                  </div>
+                </div>
+                <Pill>{contextLoading ? "Loading context" : `Sentiment: ${signalContext?.sentiment || "mixed"}`}</Pill>
+              </div>
+              <div style={{display:"grid",gap:12,marginTop:18}}>
+                {(signalContext?.drivers || []).slice(0, 3).map((driver, index) => (
+                  <div key={`${driver}-${index}`} style={{padding:"14px 16px",borderRadius:18,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)",lineHeight:1.7,color:"#e2e8f0"}}>
+                    • {driver}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="ms-card">
+              <div style={{display:"grid",gap:18}}>
+                <div>
+                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Latest Context</div>
+                  <div style={{display:"grid",gap:10}}>
+                    {(signalContext?.news || []).slice(0, 3).map((item, index) => (
+                      <a
+                        key={`${item.title}-${index}`}
+                        href={item.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{display:"block",padding:"13px 14px",borderRadius:16,textDecoration:"none",background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)",color:"#fff"}}
+                      >
+                        <div style={{fontWeight:700,lineHeight:1.45}}>{item.title}</div>
+                        <div className="ms-sub" style={{marginTop:6}}>{item.source}</div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Community Pulse</div>
+                  <div style={{display:"grid",gap:10}}>
+                    {(signalContext?.pulse || []).slice(0, 3).map((item, index) => (
+                      <div key={`${item.text}-${index}`} style={{padding:"13px 14px",borderRadius:16,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.10))",border:"1px solid rgba(96,103,249,.18)"}}>
+                        <div style={{lineHeight:1.65,color:"#e2e8f0"}}>“{item.text}”</div>
+                        <div className="ms-sub" style={{marginTop:6}}>{item.source}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {visitDelta && <section className="ms-card">
           <div className="ms-row">
