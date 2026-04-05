@@ -298,6 +298,30 @@ export default function Page(){
   const [alerts, setAlerts] = useState([]);
 
 
+  async function startCheckout() {
+    setCheckoutError("");
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data?.ok || !data?.url) {
+        throw new Error(data?.message || "Unable to start checkout.");
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      setCheckoutError(error?.message || "Unable to start checkout right now.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
+
   async function loadMarket(reason = "manual") {
     setIsRefreshing(true);
     setRefreshMessage(reason === "auto" ? "Refreshing market data..." : "Updating market data...");
