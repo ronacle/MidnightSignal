@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "11.2";
-const BUILD_LABEL = "control panel polish";
+const BUILD_VERSION = "11.2.2";
+const BUILD_LABEL = "update mode cadence fix";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -985,16 +985,20 @@ export default function Page(){
   }, [coins]);
 
   useEffect(() => {
+    if (!autoRefreshOn || dataSource === "live") return;
     const id = window.setInterval(() => {
       setCoins((prev) => prev.map((coin, i) => {
         const nextPrice = Math.max(0.0001, coin.price * (1 + (Math.random() - 0.5) * 0.02));
         const nextChange = Math.max(-12, Math.min(12, coin.change24h + (Math.random() - 0.5) * 1.2));
         return enrich([coin.symbol, coin.name, Number(nextPrice.toFixed(coin.price >= 1 ? 2 : 4)), Number(nextChange.toFixed(1)), coin.volumeNum], i);
       }));
-    }, 5000);
+      setMarketUpdatedAt(new Date().toLocaleString());
+      setRefreshMessage("Seed data refreshed.");
+      window.setTimeout(() => setRefreshMessage(""), 2200);
+    }, updateModeMs[updateMode] || 180000);
 
     return () => window.clearInterval(id);
-  }, []);
+  }, [autoRefreshOn, dataSource, updateMode]);
 
   function openLearn(topic) {
     setLearnTopic(topic);
@@ -1540,45 +1544,9 @@ export default function Page(){
 
         <section className="ms-card"><div className="ms-grid ms-stats">{stats.map(([label,value]) => <div className="ms-metric" key={label}><div className="ms-metric-label">{label}</div><div className="ms-metric-value">{value}</div></div>)}</div></section>
 
-        <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>Watchlist</div><div className="ms-sub">Your pinned Midnight Signal picks, persisted on this device.</div></div><div style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>{watchlist.length} tracked</div></div><div className="ms-sub" style={{marginTop:10}}>Watchlist names now sit visually above the field with a brighter priority treatment when a signal shifts.</div><div className="ms-grid ms-watch" style={{marginTop:14}}>{ordered.filter(c=>watchlist.includes(c.symbol)).map(coin => <button className={`watch-card priority ${watchPulseSymbol===coin.symbol ? "watch-pulse" : ""}`} key={coin.symbol} onClick={()=>openAsset(coin.symbol, "momentum")}><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><Pill>{coin.posture}</Pill></div><div style={{fontSize:28,fontWeight:700,marginTop:10}}>{formatPrice(coin.price)}</div><div>
-  <div style={{ fontSize: 12, color: "#94a3b8" }}>24h Change</div>
-  <div
-    style={{
-      fontSize: 14,
-      fontWeight: 600,
-      color: coin.change24h >= 0 ? "#22c55e" : "#3b82f6",
-      display: "flex",
-      alignItems: "center",
-      gap: 4,
-    }}
-  >
-    {coin.change24h >= 0 ? "+" : ""}
-    {coin.change24h.toFixed(2)}%
-    <span style={{ fontSize: 12 }}>
-      {coin.change24h >= 0 ? "↑" : "↓"}
-    </span>
-  </div>
-</div><div style={{marginTop:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:12,color:"rgba(247,247,247,.5)"}}><span>{timeframe}D derived sparkline</span><span>{coin.confidence}%</span></div>{sparkline(coin.history, coin.change24h>=0)}</div></button>)}</div></section>
+        <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>Watchlist</div><div className="ms-sub">Your pinned Midnight Signal picks, persisted on this device.</div></div><div style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>{watchlist.length} tracked</div></div><div className="ms-sub" style={{marginTop:10}}>Watchlist names now sit visually above the field with a brighter priority treatment when a signal shifts.</div><div className="ms-grid ms-watch" style={{marginTop:14}}>{ordered.filter(c=>watchlist.includes(c.symbol)).map(coin => <button className={`watch-card priority ${watchPulseSymbol===coin.symbol ? "watch-pulse" : ""}`} key={coin.symbol} onClick={()=>openAsset(coin.symbol, "momentum")}><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><Pill>{coin.posture}</Pill></div><div style={{fontSize:28,fontWeight:700,marginTop:10}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#00ff9d":"#ff4d4d"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{marginTop:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:12,color:"rgba(247,247,247,.5)"}}><span>{timeframe}D derived sparkline</span><span>{coin.confidence}%</span></div>{sparkline(coin.history, coin.change24h>=0)}</div></button>)}</div></section>
 
-        <section className="ms-card"><div className="ms-row"><div><div style={{display:"flex",gap:8,alignItems:"center"}}><h2 style={{fontSize:24,margin:0}}>Top 20 Opportunity Grid</h2>{mode==="Beginner"?<span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>ⓘ Higher scores = stronger alignment, not certainty.</span>:null}</div><div className="ms-sub">Click a coin to open the detail panel.</div></div></div><div className="ms-grid ms-coins" style={{marginTop:16}}>{ordered.map(coin => <button key={coin.symbol} className={`coin-btn ${active?.symbol===coin.symbol?"active":""} ${topSignal?.symbol!==coin.symbol?"dim":""}`} style={watchlist.includes(coin.symbol) ? {borderColor:"rgba(0,255,157,.22)", boxShadow:"0 0 0 1px rgba(0,255,157,.08), 0 14px 50px rgba(0,0,0,.32)"} : undefined} onClick={()=>openAsset(coin.symbol, "confidence")}><div className="ms-row"><button type="button" onClick={(e)=>{e.stopPropagation();toggleWatch(coin.symbol);}} className={`watch-star ${watchlist.includes(coin.symbol)?"active":""}`} style={{color:watchlist.includes(coin.symbol)?"#00ff9d":"#fff"}}>{watchlist.includes(coin.symbol)?"★":"☆"}</button><Pill>{coin.posture}</Pill></div><div><div style={{fontSize:22,fontWeight:800}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><div style={{fontSize:28,fontWeight:700}}>{formatPrice(coin.price)}</div><div>
-  <div style={{ fontSize: 12, color: "#94a3b8" }}>24h Change</div>
-  <div
-    style={{
-      fontSize: 14,
-      fontWeight: 600,
-      color: coin.change24h >= 0 ? "#22c55e" : "#3b82f6",
-      display: "flex",
-      alignItems: "center",
-      gap: 4,
-    }}
-  >
-    {coin.change24h >= 0 ? "+" : ""}
-    {coin.change24h.toFixed(2)}%
-    <span style={{ fontSize: 12 }}>
-      {coin.change24h >= 0 ? "↑" : "↓"}
-    </span>
-  </div>
-</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill tone={coin.timing}>{coin.timing}</Pill></div><div><div className="ms-row" style={{marginBottom:8}}><span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>Signal Confidence</span><span style={{fontSize:12,color:"rgba(247,247,247,.7)"}}>{coin.confidence}%</span></div><div style={{height:8,width:"100%",borderRadius:999,background:"rgba(247,247,247,.1)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${coin.confidence}%`,borderRadius:999,background:"linear-gradient(90deg, #0033AD, #6067F9, #8BA8FF)"}}></span></div></div></button>)}</div></section>
+        <section className="ms-card"><div className="ms-row"><div><div style={{display:"flex",gap:8,alignItems:"center"}}><h2 style={{fontSize:24,margin:0}}>Top 20 Opportunity Grid</h2>{mode==="Beginner"?<span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>ⓘ Higher scores = stronger alignment, not certainty.</span>:null}</div><div className="ms-sub">Click a coin to open the detail panel.</div></div></div><div className="ms-grid ms-coins" style={{marginTop:16}}>{ordered.map(coin => <button key={coin.symbol} className={`coin-btn ${active?.symbol===coin.symbol?"active":""} ${topSignal?.symbol!==coin.symbol?"dim":""}`} style={watchlist.includes(coin.symbol) ? {borderColor:"rgba(0,255,157,.22)", boxShadow:"0 0 0 1px rgba(0,255,157,.08), 0 14px 50px rgba(0,0,0,.32)"} : undefined} onClick={()=>openAsset(coin.symbol, "confidence")}><div className="ms-row"><button type="button" onClick={(e)=>{e.stopPropagation();toggleWatch(coin.symbol);}} className={`watch-star ${watchlist.includes(coin.symbol)?"active":""}`} style={{color:watchlist.includes(coin.symbol)?"#00ff9d":"#fff"}}>{watchlist.includes(coin.symbol)?"★":"☆"}</button><Pill>{coin.posture}</Pill></div><div><div style={{fontSize:22,fontWeight:800}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><div style={{fontSize:28,fontWeight:700}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#00ff9d":"#ff4d4d"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill tone={coin.timing}>{coin.timing}</Pill></div><div><div className="ms-row" style={{marginBottom:8}}><span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>Signal Confidence</span><span style={{fontSize:12,color:"rgba(247,247,247,.7)"}}>{coin.confidence}%</span></div><div style={{height:8,width:"100%",borderRadius:999,background:"rgba(247,247,247,.1)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${coin.confidence}%`,borderRadius:999,background:"linear-gradient(90deg, #0033AD, #6067F9, #8BA8FF)"}}></span></div></div></button>)}</div></section>
 
 
         {assetPanelOpen && active ? <div className="asset-overlay" onClick={()=>setAssetPanelOpen(false)}></div> : null}
@@ -1588,25 +1556,7 @@ export default function Page(){
               <div>
                 <div style={{fontSize:14,color:"#94a3b8",marginBottom:4}}>Asset Inspector</div>
                 <div style={{fontSize:28,fontWeight:900,color:activeAccent.color,textShadow:activeAccent.glow}}>{active.symbol} • {active.posture}</div>
-                <div>
-  <div style={{ fontSize: 12, color: "#94a3b8" }}>24h Change</div>
-  <div
-    style={{
-      fontSize: 14,
-      fontWeight: 600,
-      color: coin.change24h >= 0 ? "#22c55e" : "#3b82f6",
-      display: "flex",
-      alignItems: "center",
-      gap: 4,
-    }}
-  >
-    {coin.change24h >= 0 ? "+" : ""}
-    {coin.change24h.toFixed(2)}%
-    <span style={{ fontSize: 12 }}>
-      {coin.change24h >= 0 ? "↑" : "↓"}
-    </span>
-  </div>
-</div>
+                <div className="ms-sub" style={{marginTop:6}}>{active.name} • {active.change24h>=0?"+":""}{active.change24h.toFixed(1)}% today</div>
               </div>
               <button type="button" className="btn" onClick={()=>setAssetPanelOpen(false)} style={{width:"auto",padding:"10px 12px"}}>Close</button>
             </div>
