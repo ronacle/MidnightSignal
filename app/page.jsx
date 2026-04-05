@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "11.0";
-const BUILD_LABEL = "launch mode + control panel";
+const BUILD_VERSION = "11.1";
+const BUILD_LABEL = "dashboard focus + Signal Studio";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -1440,8 +1440,8 @@ export default function Page(){
           <section className="ms-card">
             <div className="ms-row">
               <div>
-                <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>X Automation Engine</div>
-                <div style={{fontSize:28,fontWeight:900,marginBottom:8}}>Generate tonight’s posts</div>
+                <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Signal Studio</div>
+                <div style={{fontSize:28,fontWeight:900,marginBottom:8}}>Generate tonight's posts</div>
                 <div className="ms-sub" style={{maxWidth:760,lineHeight:1.75}}>Turn the live signal, context feed, and community pulse into ready-to-post X content using your Cardano Midnight News format.</div>
               </div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -2049,3 +2049,4 @@ export default function Page(){
     </main>
   );
 }
+
