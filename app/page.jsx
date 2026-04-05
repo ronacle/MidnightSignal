@@ -187,6 +187,37 @@ function computeTrust(entries) {
   };
 }
 
+
+function timeframeAdjustedSignal(coin, timeframe) {
+  const adjustments = {
+    "5m": { momentum: 8, trend: -4, volatility: -3 },
+    "15m": { momentum: 5, trend: 0, volatility: -1 },
+    "1h": { momentum: 0, trend: 2, volatility: 0 },
+    "4h": { momentum: -4, trend: 6, volatility: 1 },
+  };
+  const rule = adjustments[timeframe] || adjustments["1h"];
+  const momentum = Math.max(0, Math.min(100, coin.breakdown.momentum + rule.momentum));
+  const trend = Math.max(0, Math.min(100, coin.breakdown.trend + rule.trend));
+  const volatility = Math.max(0, Math.min(100, coin.breakdown.volatility + rule.volatility));
+  const confidence = Math.max(30, Math.min(90, Math.round(momentum * 0.4 + trend * 0.4 + volatility * 0.2)));
+  const posture = confidence >= 65 ? "Bullish" : confidence <= 45 ? "Bearish" : "Neutral";
+  return { timeframe, momentum, trend, volatility, confidence, posture };
+}
+
+function buildTimeframeInsight(reads) {
+  const bullish = reads.filter((r) => r.posture === "Bullish").length;
+  const bearish = reads.filter((r) => r.posture === "Bearish").length;
+  const shortBull = reads[0]?.posture === "Bullish" && reads[1]?.posture === "Bullish";
+  const longBear = reads[3]?.posture === "Bearish";
+  const longBull = reads[3]?.posture === "Bullish";
+
+  if (shortBull && longBear) return "Short-term momentum is bullish, but the higher timeframe still leans bearish. This suggests a bounce inside a broader defensive structure.";
+  if (bullish >= 3) return "Most timeframes are aligned bullish, which gives the signal stronger structural support.";
+  if (bearish >= 3) return "Most timeframes are aligned bearish, which makes the setup more defensive across the stack.";
+  if (longBull && bullish >= 2) return "Higher timeframe structure is constructive, and shorter reads are beginning to align with it.";
+  return "The timeframe stack is mixed, which means momentum and structure are not fully aligned yet.";
+}
+
 export default function Page(){
   const [agreed, setAgreed] = useState(false);
   const [checkedEducation, setCheckedEducation] = useState(false);
@@ -372,6 +403,8 @@ export default function Page(){
   const activeTopic = LEARN_TOPICS[learnTopic] || LEARN_TOPICS.signal;
   const assetHistory = active ? (signalHistory[active.symbol] || []) : [];
   const trustStats = computeTrust(assetHistory);
+  const timeframeReads = active ? ["5m","15m","1h","4h"].map((tf) => timeframeAdjustedSignal(active, tf)) : [];
+  const timeframeInsight = buildTimeframeInsight(timeframeReads);
 
   return () => window.clearInterval(id);
   }, []);
@@ -455,6 +488,8 @@ export default function Page(){
   const activeTopic = LEARN_TOPICS[learnTopic] || LEARN_TOPICS.signal;
   const assetHistory = active ? (signalHistory[active.symbol] || []) : [];
   const trustStats = computeTrust(assetHistory);
+  const timeframeReads = active ? ["5m","15m","1h","4h"].map((tf) => timeframeAdjustedSignal(active, tf)) : [];
+  const timeframeInsight = buildTimeframeInsight(timeframeReads);
 
   return (
     <main style={{minHeight:"100vh",color:"#f7f7f7",background:"radial-gradient(circle at top, rgba(42,107,255,.14), transparent 28%), linear-gradient(135deg, #0d1530 0%, #181c2f 45%, #0f1330 100%)",padding:"24px 0 40px"}}>
@@ -736,6 +771,31 @@ export default function Page(){
               ) : null}
 
 
+
+              <div className="ms-metric" style={{marginBottom:16}}>
+                <div className="ms-metric-label">Multi-Timeframe Read</div>
+                <div style={{display:"grid",gap:10,marginTop:12}}>
+                  {timeframeReads.map((read) => (
+                    <div key={read.timeframe} style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"center",padding:"12px 14px",borderRadius:14,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>
+                      <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                        <div style={{fontSize:14,fontWeight:800,width:42}}>{read.timeframe}</div>
+                        <div>
+                          <div style={{fontSize:15,fontWeight:700}}>{read.posture}</div>
+                          <div className="ms-sub">Momentum {read.momentum}% • Trend {read.trend}% • Volatility {read.volatility}%</div>
+                        </div>
+                      </div>
+                      <div style={{fontSize:15,fontWeight:800,color:read.posture==="Bullish" ? "#8BA8FF" : read.posture==="Bearish" ? "#2A6BFF" : "#cbd5e1"}}>
+                        {read.confidence}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginTop:14,padding:14,borderRadius:16,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.12))",border:"1px solid rgba(96,103,249,.22)"}}>
+                  <div style={{fontSize:13,color:"#bcd0ff",marginBottom:8}}>Alignment insight</div>
+                  <div className="ms-sub" style={{lineHeight:1.7}}>{timeframeInsight}</div>
+                </div>
+              </div>
+
               <div className="ms-metric" style={{marginBottom:16}}>
                 <div className="ms-metric-label">Trust Layer</div>
                 <div style={{display:"grid",gap:14,marginTop:12}}>
@@ -852,7 +912,7 @@ export default function Page(){
           </aside>
         ) : null}
 
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.0.0 • trust layer</div></section>
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.1.0 • multi-timeframe intelligence</div></section>
       </div>
     </main>
   );
