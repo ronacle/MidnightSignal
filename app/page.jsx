@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "9.9";
-const BUILD_LABEL = "premium flow cleanup";
+const BUILD_VERSION = "10.0";
+const BUILD_LABEL = "ritual experience";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -293,6 +293,51 @@ function buildTimeframeInsight(reads) {
   if (bearish >= 3) return "Most timeframes are aligned bearish, which makes the setup more defensive across the stack.";
   if (longBull && bullish >= 2) return "Higher timeframe structure is constructive, and shorter reads are beginning to align with it.";
   return "The timeframe stack is mixed, which means momentum and structure are not fully aligned yet.";
+}
+
+function buildTonightBrief(topSignal, visitDelta) {
+  if (!topSignal) return null;
+  const confidenceMove = visitDelta?.confidenceShifts?.find((item) => item.symbol === topSignal.symbol);
+  const direction = topSignal.posture === "Bullish" ? "Bullish bias" : topSignal.posture === "Bearish" ? "Bearish bias" : "Neutral bias";
+  const change = confidenceMove ? (confidenceMove.delta > 0 ? "Confidence rising" : confidenceMove.delta < 0 ? "Confidence softening" : "Confidence holding") : "Confidence steady";
+  const keyDriver = topSignal.breakdown.trend >= topSignal.breakdown.momentum
+    ? "higher-timeframe structure is doing more of the work"
+    : "shorter-term momentum is carrying the move";
+  return {
+    direction,
+    change,
+    keyDriver,
+    summary: `${direction} with ${topSignal.confidence}% confidence. ${change}. Key driver: ${keyDriver}.`,
+  };
+}
+
+function buildDecisionLayer(topSignal, timeframeReads) {
+  if (!topSignal) return null;
+  const bullish = timeframeReads.filter((item) => item.posture === "Bullish").length;
+  const bearish = timeframeReads.filter((item) => item.posture === "Bearish").length;
+  let posture = "Stay patient";
+  if (topSignal.posture === "Bullish" && topSignal.confidence >= 70) posture = "Lean long";
+  else if (topSignal.posture === "Bearish" && topSignal.confidence <= 45) posture = "Stay defensive";
+  else if (topSignal.posture === "Neutral") posture = "Wait for confirmation";
+
+  const reasons = [
+    bullish >= 3 ? "1h + 4h alignment is supportive" : bearish >= 3 ? "the higher-timeframe stack still leans defensive" : "the timeframe stack is still mixed",
+    topSignal.breakdown.momentum >= 28 ? "momentum is doing enough work to matter" : "momentum still needs to prove itself",
+    topSignal.risk === "Low" ? "risk remains relatively controlled" : topSignal.risk === "High" ? "risk is elevated, so conviction needs respect" : "risk is moderate, so position quality matters",
+  ];
+
+  return { posture, reasons };
+}
+
+function buildRitualLoop(topSignal, visitDelta) {
+  if (!topSignal) return null;
+  const leaderChanged = visitDelta?.prevTop && visitDelta?.nextTop && visitDelta.prevTop.symbol !== visitDelta.nextTop.symbol;
+  const confidenceMove = visitDelta?.confidenceShifts?.find((item) => item.symbol === topSignal.symbol);
+  return {
+    opening: `${topSignal.symbol}: ${topSignal.posture} (${topSignal.confidence}%)`,
+    checkpoint: leaderChanged ? `${visitDelta.prevTop.symbol} handed the lead to ${visitDelta.nextTop.symbol}.` : `${topSignal.symbol} is still leading tonight.`,
+    momentum: confidenceMove ? (confidenceMove.delta > 0 ? "Confidence is stronger than your last visit." : confidenceMove.delta < 0 ? "Confidence has cooled since your last visit." : "Confidence is unchanged since your last visit.") : "No previous confidence snapshot yet.",
+  };
 }
 
 export default function Page(){
@@ -690,6 +735,9 @@ useEffect(() => {
   const timeframeReads = active ? ["5m", "15m", "1h", "4h"].map((tf) => timeframeAdjustedSignal(active, tf)) : [];
   const timeframeInsight = buildTimeframeInsight(timeframeReads);
   const interpretationText = buildInterpretation(active, timeframeReads, mode);
+  const tonightBrief = buildTonightBrief(topSignal, visitDelta);
+  const decisionLayer = buildDecisionLayer(topSignal, timeframeReads);
+  const ritualLoop = buildRitualLoop(topSignal, visitDelta);
   const topAccent = topSignal ? postureAccent(topSignal.posture, topSignal.confidence) : { color: "#fff", glow: "none" };
   const activeAccent = active ? postureAccent(active.posture, active.confidence) : { color: "#fff", glow: "none" };
 
@@ -729,7 +777,7 @@ useEffect(() => {
         .coin-btn{border:1px solid rgba(247,247,247,.08);background:rgba(24,28,47,.78);border-radius:24px;padding:18px;box-shadow:0 14px 50px rgba(0,0,0,.32);display:grid;gap:12px;text-align:left;color:#fff;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,opacity .18s ease;cursor:pointer}
         .coin-btn:hover{transform:translateY(-3px);box-shadow:0 20px 56px rgba(0,0,0,.38),0 0 0 1px rgba(139,168,255,.14);border-color:rgba(139,168,255,.28)} .coin-btn.active{border-color:rgba(139,168,255,.65);box-shadow:0 0 0 2px rgba(139,168,255,.18),0 14px 50px rgba(0,0,0,.32)} .coin-btn.dim{opacity:.86}
         .watch-card{border:1px solid rgba(96,103,249,.35);background:linear-gradient(135deg, rgba(96,103,249,.16), rgba(0,51,173,.18));border-radius:24px;padding:16px;text-align:left;color:#fff;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.watch-card:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(0,0,0,.28)}.watch-card.priority{border-color:rgba(0,255,157,.28);box-shadow:0 0 0 1px rgba(0,255,157,.12), 0 16px 44px rgba(0,0,0,.28)}
-        .top-signal-shell{position:relative;overflow:hidden}.top-signal-shell::after{content:"";position:absolute;inset:-120px;pointer-events:none;background:radial-gradient(circle, rgba(139,168,255,.08) 0%, rgba(139,168,255,0) 58%);opacity:.5}.top-signal-shell.signal-pulse{animation:signalPulse .9s ease-in-out;box-shadow:0 0 0 1px rgba(139,168,255,.18),0 24px 80px rgba(0,0,0,.35)}
+        .top-signal-shell{position:relative;overflow:hidden}.top-signal-shell::after{content:"";position:absolute;inset:-120px;pointer-events:none;background:radial-gradient(circle, rgba(139,168,255,.08) 0%, rgba(139,168,255,0) 58%);opacity:.5}.top-signal-shell::before{content:"";position:absolute;inset:18% 30%;border-radius:999px;border:1px solid rgba(139,168,255,.18);box-shadow:0 0 0 14px rgba(139,168,255,.03),0 0 0 30px rgba(139,168,255,.02);opacity:.7;pointer-events:none}.top-signal-shell.signal-pulse{animation:signalPulse .9s ease-in-out;box-shadow:0 0 0 1px rgba(139,168,255,.18),0 24px 80px rgba(0,0,0,.35)}
         @keyframes signalPulse{0%{transform:scale(1)}35%{transform:scale(1.012)}100%{transform:scale(1)}}
         @keyframes watchPulse{0%{transform:scale(1)}50%{transform:scale(1.018)}100%{transform:scale(1)}}
         .watch-pulse{animation:watchPulse .8s ease-in-out;box-shadow:0 0 0 1px rgba(0,255,157,.16),0 18px 48px rgba(0,0,0,.3)}
@@ -763,6 +811,11 @@ useEffect(() => {
                   <span>•</span>
                   <span>Wisdom</span>
                 </div>
+                {ritualLoop ? <div style={{marginTop:14,padding:14,borderRadius:18,background:"linear-gradient(135deg, rgba(96,103,249,.14), rgba(13,21,48,.65))",border:"1px solid rgba(139,168,255,.18)",maxWidth:560}}>
+                  <div style={{fontSize:11,letterSpacing:".12em",textTransform:"uppercase",color:"#bcd0ff",marginBottom:8}}>Tonight's opening read</div>
+                  <div style={{fontSize:24,fontWeight:900,marginBottom:6}}>{ritualLoop.opening}</div>
+                  <div className="ms-sub" style={{fontSize:15,color:"#e2e8f0"}}>{ritualLoop.momentum}</div>
+                </div> : null}
               </div>
             </div>
             <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
@@ -821,23 +874,44 @@ useEffect(() => {
         <section className="ms-card">
           <div className="ms-row">
             <div>
-              <div style={{fontSize:14,color:"#94a3b8"}}>Daily Ritual</div>
-              <div style={{fontSize:26,fontWeight:800}}>What matters now</div>
+              <div style={{fontSize:14,color:"#94a3b8"}}>Tonight's Ritual</div>
+              <div style={{fontSize:26,fontWeight:800}}>Open fast. Understand faster.</div>
+              <div className="ms-sub" style={{marginTop:8}}>A nightly loop built to tell returning users what changed, what matters, and how to frame the next decision.</div>
+            </div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {ritualLoop ? <Pill>{ritualLoop.opening}</Pill> : null}
+              {visitDelta ? <Pill>Tonight vs last visit</Pill> : <Pill>First visit rhythm</Pill>}
             </div>
           </div>
-          <div style={{marginTop:14,display:"grid",gap:12}}>
-            <div style={{padding:12,borderRadius:14,background:"rgba(247,247,247,.04)"}}>
-              <b>Top Signal:</b> {topSignal ? `${topSignal.symbol} is ${topSignal.posture}` : "—"}
+          <div className="ms-grid ms-hero" style={{marginTop:18}}>
+            <div className="ms-metric">
+              <div className="ms-metric-label">Tonight's Brief</div>
+              <div style={{display:"grid",gap:12,marginTop:12}}>
+                <div style={{padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}><b>Direction:</b> {tonightBrief ? tonightBrief.direction : "—"}</div>
+                <div style={{padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}><b>Change:</b> {tonightBrief ? tonightBrief.change : "—"}</div>
+                <div style={{padding:14,borderRadius:16,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}><b>Key driver:</b> {tonightBrief ? tonightBrief.keyDriver : "—"}</div>
+              </div>
             </div>
-            <div style={{padding:12,borderRadius:14,background:"rgba(247,247,247,.04)"}}>
-              <b>Momentum read:</b> {topSignal ? topSignal.brief : "—"}
+            <div className="ms-metric">
+              <div className="ms-metric-label">Suggested Posture</div>
+              <div style={{fontSize:28,fontWeight:900,marginTop:12}}>{decisionLayer ? decisionLayer.posture : "Wait for signal"}</div>
+              <div style={{display:"grid",gap:10,marginTop:14}}>
+                {(decisionLayer?.reasons || ["No signal available yet."]).map((reason) => <div key={reason} style={{padding:12,borderRadius:14,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>• {reason}</div>)}
+              </div>
             </div>
-            <div style={{padding:12,borderRadius:14,background:"rgba(247,247,247,.04)"}}>
-              <b>Focus:</b> Watch for alignment continuation or breakdown.
+          </div>
+          <div className="ms-grid ms-hero" style={{marginTop:18}}>
+            <div className="ms-metric">
+              <div className="ms-metric-label">Tonight vs Yesterday</div>
+              <div style={{lineHeight:1.75,color:"#e2e8f0",fontSize:16,marginTop:12}}>{ritualLoop ? ritualLoop.checkpoint : "Come back after your next session to compare the leadership handoff."}</div>
+            </div>
+            <div className="ms-metric">
+              <div className="ms-metric-label">Return reason</div>
+              <div style={{lineHeight:1.75,color:"#e2e8f0",fontSize:16,marginTop:12}}>{ritualLoop ? ritualLoop.momentum : "The first habit loop starts once your local snapshot has been saved."}</div>
             </div>
           </div>
         </section>
-        {topSignal && <section className="ms-grid ms-hero"><div className={`ms-card top-signal-shell ${topPulseOn ? "signal-pulse" : ""}`}><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></div><div style={{fontSize:34,fontWeight:900,marginTop:4,color:topAccent.color,textShadow:topAccent.glow}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • {dataSource === "coingecko" ? "CoinGecko live + refresh" : "seed fallback"}</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div><div style={{marginTop:14,display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{dataSource === "coingecko" ? "Live market input" : "Fallback seed data"}</Pill>{marketUpdatedAt ? <Pill>{marketUpdatedAt}</Pill> : null}</div><div style={{marginTop:14,padding:12,borderRadius:14,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.12))",border:"1px solid rgba(96,103,249,.2)",fontSize:13,color:"#dbe8ff"}}>Beacon read: when leadership changes, this card pulses so the shift feels immediate.</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#00ff9d":"#ff4d4d"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile<button className="learn-hot" type="button" onClick={()=>openLearn("risk")}>?</button></div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
+        {topSignal && <section className="ms-grid ms-hero"><div className={`ms-card top-signal-shell ${topPulseOn ? "signal-pulse" : ""}`}><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></div><div style={{fontSize:34,fontWeight:900,marginTop:4,color:topAccent.color,textShadow:topAccent.glow}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • {dataSource === "coingecko" ? "CoinGecko live + refresh" : "seed fallback"}</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{tonightBrief ? tonightBrief.summary : topSignal.brief}</div><div style={{marginTop:14,display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{dataSource === "coingecko" ? "Live market input" : "Fallback seed data"}</Pill>{marketUpdatedAt ? <Pill>{marketUpdatedAt}</Pill> : null}</div><div style={{marginTop:14,padding:12,borderRadius:14,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.12))",border:"1px solid rgba(96,103,249,.2)",fontSize:13,color:"#dbe8ff"}}>Beacon read: when leadership changes, this card pulses so the shift feels immediate.</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#00ff9d":"#ff4d4d"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile<button className="learn-hot" type="button" onClick={()=>openLearn("risk")}>?</button></div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
           <aside className="ms-card"><div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div><div style={{display:"grid",gap:14}}><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div><select className="select" value={strategy} onChange={(e)=>setStrategy(e.target.value)}><option value="scalp">Scalp</option><option value="swing">Swing</option><option value="position">Position</option></select></label><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div><select className="select" value={timeframe} onChange={(e)=>setTimeframe(e.target.value)}><option value="7">7D</option><option value="30">30D</option><option value="90">90D</option></select></label><label style={{display:"flex",alignItems:"center",gap:10}}><input type="checkbox" checked={soundOn} onChange={(e)=>setSoundOn(e.target.checked)}/><span>Signal ping on leader + alert shift</span></label><div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div></div></aside></section>}
 
 
