@@ -95,12 +95,32 @@ function sparkline(points, positive=true){
   return <svg viewBox={`0 0 ${width} ${height}`} style={{width:"100%",height:42,display:"block"}}><path d={area} fill={fill}></path><path d={line} fill="none" stroke={stroke} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"></path></svg>;
 }
 
-function pillTone(value){ if(value==="Bullish"||value==="Enter") return {bg:"rgba(96,103,249,.18)",color:"#8BA8FF",border:"rgba(96,103,249,.45)"}; if(value==="Bearish"||value==="Reduce") return {bg:"rgba(0,51,173,.16)",color:"#2A6BFF",border:"rgba(42,107,255,.42)"}; return {bg:"rgba(247,247,247,.04)",color:"#e5e7eb",border:"rgba(247,247,247,.14)"}; }
-function Pill({children,tone}){ const s=pillTone(tone||children); return <span style={{display:"inline-flex",alignItems:"center",gap:8,borderRadius:999,padding:"8px 12px",border:`1px solid ${s.border}`,background:s.bg,fontSize:12,color:s.color,fontWeight:700}}>{children}</span>; }
+function pillTone(value){
+  if(value==="Bullish"||value==="Enter") return {
+    bg:"linear-gradient(135deg, rgba(0,255,157,.22), rgba(0,200,83,.18))",
+    color:"#d1fae5",
+    border:"rgba(0,255,157,.42)",
+    shadow:"0 0 14px rgba(0,255,157,.22)"
+  };
+  if(value==="Bearish"||value==="Reduce") return {
+    bg:"linear-gradient(135deg, rgba(255,77,77,.20), rgba(185,28,28,.18))",
+    color:"#ffe4e6",
+    border:"rgba(255,77,77,.38)",
+    shadow:"0 0 14px rgba(255,77,77,.18)"
+  };
+  return {
+    bg:"rgba(247,247,247,.04)",
+    color:"#e5e7eb",
+    border:"rgba(247,247,247,.14)",
+    shadow:"none"
+  };
+}
+function Pill({children,tone}){ const s=pillTone(tone||children); return <span style={{display:"inline-flex",alignItems:"center",gap:8,borderRadius:999,padding:"8px 12px",border:`1px solid ${s.border}`,background:s.bg,fontSize:12,color:s.color,fontWeight:700,boxShadow:s.shadow}}>{children}</span>; }
 
 function deltaTone(delta){ if(delta>0) return "#8BA8FF"; if(delta<0) return "#2A6BFF"; return "#cbd5e1"; }
 function postureArrow(from,to){ if(from===to) return "→"; if(to==="Bullish") return "↑"; if(to==="Bearish") return "↓"; return "→"; }
 function barColor(label){ return label==="Momentum" ? "linear-gradient(90deg, #6067F9, #8BA8FF)" : label==="Trend" ? "linear-gradient(90deg, #0033AD, #6067F9)" : "linear-gradient(90deg, #334155, #8BA8FF)"; }
+function postureAccent(posture, confidence){ if(posture==="Bullish") return {color:"#00ff9d", glow: confidence>=70 ? "0 0 18px rgba(0,255,157,.18)" : "none"}; if(posture==="Bearish") return {color:"#ff4d4d", glow: confidence<=45 ? "0 0 18px rgba(255,77,77,.16)" : "none"}; return {color:"#e5e7eb", glow:"none"}; }
 
 
 const LEARN_TOPICS = {
@@ -167,8 +187,8 @@ const LEARN_TOPICS = {
 };
 
 function trustColor(outcome) {
-  if (outcome === "up") return "#8BA8FF";
-  if (outcome === "down") return "#2A6BFF";
+  if (outcome === "up") return "#00ff9d";
+  if (outcome === "down") return "#ff4d4d";
   return "#94a3b8";
 }
 
@@ -460,6 +480,8 @@ export default function Page(){
   const trustStats = computeTrust(assetHistory);
   const timeframeReads = active ? ["5m","15m","1h","4h"].map((tf) => timeframeAdjustedSignal(active, tf)) : [];
   const timeframeInsight = buildTimeframeInsight(timeframeReads);
+  const topAccent = topSignal ? postureAccent(topSignal.posture, topSignal.confidence) : { color: "#fff", glow: "none" };
+  const activeAccent = active ? postureAccent(active.posture, active.confidence) : { color: "#fff", glow: "none" };
 
   return () => window.clearInterval(id);
   }, []);
@@ -545,6 +567,8 @@ export default function Page(){
   const trustStats = computeTrust(assetHistory);
   const timeframeReads = active ? ["5m","15m","1h","4h"].map((tf) => timeframeAdjustedSignal(active, tf)) : [];
   const timeframeInsight = buildTimeframeInsight(timeframeReads);
+  const topAccent = topSignal ? postureAccent(topSignal.posture, topSignal.confidence) : { color: "#fff", glow: "none" };
+  const activeAccent = active ? postureAccent(active.posture, active.confidence) : { color: "#fff", glow: "none" };
 
   return (
     <main style={{minHeight:"100vh",color:"#f7f7f7",background:"radial-gradient(circle at top, rgba(42,107,255,.14), transparent 28%), linear-gradient(135deg, #0d1530 0%, #181c2f 45%, #0f1330 100%)",padding:"24px 0 40px"}}>
@@ -642,7 +666,7 @@ export default function Page(){
           </div>
         </section>
 
-        {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></div><div style={{fontSize:34,fontWeight:900,marginTop:4}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • {dataSource === "coingecko" ? "CoinGecko live + refresh" : "seed fallback"}</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div><div style={{marginTop:14,display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{dataSource === "coingecko" ? "Live market input" : "Fallback seed data"}</Pill>{marketUpdatedAt ? <Pill>{marketUpdatedAt}</Pill> : null}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile<button className="learn-hot" type="button" onClick={()=>openLearn("risk")}>?</button></div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
+        {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></div><div style={{fontSize:34,fontWeight:900,marginTop:4,color:topAccent.color,textShadow:topAccent.glow}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • {dataSource === "coingecko" ? "CoinGecko live + refresh" : "seed fallback"}</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div><div style={{marginTop:14,display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{dataSource === "coingecko" ? "Live market input" : "Fallback seed data"}</Pill>{marketUpdatedAt ? <Pill>{marketUpdatedAt}</Pill> : null}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#00ff9d":"#ff4d4d"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile<button className="learn-hot" type="button" onClick={()=>openLearn("risk")}>?</button></div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
           <aside className="ms-card"><div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div><div style={{display:"grid",gap:14}}><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div><select className="select" value={strategy} onChange={(e)=>setStrategy(e.target.value)}><option value="scalp">Scalp</option><option value="swing">Swing</option><option value="position">Position</option></select></label><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div><select className="select" value={timeframe} onChange={(e)=>setTimeframe(e.target.value)}><option value="7">7D</option><option value="30">30D</option><option value="90">90D</option></select></label><label style={{display:"flex",alignItems:"center",gap:10}}><input type="checkbox" checked={soundOn} onChange={(e)=>setSoundOn(e.target.checked)}/><span>Signal ping on leader change</span></label><div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div></div></aside></section>}
 
 
@@ -749,9 +773,9 @@ export default function Page(){
 
         <section className="ms-card"><div className="ms-grid ms-stats">{stats.map(([label,value]) => <div className="ms-metric" key={label}><div className="ms-metric-label">{label}</div><div className="ms-metric-value">{value}</div></div>)}</div></section>
 
-        <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>Watchlist</div><div className="ms-sub">Your pinned Midnight Signal picks, persisted on this device.</div></div><div style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>{watchlist.length} tracked</div></div><div className="ms-grid ms-watch" style={{marginTop:14}}>{ordered.filter(c=>watchlist.includes(c.symbol)).map(coin => <button className="watch-card" key={coin.symbol} onClick={()=>openAsset(coin.symbol, "momentum")}><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><Pill>{coin.posture}</Pill></div><div style={{fontSize:28,fontWeight:700,marginTop:10}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{marginTop:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:12,color:"rgba(247,247,247,.5)"}}><span>{timeframe}D derived sparkline</span><span>{coin.confidence}%</span></div>{sparkline(coin.history, coin.change24h>=0)}</div></button>)}</div></section>
+        <section className="ms-card"><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>Watchlist</div><div className="ms-sub">Your pinned Midnight Signal picks, persisted on this device.</div></div><div style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>{watchlist.length} tracked</div></div><div className="ms-grid ms-watch" style={{marginTop:14}}>{ordered.filter(c=>watchlist.includes(c.symbol)).map(coin => <button className="watch-card" key={coin.symbol} onClick={()=>openAsset(coin.symbol, "momentum")}><div className="ms-row"><div><div style={{fontSize:20,fontWeight:700}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><Pill>{coin.posture}</Pill></div><div style={{fontSize:28,fontWeight:700,marginTop:10}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#00ff9d":"#ff4d4d"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{marginTop:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:12,color:"rgba(247,247,247,.5)"}}><span>{timeframe}D derived sparkline</span><span>{coin.confidence}%</span></div>{sparkline(coin.history, coin.change24h>=0)}</div></button>)}</div></section>
 
-        <section className="ms-card"><div className="ms-row"><div><div style={{display:"flex",gap:8,alignItems:"center"}}><h2 style={{fontSize:24,margin:0}}>Top 20 Opportunity Grid</h2>{mode==="Beginner"?<span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>ⓘ Higher scores = stronger alignment, not certainty.</span>:null}</div><div className="ms-sub">Click a coin to open the detail panel.</div></div></div><div className="ms-grid ms-coins" style={{marginTop:16}}>{ordered.map(coin => <button key={coin.symbol} className={`coin-btn ${active?.symbol===coin.symbol?"active":""} ${topSignal?.symbol!==coin.symbol?"dim":""}`} onClick={()=>openAsset(coin.symbol, "confidence")}><div className="ms-row"><button type="button" onClick={(e)=>{e.stopPropagation();toggleWatch(coin.symbol);}} style={{border:"1px solid rgba(247,247,247,.12)",background:"rgba(247,247,247,.04)",color:"#fff",borderRadius:14,padding:"8px 10px",cursor:"pointer"}}>{watchlist.includes(coin.symbol)?"★":"☆"}</button><Pill>{coin.posture}</Pill></div><div><div style={{fontSize:22,fontWeight:800}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><div style={{fontSize:28,fontWeight:700}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#8BA8FF":"#2A6BFF"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill tone={coin.timing}>{coin.timing}</Pill><Pill tone={coin.posture}>{coin.posture}</Pill></div><div><div className="ms-row" style={{marginBottom:8}}><span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>Signal Confidence</span><span style={{fontSize:12,color:"rgba(247,247,247,.7)"}}>{coin.confidence}%</span></div><div style={{height:8,width:"100%",borderRadius:999,background:"rgba(247,247,247,.1)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${coin.confidence}%`,borderRadius:999,background:"linear-gradient(90deg, #0033AD, #6067F9, #8BA8FF)"}}></span></div></div></button>)}</div></section>
+        <section className="ms-card"><div className="ms-row"><div><div style={{display:"flex",gap:8,alignItems:"center"}}><h2 style={{fontSize:24,margin:0}}>Top 20 Opportunity Grid</h2>{mode==="Beginner"?<span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>ⓘ Higher scores = stronger alignment, not certainty.</span>:null}</div><div className="ms-sub">Click a coin to open the detail panel.</div></div></div><div className="ms-grid ms-coins" style={{marginTop:16}}>{ordered.map(coin => <button key={coin.symbol} className={`coin-btn ${active?.symbol===coin.symbol?"active":""} ${topSignal?.symbol!==coin.symbol?"dim":""}`} onClick={()=>openAsset(coin.symbol, "confidence")}><div className="ms-row"><button type="button" onClick={(e)=>{e.stopPropagation();toggleWatch(coin.symbol);}} style={{border:"1px solid rgba(247,247,247,.12)",background:"rgba(247,247,247,.04)",color:"#fff",borderRadius:14,padding:"8px 10px",cursor:"pointer"}}>{watchlist.includes(coin.symbol)?"★":"☆"}</button><Pill>{coin.posture}</Pill></div><div><div style={{fontSize:22,fontWeight:800}}>{coin.symbol}</div><div className="ms-sub">{coin.name}</div></div><div style={{fontSize:28,fontWeight:700}}>{formatPrice(coin.price)}</div><div style={{fontSize:14,fontWeight:600,color:coin.change24h>=0?"#00ff9d":"#ff4d4d"}}>{coin.change24h>=0?"+":""}{coin.change24h.toFixed(1)}% today</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Pill tone={coin.timing}>{coin.timing}</Pill><Pill tone={coin.posture}>{coin.posture}</Pill></div><div><div className="ms-row" style={{marginBottom:8}}><span style={{fontSize:12,color:"rgba(247,247,247,.5)"}}>Signal Confidence</span><span style={{fontSize:12,color:"rgba(247,247,247,.7)"}}>{coin.confidence}%</span></div><div style={{height:8,width:"100%",borderRadius:999,background:"rgba(247,247,247,.1)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${coin.confidence}%`,borderRadius:999,background:"linear-gradient(90deg, #0033AD, #6067F9, #8BA8FF)"}}></span></div></div></button>)}</div></section>
 
 
         {assetPanelOpen && active ? <div className="asset-overlay" onClick={()=>setAssetPanelOpen(false)}></div> : null}
@@ -760,7 +784,7 @@ export default function Page(){
             <div style={{padding:"18px 20px",borderBottom:"1px solid rgba(247,247,247,.08)",display:"flex",justifyContent:"space-between",gap:12,alignItems:"center"}}>
               <div>
                 <div style={{fontSize:14,color:"#94a3b8",marginBottom:4}}>Asset Inspector</div>
-                <div style={{fontSize:28,fontWeight:900}}>{active.symbol} • {active.posture}</div>
+                <div style={{fontSize:28,fontWeight:900,color:activeAccent.color,textShadow:activeAccent.glow}}>{active.symbol} • {active.posture}</div>
                 <div className="ms-sub" style={{marginTop:6}}>{active.name} • {active.change24h>=0?"+":""}{active.change24h.toFixed(1)}% today</div>
               </div>
               <button type="button" className="btn" onClick={()=>setAssetPanelOpen(false)} style={{width:"auto",padding:"10px 12px"}}>Close</button>
@@ -839,7 +863,7 @@ export default function Page(){
                           <div className="ms-sub">Momentum {read.momentum}% • Trend {read.trend}% • Volatility {read.volatility}%</div>
                         </div>
                       </div>
-                      <div style={{fontSize:15,fontWeight:800,color:read.posture==="Bullish" ? "#8BA8FF" : read.posture==="Bearish" ? "#2A6BFF" : "#cbd5e1"}}>
+                      <div style={{fontSize:15,fontWeight:800,color:read.posture==="Bullish" ? "#00ff9d" : read.posture==="Bearish" ? "#ff4d4d" : "#cbd5e1"}}>
                         {read.confidence}%
                       </div>
                     </div>
@@ -967,7 +991,7 @@ export default function Page(){
           </aside>
         ) : null}
 
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.3.0 • smart refresh</div></section>
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.4.0 • visual signal upgrade</div></section>
       </div>
     </main>
   );
