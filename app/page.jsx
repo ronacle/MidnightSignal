@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "10.3";
-const BUILD_LABEL = "retention loop";
+const BUILD_VERSION = "10.4";
+const BUILD_LABEL = "real email alerts";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -25,6 +25,8 @@ const STORAGE_KEYS = {
   history: "ms_signal_history_v1",
   autoRefresh: "ms_auto_refresh_on",
   alerts: "ms_alerts_v1",
+  emailPrefs: "ms_email_alert_prefs_v1",
+  emailedAlertsAt: "ms_emailed_alerts_at",
 };
 
 const SEED = [
@@ -414,6 +416,11 @@ export default function Page(){
   const [autoRefreshOn, setAutoRefreshOn] = useState(true);
   const [refreshMessage, setRefreshMessage] = useState("");
   const [alerts, setAlerts] = useState([]);
+  const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(false);
+  const [emailDigestMode, setEmailDigestMode] = useState("instant");
+  const [alertSensitivity, setAlertSensitivity] = useState("major");
+  const [alertOnlyWatchlist, setAlertOnlyWatchlist] = useState(true);
+  const [emailAlertStatus, setEmailAlertStatus] = useState("");
   const [topPulseOn, setTopPulseOn] = useState(false);
   const [watchPulseSymbol, setWatchPulseSymbol] = useState("");
   const [alertFeedback, setAlertFeedback] = useState("");
@@ -493,6 +500,43 @@ export default function Page(){
     if (symbol) window.setTimeout(() => setWatchPulseSymbol((current) => current === symbol ? "" : current), 1000);
   }
 
+  async function sendTestEmailAlert() {
+    if (!email) {
+      setEmailAlertStatus("Add an email first to test alert delivery.");
+      return;
+    }
+
+    setEmailAlertStatus("Sending test alert...");
+    try {
+      const res = await fetch("/api/alerts/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          digestMode: emailDigestMode,
+          sensitivity: alertSensitivity,
+          test: true,
+          alerts: [
+            {
+              symbol: topSignal?.symbol || selected || "BTC",
+              type: "test",
+              priority: "HIGH",
+              posture: topSignal?.posture || "Bullish",
+              confidence: topSignal?.confidence || 72,
+              text: `${topSignal?.symbol || selected || "BTC"} test alert from Midnight Signal.`,
+              ts: Date.now(),
+            },
+          ],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) throw new Error(data?.message || "Unable to send test alert.");
+      setEmailAlertStatus(data?.mode === "live" ? "Test alert sent." : "Test route ready. Add Resend env vars in Vercel to send live emails.");
+    } catch (error) {
+      setEmailAlertStatus(error?.message || "Unable to send test alert.");
+    }
+  }
+
   async function loadMarket(reason = "manual") {
     setIsRefreshing(true);
     setRefreshMessage(reason === "auto" ? "Refreshing market data..." : "Updating market data...");
@@ -568,6 +612,14 @@ export default function Page(){
       if (savedAuto !== null) setAutoRefreshOn(savedAuto === "true");
       const rawAlerts = window.localStorage.getItem(STORAGE_KEYS.alerts);
       if (rawAlerts) setAlerts(JSON.parse(rawAlerts));
+      const rawEmailPrefs = window.localStorage.getItem(STORAGE_KEYS.emailPrefs);
+      if (rawEmailPrefs) {
+        const prefs = JSON.parse(rawEmailPrefs);
+        if (typeof prefs?.enabled === "boolean") setEmailAlertsEnabled(prefs.enabled);
+        if (prefs?.digestMode) setEmailDigestMode(prefs.digestMode);
+        if (prefs?.sensitivity) setAlertSensitivity(prefs.sensitivity);
+        if (typeof prefs?.watchlistOnly === "boolean") setAlertOnlyWatchlist(prefs.watchlistOnly);
+      }
 
       const now = Date.now();
       const previousVisitRaw = window.localStorage.getItem(STORAGE_KEYS.lastVisitTs);
@@ -601,6 +653,16 @@ export default function Page(){
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.sound, soundOn ? "true" : "false"); } catch {} }, [soundOn]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.email, email); } catch {} }, [email]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.autoRefresh, autoRefreshOn ? "true" : "false"); } catch {} }, [autoRefreshOn]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.emailPrefs, JSON.stringify({
+        enabled: emailAlertsEnabled,
+        digestMode: emailDigestMode,
+        sensitivity: alertSensitivity,
+        watchlistOnly: alertOnlyWatchlist,
+      }));
+    } catch {}
+  }, [emailAlertsEnabled, emailDigestMode, alertSensitivity, alertOnlyWatchlist]);
 
 
   useEffect(() => {
@@ -673,16 +735,23 @@ export default function Page(){
 
       for (const coin of coins) {
         const previousCoin = priorMap.get(coin.symbol);
+        const confidenceDelta = previousCoin ? coin.confidence - previousCoin.confidence : 0;
+        const isWatchlistCoin = watchlist.includes(coin.symbol);
         const crossedHighConfidence = coin.confidence >= 75 && (!previousCoin || previousCoin.confidence < 75);
-        const watchlistShift = watchlist.includes(coin.symbol) && previousCoin && previousCoin.posture !== coin.posture;
+        const watchlistShift = isWatchlistCoin && previousCoin && previousCoin.posture !== coin.posture;
+        const majorMove = previousCoin && Math.abs(confidenceDelta) >= 6;
+        const passesSensitivity = alertSensitivity === "all" ? (crossedHighConfidence || watchlistShift || Math.abs(confidenceDelta) >= 3) : (crossedHighConfidence || watchlistShift || majorMove);
+        const passesScope = alertOnlyWatchlist ? (isWatchlistCoin || crossedHighConfidence) : true;
 
-        if (!crossedHighConfidence && !watchlistShift) continue;
+        if (!passesSensitivity || !passesScope) continue;
 
-        const type = watchlistShift ? "watchlist" : previousCoin ? "surge" : "leader";
-        const priority = watchlist.includes(coin.symbol) ? "HIGH" : "normal";
+        const type = watchlistShift ? "watchlist" : crossedHighConfidence ? (previousCoin ? "surge" : "leader") : "shift";
+        const priority = isWatchlistCoin || watchlistShift ? "HIGH" : majorMove ? "HIGH" : "normal";
         const text = watchlistShift
           ? `${coin.symbol} moved from ${previousCoin.posture} to ${coin.posture} on your watchlist.`
-          : `${coin.symbol} is flashing ${coin.confidence}% confidence.`;
+          : crossedHighConfidence
+          ? `${coin.symbol} is flashing ${coin.confidence}% confidence.`
+          : `${coin.symbol} moved ${confidenceDelta > 0 ? "up" : "down"} ${Math.abs(confidenceDelta)} confidence points.`;
 
         nextAlerts.push({
           id: `${Date.now()}-${coin.symbol}-${type}`,
@@ -705,8 +774,56 @@ export default function Page(){
     } catch {}
 
     previousCoinsRef.current = coins;
-  }, [coins, watchlist, soundOn]);
-useEffect(() => {
+  }, [coins, watchlist, soundOn, alertSensitivity, alertOnlyWatchlist]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!emailAlertsEnabled || !email || !alerts.length) return;
+
+    const sentKey = STORAGE_KEYS.emailedAlertsAt;
+    const lastSentTs = Number(window.localStorage.getItem(sentKey) || "0");
+    const pending = alerts.filter((alert) => Number(alert.ts || 0) > lastSentTs);
+    if (!pending.length) return;
+
+    const now = Date.now();
+    const readyBatch = emailDigestMode === "digest"
+      ? pending.filter((alert) => now - Number(alert.ts || 0) >= 60 * 1000).slice(-6)
+      : pending.slice(-3);
+
+    if (!readyBatch.length) return;
+
+    let cancelled = false;
+
+    async function sendAlerts() {
+      try {
+        const res = await fetch("/api/alerts/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            digestMode: emailDigestMode,
+            sensitivity: alertSensitivity,
+            alerts: readyBatch,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) throw new Error(data?.message || "Unable to deliver email alerts.");
+        if (cancelled) return;
+        const maxTs = Math.max(...readyBatch.map((alert) => Number(alert.ts || 0)));
+        window.localStorage.setItem(sentKey, String(maxTs));
+        setEmailAlertStatus(data?.mode === "live"
+          ? `Email alert sent to ${email}.`
+          : "Email route ready. Add Resend env vars in Vercel to send live alerts.");
+      } catch (error) {
+        if (!cancelled) setEmailAlertStatus(error?.message || "Unable to deliver email alerts.");
+      }
+    }
+
+    sendAlerts();
+    return () => { cancelled = true; };
+  }, [alerts, emailAlertsEnabled, email, emailDigestMode, alertSensitivity]);
+
+  useEffect(() => {
     try {
       const previousRaw = window.localStorage.getItem(STORAGE_KEYS.history);
       const previous = previousRaw ? JSON.parse(previousRaw) : {};
@@ -1181,6 +1298,41 @@ useEffect(() => {
                   <span>Signal ping on leader + alert shift</span>
                 </label>
                 <div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div>
+              </div>
+            </aside>
+
+            <aside className="ms-card">
+              <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Email Alerts</div>
+              <div style={{display:"grid",gap:14}}>
+                <label>
+                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Delivery email</div>
+                  <input className="select" type="email" placeholder="you@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
+                </label>
+                <label style={{display:"flex",alignItems:"center",gap:10}}>
+                  <input type="checkbox" checked={emailAlertsEnabled} onChange={(e)=>setEmailAlertsEnabled(e.target.checked)} />
+                  <span>Enable real email alerts</span>
+                </label>
+                <label>
+                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Alert threshold</div>
+                  <select className="select" value={alertSensitivity} onChange={(e)=>setAlertSensitivity(e.target.value)}>
+                    <option value="major">Major shifts only</option>
+                    <option value="all">All meaningful changes</option>
+                  </select>
+                </label>
+                <label>
+                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Delivery mode</div>
+                  <select className="select" value={emailDigestMode} onChange={(e)=>setEmailDigestMode(e.target.value)}>
+                    <option value="instant">Send instantly</option>
+                    <option value="digest">Digest batch</option>
+                  </select>
+                </label>
+                <label style={{display:"flex",alignItems:"center",gap:10}}>
+                  <input type="checkbox" checked={alertOnlyWatchlist} onChange={(e)=>setAlertOnlyWatchlist(e.target.checked)} />
+                  <span>Watchlist priority only</span>
+                </label>
+                <button type="button" className="btn" onClick={sendTestEmailAlert}>Send test email</button>
+                <div className="ms-sub">Live delivery uses Resend when <code>RESEND_API_KEY</code> and <code>ALERTS_FROM_EMAIL</code> are configured in Vercel.</div>
+                {emailAlertStatus ? <div style={{fontSize:13,color:"#cbd5e1"}}>{emailAlertStatus}</div> : null}
               </div>
             </aside>
           </section>
