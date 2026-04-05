@@ -1,7 +1,7 @@
 {
   "name": "midnight-signal",
   "private": true,
-  "version": "11.2.2",
+  "version": "11.3",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
