@@ -225,6 +225,33 @@ function timeframeAdjustedSignal(coin, timeframe) {
   return { timeframe, momentum, trend, volatility, confidence, posture };
 }
 
+
+function buildInterpretation(active, timeframeReads, mode) {
+  if (!active || !timeframeReads?.length) return "";
+  const bullish = timeframeReads.filter((r) => r.posture === "Bullish").length;
+  const bearish = timeframeReads.filter((r) => r.posture === "Bearish").length;
+  const shortBull = timeframeReads[0]?.posture === "Bullish" && timeframeReads[1]?.posture === "Bullish";
+  const shortBear = timeframeReads[0]?.posture === "Bearish" && timeframeReads[1]?.posture === "Bearish";
+  const longBull = timeframeReads[3]?.posture === "Bullish";
+  const longBear = timeframeReads[3]?.posture === "Bearish";
+
+  let primary = "This suggests a mixed setup that still needs stronger alignment before it feels convincing.";
+  if (shortBull && longBear) primary = "This suggests short-term opportunity, but not full higher-timeframe conviction yet.";
+  else if (shortBear && longBull) primary = "This suggests near-term weakness inside a stronger higher-timeframe structure.";
+  else if (bullish >= 3) primary = "This suggests broad alignment across the stack, which supports a stronger bullish read.";
+  else if (bearish >= 3) primary = "This suggests broad defensive alignment, which favors caution over aggressive entries.";
+  else if (active.confidenceBand === "High" && active.posture === "Bullish") primary = "This suggests the signal has enough internal alignment to support a constructive read.";
+  else if (active.confidenceBand === "Low") primary = "This suggests the setup still lacks enough alignment to trust aggressively.";
+
+  let secondary = "It favors patience and context over reacting to a single number.";
+  if (active.timing === "Enter" && active.posture === "Bullish") secondary = "It favors selective short-term opportunity while respecting the broader context.";
+  else if (active.timing === "Reduce" || active.posture === "Bearish") secondary = "It favors defense first until the structure improves.";
+  else if (active.posture === "Neutral") secondary = "It favors waiting for either momentum or trend to become clearer.";
+
+  if (mode === "Pro") return `${primary} ${secondary}`;
+  return `${primary} ${secondary}`;
+}
+
 function buildTimeframeInsight(reads) {
   const bullish = reads.filter((r) => r.posture === "Bullish").length;
   const bearish = reads.filter((r) => r.posture === "Bearish").length;
@@ -480,6 +507,7 @@ export default function Page(){
   const trustStats = computeTrust(assetHistory);
   const timeframeReads = active ? ["5m","15m","1h","4h"].map((tf) => timeframeAdjustedSignal(active, tf)) : [];
   const timeframeInsight = buildTimeframeInsight(timeframeReads);
+  const interpretationText = buildInterpretation(active, timeframeReads, mode);
   const topAccent = topSignal ? postureAccent(topSignal.posture, topSignal.confidence) : { color: "#fff", glow: "none" };
   const activeAccent = active ? postureAccent(active.posture, active.confidence) : { color: "#fff", glow: "none" };
 
@@ -567,6 +595,7 @@ export default function Page(){
   const trustStats = computeTrust(assetHistory);
   const timeframeReads = active ? ["5m","15m","1h","4h"].map((tf) => timeframeAdjustedSignal(active, tf)) : [];
   const timeframeInsight = buildTimeframeInsight(timeframeReads);
+  const interpretationText = buildInterpretation(active, timeframeReads, mode);
   const topAccent = topSignal ? postureAccent(topSignal.posture, topSignal.confidence) : { color: "#fff", glow: "none" };
   const activeAccent = active ? postureAccent(active.posture, active.confidence) : { color: "#fff", glow: "none" };
 
@@ -820,6 +849,19 @@ export default function Page(){
               </div>
 
               <div className="ms-metric" style={{marginBottom:16}}>
+                <div className="ms-metric-label">What this means</div>
+                <div style={{marginTop:12,padding:16,borderRadius:18,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.12))",border:"1px solid rgba(96,103,249,.22)"}}>
+                  <div style={{fontSize:13,color:"#bcd0ff",marginBottom:8}}>Interpretation layer</div>
+                  <div style={{lineHeight:1.75,color:"#e2e8f0",fontSize:16}}>{interpretationText}</div>
+                </div>
+                <div className="ms-sub" style={{marginTop:12,lineHeight:1.7}}>
+                  {mode === "Beginner"
+                    ? "This is the app’s guidance layer — a short plain-English read on how to think about the current setup."
+                    : "This is a concise interpretation layer built from posture, timing, confidence, and timeframe alignment."}
+                </div>
+              </div>
+
+              <div className="ms-metric" style={{marginBottom:16}}>
                 <div className="ms-metric-label">Factor Breakdown<button className="learn-hot" type="button" onClick={()=>openLearn("momentum")}>?</button></div>
                 <div style={{marginTop:12,display:"grid",gap:14,position:"relative"}}>
                   {[{label:"Momentum",value:active.breakdown.momentum,topic:"momentum"},{label:"Trend",value:active.breakdown.trend,topic:"trend"},{label:"Volatility",value:active.breakdown.volatility,topic:"volatility"}].map((item, index)=><div key={item.label} className="asset-clickable" onClick={()=>openLearn(item.topic)} style={{opacity:isPremium ? 1 : index === 0 ? 1 : .42, filter:isPremium ? "none" : index === 0 ? "none" : "blur(2px)"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:14,fontWeight:700}}>{item.label}</span><span style={{fontSize:13,color:"rgba(247,247,247,.68)"}}>{isPremium || index === 0 ? `${item.value}% contribution` : "Premium"}</span></div><div style={{height:10,width:"100%",borderRadius:999,background:"rgba(247,247,247,.08)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${isPremium || index===0 ? item.value : 68}%`,borderRadius:999,background:barColor(item.label)}}></span></div></div>)}
@@ -991,7 +1033,7 @@ export default function Page(){
           </aside>
         ) : null}
 
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.4.1 • card clarity polish</div></section>
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.5.0 • interpretation layer</div></section>
       </div>
     </main>
   );
