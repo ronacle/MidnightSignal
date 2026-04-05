@@ -548,91 +548,98 @@ useEffect(() => {
   }, [coins]);
 
   useEffect(() => {
-    const id=window.setInterval(() => {
-      setCoins(prev => prev.map((coin,i) => {
-        const nextPrice=Math.max(0.0001, coin.price*(1+(Math.random()-0.5)*0.02));
-        const nextChange=Math.max(-12, Math.min(12, coin.change24h+(Math.random()-0.5)*1.2));
-        return enrich([coin.symbol, coin.name, Number(nextPrice.toFixed(coin.price>=1?2:4)), Number(nextChange.toFixed(1)), coin.volumeNum], i);
+    const id = window.setInterval(() => {
+      setCoins((prev) => prev.map((coin, i) => {
+        const nextPrice = Math.max(0.0001, coin.price * (1 + (Math.random() - 0.5) * 0.02));
+        const nextChange = Math.max(-12, Math.min(12, coin.change24h + (Math.random() - 0.5) * 1.2));
+        return enrich([coin.symbol, coin.name, Number(nextPrice.toFixed(coin.price >= 1 ? 2 : 4)), Number(nextChange.toFixed(1)), coin.volumeNum], i);
       }));
     }, 5000);
-  
+
+    return () => window.clearInterval(id);
+  }, []);
+
   function openLearn(topic) {
     setLearnTopic(topic);
     setLearnOpen(true);
   }
 
-  
-function toggleWatch(symbol){
-  setWatchlist(prev=>{
-    if(prev.includes(symbol)) return prev.filter(s=>s!==symbol);
-    return [...prev, symbol];
-  });
-}
-function openAsset(symbol, learnTopic = "confidence") {
+  function toggleWatch(symbol) {
+    setWatchlist((prev) => {
+      if (prev.includes(symbol)) return prev.filter((s) => s !== symbol);
+      return [...prev, symbol];
+    });
+  }
+
+  function openAsset(symbol, topic = "confidence") {
     setSelected(symbol);
     setAssetPanelOpen(true);
     if (mode === "Beginner") {
-      setLearnTopic(learnTopic);
+      setLearnTopic(topic);
     }
   }
 
+  function acceptAgreement() {
+    if (!checkedEducation || !checkedRisk) return;
+    setAgreed(true);
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.agreed, "true");
+    } catch {}
+  }
+
+  const ordered = useMemo(() => {
+    const sorted = [...coins].sort((a, b) => b.confidence - a.confidence);
+    sorted.sort((a, b) => watchlist.includes(a.symbol) === watchlist.includes(b.symbol) ? 0 : watchlist.includes(a.symbol) ? -1 : 1);
+    return sorted;
+  }, [coins, watchlist]);
+
+  const topSignal = ordered[0] || null;
+  const active = ordered.find((c) => c.symbol === selected) || topSignal;
   const activeTopic = LEARN_TOPICS[learnTopic] || LEARN_TOPICS.signal;
   const assetHistory = active ? (signalHistory[active.symbol] || []) : [];
   const trustStats = computeTrust(assetHistory);
-  const timeframeReads = active ? ["5m","15m","1h","4h"].map((tf) => timeframeAdjustedSignal(active, tf)) : [];
+  const timeframeReads = active ? ["5m", "15m", "1h", "4h"].map((tf) => timeframeAdjustedSignal(active, tf)) : [];
   const timeframeInsight = buildTimeframeInsight(timeframeReads);
   const interpretationText = buildInterpretation(active, timeframeReads, mode);
   const topAccent = topSignal ? postureAccent(topSignal.posture, topSignal.confidence) : { color: "#fff", glow: "none" };
   const activeAccent = active ? postureAccent(active.posture, active.confidence) : { color: "#fff", glow: "none" };
 
-  return () => window.clearInterval(id);
-  }, []);
-
-  const ordered=useMemo(() => {
-    const sorted=[...coins].sort((a,b)=>b.confidence-a.confidence);
-    sorted.sort((a,b)=>watchlist.includes(a.symbol)===watchlist.includes(b.symbol)?0:watchlist.includes(a.symbol)?-1:1);
-    return sorted;
-  }, [coins, watchlist]);
-  const topSignal=ordered[0]||null;
-  const active=ordered.find(c=>c.symbol===selected)||topSignal;
+  const bullishCount = ordered.filter((coin) => coin.posture === "Bullish").length;
+  const bearishCount = ordered.filter((coin) => coin.posture === "Bearish").length;
+  const averageConfidence = ordered.length ? Math.round(ordered.reduce((sum, coin) => sum + coin.confidence, 0) / ordered.length) : 0;
+  const watchlistCount = watchlist.length;
+  const stats = [
+    ["Tracked Assets", `${ordered.length}`],
+    ["Bullish Signals", `${bullishCount}`],
+    ["Bearish Signals", `${bearishCount}`],
+    ["Avg Confidence", `${averageConfidence}%`],
+  ];
 
   useEffect(() => {
-    if(!topSignal) return;
-    if(topSignal.symbol!==lastInsight){
+    if (!topSignal) return;
+    if (topSignal.symbol !== lastInsight) {
       setLastInsight(topSignal.symbol);
-      try { window.localStorage.setItem("ms_last_insight", topSignal.symbol); } catch {}
-      if(soundOn){
+      try {
+        window.localStorage.setItem("ms_last_insight", topSignal.symbol);
+      } catch {}
+      if (soundOn) {
         try {
-          const ctx=new (window.AudioContext||window.webkitAudioContext)();
-          const osc=ctx.createOscillator(); const gain=ctx.createGain();
-          osc.type="sine"; osc.frequency.value=880; gain.gain.value=0.0001;
-          osc.connect(gain); gain.connect(ctx.destination); osc.start();
-          gain.gain.exponentialRampToValueAtTime(0.03, ctx.currentTime+0.01);
-          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.12);
-          osc.stop(ctx.currentTime+0.14);
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = 880;
+          gain.gain.value = 0.0001;
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          gain.gain.exponentialRampToValueAtTime(0.03, ctx.currentTime + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
+          osc.stop(ctx.currentTime + 0.14);
         } catch {}
       }
     }
-  }, [topSignal?.symbol, soundOn]);
-
-  function acceptAgreement(){ if(!checkedEducation||!checkedRisk) return; setAgreed(true); try { window.localStorage.setItem(STORAGE_KEYS.agreed,"true"); } catch {} }
-  
-function openAsset(symbol, learnTopic = "confidence") {
-    setSelected(symbol);
-    setAssetPanelOpen(true);
-    if (mode === "Beginner") {
-      setLearnTopic(learnTopic);
-    }
-  }
-
-  const activeTopic = LEARN_TOPICS[learnTopic] || LEARN_TOPICS.signal;
-  const assetHistory = active ? (signalHistory[active.symbol] || []) : [];
-  const trustStats = computeTrust(assetHistory);
-  const timeframeReads = active ? ["5m","15m","1h","4h"].map((tf) => timeframeAdjustedSignal(active, tf)) : [];
-  const timeframeInsight = buildTimeframeInsight(timeframeReads);
-  const interpretationText = buildInterpretation(active, timeframeReads, mode);
-  const topAccent = topSignal ? postureAccent(topSignal.posture, topSignal.confidence) : { color: "#fff", glow: "none" };
-  const activeAccent = active ? postureAccent(active.posture, active.confidence) : { color: "#fff", glow: "none" };
+  }, [topSignal?.symbol, soundOn, lastInsight]);
 
   return (
     <main style={{minHeight:"100vh",color:"#f7f7f7",background:"radial-gradient(circle at top, rgba(42,107,255,.14), transparent 28%), linear-gradient(135deg, #0d1530 0%, #181c2f 45%, #0f1330 100%)",padding:"24px 0 40px"}}>
