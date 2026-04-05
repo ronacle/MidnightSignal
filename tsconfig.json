@@ -1,0 +1,1 @@
+{ "compilerOptions": { "jsx":"preserve","module":"esnext","target":"es2017","moduleResolution":"bundler","baseUrl":"." }, "include":["**/*"] }
