@@ -1436,6 +1436,123 @@ export default function Page(){
           </section>
         )}
 
+        {topSignal && (
+          <section className="ms-card">
+            <div className="ms-row">
+              <div>
+                <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Signal Studio</div>
+                <div style={{fontSize:28,fontWeight:900,marginBottom:8}}>Generate tonight's posts</div>
+                <div className="ms-sub" style={{maxWidth:760,lineHeight:1.75}}>Turn the live signal, context feed, and community pulse into ready-to-post X content using your Cardano Midnight News format.</div>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <Pill>{spicyPosts ? "Spicy mode" : "Clean mode"}</Pill>
+                <Pill>{signalContext?.meta?.live ? "Live context source" : "Fallback context source"}</Pill>
+                {xPostRefreshAt ? <Pill>{`Updated ${xPostRefreshAt}`}</Pill> : null}
+              </div>
+            </div>
+
+            <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:16}}>
+              <button type="button" className="btn-strong" style={{width:"auto"}} onClick={refreshXPosts}>Generate Tonight’s Posts</button>
+              <button type="button" className="btn" style={{width:"auto"}} onClick={() => setSpicyPosts((current) => !current)}>{spicyPosts ? "Switch to clean mode" : "Switch to spicy mode"}</button>
+              <button type="button" className="btn" style={{width:"auto"}} onClick={() => copyAllXPosts(xPosts)}>Copy all posts</button>
+            </div>
+
+            {xPostStatus ? (
+              <div style={{marginTop:14,padding:"12px 14px",borderRadius:14,background:"rgba(96,103,249,.10)",border:"1px solid rgba(96,103,249,.18)",color:"#dbe8ff",fontSize:14}}>
+                {xPostStatus}
+              </div>
+            ) : null}
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(160px, 1fr))",gap:12,marginTop:18}}>
+              {controlMetrics.map((metric) => (
+                <div key={metric.label} className="ms-card" style={{padding:16}}>
+                  <div style={{fontSize:12,color:"#94a3b8",marginBottom:8}}>{metric.label}</div>
+                  <div style={{fontSize:26,fontWeight:900}}>{metric.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="ms-grid ms-context" style={{marginTop:18}}>
+              {xPosts.map((post, index) => (
+                <div key={post.id} className="ms-card" style={{padding:18}}>
+                  <div className="ms-row" style={{alignItems:"flex-start",gap:12}}>
+                    <div>
+                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Post {index + 1}</div>
+                      <div style={{fontSize:22,fontWeight:800,marginBottom:10}}>{post.label}</div>
+                    </div>
+                    <button type="button" className="btn" style={{width:"auto"}} onClick={() => copyXPost(post)}>Copy post</button>
+                  </div>
+                  <div style={{whiteSpace:"pre-wrap",lineHeight:1.75,color:"#e2e8f0",padding:16,borderRadius:18,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>{post.text}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {topSignal && (
+          <section className="ms-grid ms-context">
+            <div className="ms-card">
+              <div className="ms-row" style={{alignItems:"flex-start"}}>
+                <div>
+                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Why this signal is moving</div>
+                  <div style={{fontSize:24,fontWeight:800,marginBottom:10}}>Signal Context</div>
+                  <div className="ms-sub" style={{maxWidth:620,lineHeight:1.7}}>
+                    Tonight’s signal is more useful when the narrative sits beside the number.
+                  </div>
+                </div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:10,justifyContent:"flex-end"}}>
+                  <Pill>{contextLoading ? "Loading context" : `Sentiment: ${signalContext?.sentiment || "mixed"}`}</Pill>
+                  <Pill>{`Alignment: ${signalContext?.alignment || "Mixed"}`}</Pill>
+                  <Pill>{signalContext?.meta?.live ? `Live feed • ${signalContext?.meta?.newsCount || 0} items` : "Fallback context"}</Pill>
+                </div>
+              </div>
+              <div style={{display:"grid",gap:12,marginTop:18}}>
+                {(signalContext?.drivers || []).slice(0, 3).map((driver, index) => (
+                  <div key={`${driver}-${index}`} style={{padding:"14px 16px",borderRadius:18,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)",lineHeight:1.7,color:"#e2e8f0"}}>
+                    • {driver}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="ms-card">
+              <div style={{display:"grid",gap:18}}>
+                <div>
+                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Latest Context</div>
+                  <div style={{display:"grid",gap:10}}>
+                    {(signalContext?.news || []).slice(0, 3).map((item, index) => (
+                      <a
+                        key={`${item.title}-${index}`}
+                        href={item.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{display:"block",padding:"13px 14px",borderRadius:16,textDecoration:"none",background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)",color:"#fff"}}
+                      >
+                        <div style={{fontWeight:700,lineHeight:1.45}}>{item.title}</div>
+                        <div className="ms-sub" style={{marginTop:6}}>{item.source}</div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="ms-row" style={{gap:10,alignItems:"center",marginBottom:8}}>
+                    <div style={{fontSize:14,color:"#94a3b8"}}>Community Pulse</div>
+                    <div className="ms-sub">{signalContext?.meta?.pulseMode === "community-feed" ? "Live community feed" : "News-derived pulse"}</div>
+                  </div>
+                  <div style={{display:"grid",gap:10}}>
+                    {(signalContext?.pulse || []).slice(0, 3).map((item, index) => (
+                      <div key={`${item.text}-${index}`} style={{padding:"13px 14px",borderRadius:16,background:"linear-gradient(135deg, rgba(96,103,249,.10), rgba(0,51,173,.10))",border:"1px solid rgba(96,103,249,.18)"}}>
+                        <div style={{lineHeight:1.65,color:"#e2e8f0"}}>“{item.text}”</div>
+                        <div className="ms-sub" style={{marginTop:6}}>{item.source}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {visitDelta && <section className="ms-card">
           <div className="ms-row">
             <div>
@@ -1820,54 +1937,6 @@ export default function Page(){
                     <button type="button" className="btn" onClick={sendTestEmailAlert}>Send test email</button>
                     <div className="ms-sub">Live delivery uses Resend when <code>RESEND_API_KEY</code> and <code>ALERTS_FROM_EMAIL</code> are configured in Vercel.</div>
                     {emailAlertStatus ? <div style={{fontSize:13,color:"#cbd5e1"}}>{emailAlertStatus}</div> : null}
-                  </div>
-                </div>
-
-                <div className="ms-card" style={{padding:18}}>
-                  <div className="ms-row">
-                    <div>
-                      <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Signal Studio</div>
-                      <div style={{fontSize:24,fontWeight:800,marginBottom:8}}>Generate tonight's posts</div>
-                      <div className="ms-sub" style={{lineHeight:1.75}}>Turn the live signal, context feed, and community pulse into ready-to-post X content without crowding the main dashboard.</div>
-                    </div>
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                      <Pill>{spicyPosts ? "Spicy mode" : "Clean mode"}</Pill>
-                      <Pill>{signalContext?.meta?.live ? "Live context source" : "Fallback context source"}</Pill>
-                      {xPostRefreshAt ? <Pill>{`Updated ${xPostRefreshAt}`}</Pill> : null}
-                    </div>
-                  </div>
-
-                  <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:16}}>
-                    <button type="button" className="btn-strong" style={{width:"auto"}} onClick={refreshXPosts}>Generate Tonight’s Posts</button>
-                    <button type="button" className="btn" style={{width:"auto"}} onClick={() => setSpicyPosts((current) => !current)}>{spicyPosts ? "Switch to clean mode" : "Switch to spicy mode"}</button>
-                    <button type="button" className="btn" style={{width:"auto"}} onClick={() => copyAllXPosts(xPosts)}>Copy all posts</button>
-                  </div>
-
-                  {xPostStatus ? (
-                    <div style={{marginTop:14,padding:"12px 14px",borderRadius:14,background:"rgba(96,103,249,.10)",border:"1px solid rgba(96,103,249,.18)",color:"#dbe8ff",fontSize:14}}>
-                      {xPostStatus}
-                    </div>
-                  ) : null}
-
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:12,marginTop:18}}>
-                    {controlMetrics.map((metric) => (
-                      <div key={metric.label} className="ms-card" style={{padding:16}}>
-                        <div style={{fontSize:12,color:"#94a3b8",marginBottom:8}}>{metric.label}</div>
-                        <div style={{fontSize:24,fontWeight:900}}>{metric.value}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={{display:"grid",gap:12,marginTop:18}}>
-                    {xPosts.map((post) => (
-                      <div key={post.id} className="ms-card" style={{padding:18}}>
-                        <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"center",marginBottom:12}}>
-                          <div style={{fontSize:14,color:"#94a3b8"}}>{post.title}</div>
-                          <button type="button" className="btn" style={{width:"auto"}} onClick={() => copyXPost(post.body)}>Copy post</button>
-                        </div>
-                        <div style={{whiteSpace:"pre-wrap",lineHeight:1.75,color:"#f8fafc"}}>{post.body}</div>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>
