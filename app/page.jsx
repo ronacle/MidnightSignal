@@ -20,6 +20,7 @@ const STORAGE_KEYS = {
   history: "ms_signal_history_v1",
   autoRefresh: "ms_auto_refresh_on",
   alerts: "ms_alerts_v1",
+  watchlist: "ms_watchlist_v1",
 };
 
 const SEED = [
@@ -296,6 +297,7 @@ export default function Page(){
   const [autoRefreshOn, setAutoRefreshOn] = useState(true);
   const [refreshMessage, setRefreshMessage] = useState("");
   const [alerts, setAlerts] = useState([]);
+  const [watchlist, setWatchlist] = useState([]);
 
 
   async function loadMarket(reason = "manual") {
@@ -368,6 +370,8 @@ export default function Page(){
       if (savedAuto !== null) setAutoRefreshOn(savedAuto === "true");
       const rawAlerts = window.localStorage.getItem(STORAGE_KEYS.alerts);
       if (rawAlerts) setAlerts(JSON.parse(rawAlerts));
+      const rawWatch = window.localStorage.getItem(STORAGE_KEYS.watchlist);
+      if (rawWatch) setWatchlist(JSON.parse(rawWatch));
     } catch {}
   }, []);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.mode, mode); } catch {} }, [mode]);
@@ -378,6 +382,7 @@ export default function Page(){
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.sound, soundOn ? "true" : "false"); } catch {} }, [soundOn]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.email, email); } catch {} }, [email]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.autoRefresh, autoRefreshOn ? "true" : "false"); } catch {} }, [autoRefreshOn]);
+  useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.watchlist, JSON.stringify(watchlist)); } catch {} }, [watchlist]);
 
 
   useEffect(() => {
@@ -446,8 +451,14 @@ export default function Page(){
       const newAlerts = [...prev];
 
       coins.forEach(c => {
+        const isWatch = watchlist.includes(c.symbol);
+
         if (c.confidence >= 75) {
+          const priority = isWatch ? "HIGH" : "normal";
+
           newAlerts.push({
+            priority,
+
             id: Date.now()+c.symbol,
             text: `${c.symbol} showing strong alignment (${c.confidence}%)`,
             ts: Date.now()
@@ -519,7 +530,14 @@ useEffect(() => {
     setLearnOpen(true);
   }
 
-  function openAsset(symbol, learnTopic = "confidence") {
+  
+function toggleWatch(symbol){
+  setWatchlist(prev=>{
+    if(prev.includes(symbol)) return prev.filter(s=>s!==symbol);
+    return [...prev, symbol];
+  });
+}
+function openAsset(symbol, learnTopic = "confidence") {
     setSelected(symbol);
     setAssetPanelOpen(true);
     if (mode === "Beginner") {
@@ -607,7 +625,14 @@ useEffect(() => {
     setLearnOpen(true);
   }
 
-  function openAsset(symbol, learnTopic = "confidence") {
+  
+function toggleWatch(symbol){
+  setWatchlist(prev=>{
+    if(prev.includes(symbol)) return prev.filter(s=>s!==symbol);
+    return [...prev, symbol];
+  });
+}
+function openAsset(symbol, learnTopic = "confidence") {
     setSelected(symbol);
     setAssetPanelOpen(true);
     if (mode === "Beginner") {
@@ -1088,13 +1113,17 @@ useEffect(() => {
           </div>
           <div style={{marginTop:12,display:"grid",gap:10}}>
             {alerts.length ? alerts.slice().reverse().slice(0,6).map(a=>(
+
               <div key={a.id} style={{padding:10,borderRadius:12,background:"rgba(247,247,247,.03)"}}>
-                {a.text}
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <span>{a.text}</span>
+                    {a.priority==="HIGH" ? <span style={{color:"#00ff9d",fontWeight:700}}>★</span> : null}
+                  </div>
               </div>
             )) : <div className="ms-sub">No alerts yet</div>}
           </div>
         </section>
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.6.0 • alerts + ritual</div></section>
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.7.0 • watchlist priority alerts</div></section>
       </div>
     </main>
   );
