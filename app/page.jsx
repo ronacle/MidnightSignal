@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
 const BUILD_VERSION = "10.0";
-const BUILD_LABEL = "ritual experience";
+const BUILD_LABEL = "onboarding flow";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -372,6 +372,8 @@ export default function Page(){
   const [topPulseOn, setTopPulseOn] = useState(false);
   const [watchPulseSymbol, setWatchPulseSymbol] = useState("");
   const [alertFeedback, setAlertFeedback] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
   const previousCoinsRef = useRef([]);
   const isDevBuild = process.env.NODE_ENV === "development";
 
@@ -505,6 +507,11 @@ export default function Page(){
       setUnlockSeenAt(window.localStorage.getItem(STORAGE_KEYS.unlockSeenAt)||"");
       const storedMode = window.localStorage.getItem(STORAGE_KEYS.mode)||"Beginner";
       if (storedMode === "Beginner") setLearnOpen(true);
+      const hasOnboarded = window.localStorage.getItem("ms_onboarded") === "true";
+      if (!hasOnboarded) {
+        setShowOnboarding(true);
+        setOnboardingStep(0);
+      }
       const rawHistory = window.localStorage.getItem(STORAGE_KEYS.history);
       if (rawHistory) {
         const parsed = JSON.parse(rawHistory);
@@ -719,6 +726,33 @@ useEffect(() => {
     } catch {}
   }
 
+
+  function chooseMode(nextMode) {
+    setMode(nextMode);
+    setLearnOpen(nextMode === "Beginner");
+  }
+
+  function finishOnboarding() {
+    setShowOnboarding(false);
+    setOnboardingStep(0);
+    try {
+      window.localStorage.setItem("ms_onboarded", "true");
+    } catch {}
+    fireAlertFeedback("Your setup is saved. Tonight’s signal now reflects your preferences.");
+  }
+
+  function nextOnboardingStep() {
+    if (onboardingStep >= 4) {
+      finishOnboarding();
+      return;
+    }
+    setOnboardingStep((step) => step + 1);
+  }
+
+  function backOnboardingStep() {
+    setOnboardingStep((step) => Math.max(0, step - 1));
+  }
+
   const ordered = useMemo(() => {
     const source = Array.isArray(coins) ? coins : [];
     const pinned = Array.isArray(watchlist) ? watchlist : [];
@@ -745,6 +779,15 @@ useEffect(() => {
   const bearishCount = ordered.filter((coin) => coin.posture === "Bearish").length;
   const averageConfidence = ordered.length ? Math.round(ordered.reduce((sum, coin) => sum + coin.confidence, 0) / ordered.length) : 0;
   const watchlistCount = watchlist.length;
+  const onboardingAssetOptions = ordered.slice(0, 8).map((coin) => coin.symbol);
+  const onboardingStepMeta = [
+    { eyebrow: "Welcome", title: "Welcome to Midnight Signal", body: "This isn’t just data. We translate market noise into a clear nightly signal." },
+    { eyebrow: "Style", title: "How do you trade?", body: "Choose the level of guidance you want every time you check in." },
+    { eyebrow: "Assets", title: "What do you want to track?", body: "Pick the assets you want Midnight Signal to keep near the top." },
+    { eyebrow: "Timeframe", title: "Your focus", body: "Set the lens that should shape your nightly read." },
+    { eyebrow: "Ready", title: "You’re set.", body: "Let’s see what the signal looks like tonight." },
+  ];
+
   const stats = [
     ["Tracked Assets", `${ordered.length}`],
     ["Bullish Signals", `${bullishCount}`],
@@ -790,6 +833,8 @@ useEffect(() => {
 
       {!agreed && <div style={{position:"fixed",inset:0,zIndex:60,display:"grid",placeItems:"center",background:"rgba(0,0,0,.72)",backdropFilter:"blur(8px)",padding:20}}><div className="ms-card" style={{maxWidth:560,width:"100%"}}><div style={{fontSize:13,color:"#93c5fd",fontWeight:700,marginBottom:10}}>AGREEMENT OF UNDERSTANDING</div><h1 style={{margin:0,fontSize:34,lineHeight:1.05,marginBottom:14}}>Midnight Signal is educational, not financial advice.</h1><p style={{color:"#cbd5e1",lineHeight:1.7,marginBottom:22}}>This product helps you interpret market posture, confluence, and confidence in a cleaner way. It does not guarantee outcomes and should not replace your own judgment.</p><div style={{display:"grid",gap:14,background:"rgba(15,23,42,0.55)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:18,padding:16,marginBottom:20}}><label style={{display:"flex",gap:12,alignItems:"flex-start"}}><input type="checkbox" checked={checkedEducation} onChange={(e)=>setCheckedEducation(e.target.checked)} style={{marginTop:4}}/><span style={{color:"#e2e8f0",lineHeight:1.6}}>I understand Midnight Signal is an educational tool and not a trade recommendation engine.</span></label><label style={{display:"flex",gap:12,alignItems:"flex-start"}}><input type="checkbox" checked={checkedRisk} onChange={(e)=>setCheckedRisk(e.target.checked)} style={{marginTop:4}}/><span style={{color:"#e2e8f0",lineHeight:1.6}}>I understand markets are risky and I remain fully responsible for my own decisions.</span></label></div><div style={{display:"flex",gap:12,flexWrap:"wrap"}}><button onClick={acceptAgreement} disabled={!checkedEducation||!checkedRisk} className="btn-strong" style={{opacity:checkedEducation&&checkedRisk?1:.55,cursor:checkedEducation&&checkedRisk?"pointer":"not-allowed"}}>Agree and Enter</button></div></div></div>}
 
+      {agreed && showOnboarding && <div style={{position:"fixed",inset:0,zIndex:58,display:"grid",placeItems:"center",background:"rgba(3,7,18,.72)",backdropFilter:"blur(8px)",padding:20}}><div className="ms-card" style={{maxWidth:720,width:"100%",padding:28}}><div style={{display:"flex",justifyContent:"space-between",gap:16,alignItems:"center",marginBottom:18}}><div><div style={{fontSize:12,letterSpacing:".14em",textTransform:"uppercase",color:"#93c5fd",fontWeight:700,marginBottom:8}}>{onboardingStepMeta[onboardingStep].eyebrow}</div><h2 style={{margin:0,fontSize:34,lineHeight:1.05}}>{onboardingStepMeta[onboardingStep].title}</h2></div><div style={{fontSize:13,color:"rgba(247,247,247,.56)"}}>Step {onboardingStep + 1} / {onboardingStepMeta.length}</div></div><p style={{color:"#cbd5e1",lineHeight:1.7,margin:"0 0 18px"}}>{onboardingStepMeta[onboardingStep].body}</p><div style={{display:"flex",gap:8,marginBottom:18}}>{onboardingStepMeta.map((_, index)=><span key={index} style={{height:8,flex:1,borderRadius:999,background:index <= onboardingStep ? "linear-gradient(90deg, #2563eb, #4f46e5)" : "rgba(247,247,247,.08)"}}></span>)}</div>{onboardingStep === 0 ? <div style={{padding:18,borderRadius:20,background:"linear-gradient(135deg, rgba(96,103,249,.12), rgba(13,21,48,.82))",border:"1px solid rgba(139,168,255,.18)"}}><div style={{fontSize:15,color:"#e2e8f0",lineHeight:1.8}}>We help you read the market faster with a nightly brief, a suggested posture, and a cleaner view of what changed since your last visit.</div></div> : null}{onboardingStep === 1 ? <div style={{display:"grid",gridTemplateColumns:"repeat(2, minmax(0, 1fr))",gap:14}}>{["Beginner","Pro"].map((option)=><button key={option} type="button" onClick={()=>chooseMode(option)} style={{textAlign:"left",padding:18,borderRadius:20,border:mode===option?"1px solid rgba(96,103,249,.55)":"1px solid rgba(247,247,247,.1)",background:mode===option?"linear-gradient(135deg, rgba(96,103,249,.18), rgba(13,21,48,.88))":"rgba(247,247,247,.03)",color:"#fff",cursor:"pointer"}}><div style={{fontSize:18,fontWeight:800,marginBottom:8}}>{option}</div><div className="ms-sub" style={{lineHeight:1.7,color:"#dbeafe"}}>{option === "Beginner" ? "Guided explanations, glossary support, and a softer learning curve." : "Cleaner, tighter signal reads with less educational scaffolding."}</div></button>)}</div> : null}{onboardingStep === 2 ? <div style={{display:"grid",gridTemplateColumns:"repeat(4, minmax(0, 1fr))",gap:12}}>{onboardingAssetOptions.map((symbol)=>{const activePick = watchlist.includes(symbol); return <button key={symbol} type="button" onClick={()=>toggleWatch(symbol)} style={{padding:"14px 12px",borderRadius:18,border:activePick?"1px solid rgba(0,255,157,.34)":"1px solid rgba(247,247,247,.1)",background:activePick?"linear-gradient(135deg, rgba(0,255,157,.10), rgba(96,103,249,.10))":"rgba(247,247,247,.03)",color:"#fff",fontWeight:800,cursor:"pointer"}}>{symbol}</button>;})}</div> : null}{onboardingStep === 3 ? <div style={{display:"grid",gridTemplateColumns:"repeat(3, minmax(0, 1fr))",gap:14}}>{[{label:"Scalp", value:"5", copy:"5m–15m focus for quick momentum checks."},{label:"Swing", value:"30", copy:"1h–4h style signal reads with balanced context."},{label:"Position", value:"1", copy:"A slower, calmer view for longer-term structure."}].map((option)=><button key={option.label} type="button" onClick={()=>{setStrategy(option.label.toLowerCase()); setTimeframe(option.value);}} style={{textAlign:"left",padding:18,borderRadius:20,border:((option.label === "Scalp" && strategy === "scalp") || (option.label === "Swing" && strategy === "swing") || (option.label === "Position" && strategy === "position"))?"1px solid rgba(96,103,249,.55)":"1px solid rgba(247,247,247,.1)",background:((option.label === "Scalp" && strategy === "scalp") || (option.label === "Swing" && strategy === "swing") || (option.label === "Position" && strategy === "position"))?"linear-gradient(135deg, rgba(96,103,249,.18), rgba(13,21,48,.88))":"rgba(247,247,247,.03)",color:"#fff",cursor:"pointer"}}><div style={{fontSize:18,fontWeight:800,marginBottom:8}}>{option.label}</div><div className="ms-sub" style={{lineHeight:1.7,color:"#dbeafe"}}>{option.copy}</div></button>)}</div> : null}{onboardingStep === 4 ? <div style={{padding:20,borderRadius:20,background:"linear-gradient(135deg, rgba(96,103,249,.16), rgba(13,21,48,.82))",border:"1px solid rgba(139,168,255,.18)"}}><div style={{fontSize:13,letterSpacing:".12em",textTransform:"uppercase",color:"#bcd0ff",marginBottom:10}}>Tonight’s signal is based on your setup</div><div style={{fontSize:28,fontWeight:900,marginBottom:8}}>{topSignal ? `${topSignal.symbol}: ${topSignal.posture} (${topSignal.confidence}%)` : "Building your opening read..."}</div><div className="ms-sub" style={{fontSize:15,color:"#e2e8f0",lineHeight:1.8}}>Mode: {mode} • Focus: {strategy} • Watchlist: {watchlist.slice(0,4).join(", ") || "BTC, ETH, ADA"}</div></div> : null}<div style={{display:"flex",justifyContent:"space-between",gap:12,marginTop:22,flexWrap:"wrap"}}><button type="button" onClick={backOnboardingStep} className="btn" style={{width:"auto",visibility:onboardingStep===0?"hidden":"visible"}}>Back</button><div style={{display:"flex",gap:10,marginLeft:"auto"}}>{onboardingStep < onboardingStepMeta.length - 1 ? <button type="button" onClick={finishOnboarding} className="btn" style={{width:"auto"}}>Skip for now</button> : null}<button type="button" onClick={nextOnboardingStep} className="btn-strong" style={{width:"auto"}}>{onboardingStep === onboardingStepMeta.length - 1 ? "Enter Dashboard" : "Continue"}</button></div></div></div></div>}
+
       <div className="ms-wrap">
         <section className="ms-card">
           <div className="ms-row">
@@ -819,8 +864,8 @@ useEffect(() => {
               </div>
             </div>
             <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
-              <button onClick={()=>{setMode("Beginner"); setLearnOpen(true);}} className="btn-strong" style={{background:mode==="Beginner"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Beginner</button>
-              <button onClick={()=>{setMode("Pro"); setLearnOpen(false);}} className="btn-strong" style={{background:mode==="Pro"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Pro</button>
+              <button onClick={()=>chooseMode("Beginner")} className="btn-strong" style={{background:mode==="Beginner"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Beginner</button>
+              <button onClick={()=>chooseMode("Pro")} className="btn-strong" style={{background:mode==="Pro"?"linear-gradient(135deg, #2563eb, #4f46e5)":"rgba(15,23,42,0.72)"}}>Pro</button>
             </div>
           </div>
         </section>
