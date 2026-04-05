@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "10.7";
-const BUILD_LABEL = "growth loop";
+const BUILD_VERSION = "10.8";
+const BUILD_LABEL = "X automation engine";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -384,6 +384,43 @@ function buildContextFallback(topSignal, watchlist) {
   return { sentiment, alignment: "Mixed", drivers, news, pulse, meta: { live: false, newsCount: news.length, pulseCount: pulse.length, pulseMode: "fallback" } };
 }
 
+function buildXPosts(topSignal, signalContext, tonightBrief, decisionLayer, spicyMode) {
+  if (!topSignal) return [];
+  const hashtags = spicyMode
+    ? "#Cardano #ADA #Midnight #CardanoCommunity #Web3 #Crypto #CryptoTwitter"
+    : "#Cardano #ADA #Midnight #Web3 #Crypto";
+  const firstNews = signalContext?.news?.[0]?.title || `${topSignal.symbol} is back in focus as traders look for cleaner structure.`;
+  const secondNews = signalContext?.news?.[1]?.title || `${topSignal.symbol} sentiment is leaning ${signalContext?.sentiment || 'mixed'} tonight.`;
+  const firstDriver = signalContext?.drivers?.[0] || `${topSignal.symbol} is showing ${topSignal.posture.toLowerCase()} posture with ${topSignal.confidence}% confidence.`;
+  const secondDriver = signalContext?.drivers?.[1] || (tonightBrief?.keyDriver ? `Key driver: ${tonightBrief.keyDriver}.` : `Momentum and trend are shaping tonight's read.`);
+  const pulseOne = signalContext?.pulse?.[0]?.text || `${topSignal.symbol} is drawing more attention across the community tonight.`;
+  const pulseTwo = signalContext?.pulse?.[1]?.text || `Traders are looking for stronger multi-timeframe confirmation before pressing size.`;
+  const directionWord = topSignal.posture === 'Bullish' ? 'constructive' : topSignal.posture === 'Bearish' ? 'defensive' : 'mixed';
+  const emoji = spicyMode ? '🌙' : 'Nightly';
+  return [
+    {
+      id: 'brief',
+      label: 'Cardano Midnight Brief',
+      text: `${emoji} Cardano Midnight Brief\n\n• ${firstNews}\n• ${secondNews}\n• ${topSignal.symbol} is carrying a ${topSignal.posture.toLowerCase()} signal at ${topSignal.confidence}% confidence tonight.\n\n${hashtags}`
+    },
+    {
+      id: 'signal-watch',
+      label: 'Cardano Signal Watch',
+      text: `🌙 Cardano Signal Watch\n\nTonight's read: ${topSignal.symbol} is ${directionWord} with ${topSignal.confidence}% confidence. ${firstDriver} ${secondDriver}\n\n${hashtags}`
+    },
+    {
+      id: 'market-watch',
+      label: 'ADA Market Watch',
+      text: `📊 ADA Market Watch\n\n${topSignal.symbol} posture: ${topSignal.posture}. Confidence: ${topSignal.confidence}%. Suggested posture: ${decisionLayer?.posture || 'Stay patient'}. ${tonightBrief?.change || 'Confidence is holding steady.'}\n\n${hashtags}`
+    },
+    {
+      id: 'community-pulse',
+      label: 'Cardano Community Pulse',
+      text: `🌙 Cardano Community Pulse\n\nCommunity tone tonight:\n• ${pulseOne}\n• ${pulseTwo}\n\nWhat are you watching most closely right now? ${hashtags}`
+    }
+  ];
+}
+
 export default function Page(){
   const [agreed, setAgreed] = useState(false);
   const [checkedEducation, setCheckedEducation] = useState(false);
@@ -428,6 +465,9 @@ export default function Page(){
   const [contextLoading, setContextLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
+  const [spicyPosts, setSpicyPosts] = useState(false);
+  const [xPostStatus, setXPostStatus] = useState("");
+  const [xPostRefreshAt, setXPostRefreshAt] = useState("");
 
   const referralCode = useMemo(() => {
     const seed = (email || "midnight").replace(/[^a-z0-9]/gi, "").toUpperCase();
@@ -503,6 +543,35 @@ export default function Page(){
     setWatchPulseSymbol(symbol);
     window.setTimeout(() => setAlertFeedback(""), 2200);
     if (symbol) window.setTimeout(() => setWatchPulseSymbol((current) => current === symbol ? "" : current), 1000);
+  }
+
+  async function copyText(value, successMessage) {
+    if (!value) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      }
+      setXPostStatus(successMessage);
+      window.setTimeout(() => setXPostStatus((current) => current === successMessage ? "" : current), 2200);
+    } catch {
+      setXPostStatus("Unable to copy right now.");
+    }
+  }
+
+  async function copyXPost(post) {
+    await copyText(post?.text, `${post?.label || "Post"} copied.`);
+  }
+
+  async function copyAllXPosts(posts) {
+    const merged = (posts || []).map((post) => post.text).join("\n\n---\n\n");
+    await copyText(merged, "All X posts copied.");
+  }
+
+  function refreshXPosts() {
+    const stamp = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    setXPostRefreshAt(stamp);
+    setXPostStatus("Tonight's posts refreshed from the latest signal context.");
+    window.setTimeout(() => setXPostStatus(""), 2200);
   }
 
   async function shareTopSignal() {
@@ -1005,6 +1074,8 @@ export default function Page(){
   const averageConfidence = ordered.length ? Math.round(ordered.reduce((sum, coin) => sum + coin.confidence, 0) / ordered.length) : 0;
   const watchlistCount = watchlist.length;
   const onboardingAssetOptions = ordered.slice(0, 8).map((coin) => coin.symbol);
+  const xPosts = useMemo(() => buildXPosts(topSignal, signalContext, tonightBrief, decisionLayer, spicyPosts), [topSignal, signalContext, tonightBrief, decisionLayer, spicyPosts]);
+
   const onboardingStepMeta = [
     { eyebrow: "Welcome", title: "Welcome to Midnight Signal", body: "This isn’t just data. We translate market noise into a clear nightly signal." },
     { eyebrow: "Style", title: "How do you trade?", body: "Choose the level of guidance you want every time you check in." },
@@ -1384,6 +1455,50 @@ export default function Page(){
                 {emailAlertStatus ? <div style={{fontSize:13,color:"#cbd5e1"}}>{emailAlertStatus}</div> : null}
               </div>
             </aside>
+          </section>
+        )}
+
+        {topSignal && (
+          <section className="ms-card">
+            <div className="ms-row">
+              <div>
+                <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>X Automation Engine</div>
+                <div style={{fontSize:28,fontWeight:900,marginBottom:8}}>Generate tonight’s posts</div>
+                <div className="ms-sub" style={{maxWidth:760,lineHeight:1.75}}>Turn the live signal, context feed, and community pulse into ready-to-post X content using your Cardano Midnight News format.</div>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <Pill>{spicyPosts ? "Spicy mode" : "Clean mode"}</Pill>
+                <Pill>{signalContext?.meta?.live ? "Live context source" : "Fallback context source"}</Pill>
+                {xPostRefreshAt ? <Pill>{`Updated ${xPostRefreshAt}`}</Pill> : null}
+              </div>
+            </div>
+
+            <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:16}}>
+              <button type="button" className="btn-strong" style={{width:"auto"}} onClick={refreshXPosts}>Generate Tonight’s Posts</button>
+              <button type="button" className="btn" style={{width:"auto"}} onClick={() => setSpicyPosts((current) => !current)}>{spicyPosts ? "Switch to clean mode" : "Switch to spicy mode"}</button>
+              <button type="button" className="btn" style={{width:"auto"}} onClick={() => copyAllXPosts(xPosts)}>Copy all posts</button>
+            </div>
+
+            {xPostStatus ? (
+              <div style={{marginTop:14,padding:"12px 14px",borderRadius:14,background:"rgba(96,103,249,.10)",border:"1px solid rgba(96,103,249,.18)",color:"#dbe8ff",fontSize:14}}>
+                {xPostStatus}
+              </div>
+            ) : null}
+
+            <div className="ms-grid ms-context" style={{marginTop:18}}>
+              {xPosts.map((post, index) => (
+                <div key={post.id} className="ms-card" style={{padding:18}}>
+                  <div className="ms-row" style={{alignItems:"flex-start",gap:12}}>
+                    <div>
+                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Post {index + 1}</div>
+                      <div style={{fontSize:22,fontWeight:800,marginBottom:10}}>{post.label}</div>
+                    </div>
+                    <button type="button" className="btn" style={{width:"auto"}} onClick={() => copyXPost(post)}>Copy post</button>
+                  </div>
+                  <div style={{whiteSpace:"pre-wrap",lineHeight:1.75,color:"#e2e8f0",padding:16,borderRadius:18,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>{post.text}</div>
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
