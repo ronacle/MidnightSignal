@@ -5,10 +5,10 @@ import SignalBeacon from '@/components/SignalBeacon';
 import { APP_VERSION } from '@/lib/version';
 
 const glass = {
-  background: 'linear-gradient(180deg, rgba(15,23,42,0.76), rgba(10,17,32,0.88))',
-  border: '1px solid rgba(96, 165, 250, 0.16)',
-  boxShadow: '0 18px 60px rgba(2, 6, 23, 0.45), inset 0 1px 0 rgba(255,255,255,0.03)',
-  backdropFilter: 'blur(14px)'
+  background: 'linear-gradient(180deg, rgba(10,16,31,0.90), rgba(6,11,22,0.96))',
+  border: '1px solid rgba(139, 168, 255, 0.16)',
+  boxShadow: '0 24px 72px rgba(2, 6, 23, 0.56), inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(96,103,249,0.03)',
+  backdropFilter: 'blur(16px)'
 };
 
 function formatPrice(value) {
@@ -63,10 +63,10 @@ export default function Dashboard({ initialData }) {
   }, [data.assets]);
 
   return (
-    <main style={{ minHeight: '100vh', background: 'radial-gradient(circle at top, rgba(37,99,235,0.2), transparent 30%), linear-gradient(180deg, #08111f 0%, #09111d 45%, #050b15 100%)' }}>
+    <main style={{ minHeight: '100vh', background: 'radial-gradient(circle at 18% 0%, rgba(139,168,255,0.20), transparent 22%), radial-gradient(circle at 82% 0%, rgba(96,103,249,0.14), transparent 18%), linear-gradient(180deg, #060b14 0%, #08111f 42%, #050b15 100%)' }}>
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '28px 20px 48px' }}>
-        <header style={{ ...glass, borderRadius: 28, padding: 28, marginBottom: 22, overflow: 'hidden', position: 'relative' }}>
-          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at 20% 20%, rgba(56,189,248,0.14), transparent 30%), radial-gradient(circle at 80% 10%, rgba(37,99,235,0.12), transparent 30%)' }} />
+        <header style={{ ...glass, borderRadius: 30, padding: 30, marginBottom: 24, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at 18% 20%, rgba(139,168,255,0.18), transparent 30%), radial-gradient(circle at 82% 10%, rgba(96,103,249,0.16), transparent 28%)' }} />
           <div style={{ position: 'relative', display: 'grid', gap: 18, gridTemplateColumns: 'minmax(0, 1.3fr) minmax(320px, 0.7fr)', alignItems: 'center' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -87,7 +87,7 @@ export default function Dashboard({ initialData }) {
               <div style={{ color: '#7dd3fc', fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 }}>Session Settings</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
                 {['Beginner', 'Swing', 'USD'].map((label) => (
-                  <div key={label} style={{ borderRadius: 14, padding: '12px 10px', textAlign: 'center', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(96,165,250,0.15)', color: '#dbeafe', fontWeight: 600 }}>
+                  <div key={label} style={{ borderRadius: 14, padding: '12px 10px', textAlign: 'center', background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(9, 14, 26, 0.96))', border: '1px solid rgba(139,168,255,0.14)', color: '#ecf4ff', fontWeight: 700, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}>
                     {label}
                   </div>
                 ))}
@@ -100,7 +100,7 @@ export default function Dashboard({ initialData }) {
           </div>
         </header>
 
-        <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(320px, 0.85fr)', gap: 22, marginBottom: 22 }}>
+        <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.18fr) minmax(320px, 0.82fr)', gap: 22, marginBottom: 22 }}>
           <div style={{ ...glass, borderRadius: 28, padding: 24 }}>
             <div style={{ color: '#7dd3fc', fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>Tonight’s Top Signal</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -117,7 +117,7 @@ export default function Dashboard({ initialData }) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: 16 }}>
-              <div style={{ borderRadius: 22, padding: 18, background: 'rgba(8, 15, 27, 0.78)', border: '1px solid rgba(96,165,250,0.14)' }}>
+              <div style={{ borderRadius: 22, padding: 18, background: 'linear-gradient(180deg, rgba(8, 15, 27, 0.88), rgba(7, 12, 22, 0.96))', border: '1px solid rgba(139,168,255,0.12)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.02)' }}>
                 <div style={{ color: '#dbeafe', fontWeight: 700, marginBottom: 8 }}>Tonight’s Brief</div>
                 <p style={{ margin: 0, color: '#b6c9ea', lineHeight: 1.6 }}>{topSignal.brief}</p>
                 <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
@@ -126,7 +126,7 @@ export default function Dashboard({ initialData }) {
                   ))}
                 </div>
               </div>
-              <div style={{ borderRadius: 22, padding: 18, background: 'linear-gradient(180deg, rgba(10,20,34,0.95), rgba(7,13,24,0.98))', border: '1px solid rgba(96,165,250,0.12)' }}>
+              <div style={{ borderRadius: 22, padding: 18, background: 'linear-gradient(180deg, rgba(10,20,34,0.98), rgba(7,13,24,0.98))', border: '1px solid rgba(139,168,255,0.12)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.02)' }}>
                 <div style={{ color: '#dbeafe', fontWeight: 700, marginBottom: 14 }}>Since your last visit</div>
                 <div style={{ display: 'grid', gap: 12 }}>
                   <div>
@@ -150,7 +150,7 @@ export default function Dashboard({ initialData }) {
             <div style={{ color: '#7dd3fc', fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 }}>Midnight Signal Panel</div>
             <div style={{ display: 'grid', gap: 12 }}>
               {topFive.map((asset) => (
-                <div key={asset.id} style={{ borderRadius: 20, padding: 16, background: 'rgba(9, 15, 27, 0.9)', border: '1px solid rgba(96,165,250,0.12)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center' }}>
+                <div key={asset.id} style={{ borderRadius: 20, padding: 16, background: 'linear-gradient(180deg, rgba(10, 16, 30, 0.96), rgba(8, 13, 24, 0.98))', border: '1px solid rgba(139,168,255,0.12)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.02)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <strong style={{ fontSize: 16 }}>{asset.name}</strong>
@@ -178,7 +178,7 @@ export default function Dashboard({ initialData }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
             {data.assets.map((asset) => (
-              <div key={asset.id} style={{ borderRadius: 22, padding: 18, background: 'linear-gradient(180deg, rgba(12,20,35,0.95), rgba(7,13,24,0.96))', border: '1px solid rgba(96,165,250,0.12)' }}>
+              <div key={asset.id} style={{ borderRadius: 22, padding: 18, background: 'linear-gradient(180deg, rgba(12,20,35,0.98), rgba(7,13,24,0.99))', border: '1px solid rgba(139,168,255,0.10)', boxShadow: '0 10px 28px rgba(2,6,23,0.26), inset 0 1px 0 rgba(255,255,255,0.02)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 10 }}>
                   <strong>{asset.symbol}</strong>
                   <span style={{ color: asset.price_change_percentage_24h >= 0 ? '#86efac' : '#fca5a5', fontSize: 13 }}>{formatChange(asset.price_change_percentage_24h)}</span>
@@ -186,7 +186,7 @@ export default function Dashboard({ initialData }) {
                 <div style={{ color: '#dbeafe', marginBottom: 6 }}>{asset.name}</div>
                 <div style={{ color: '#8eb1e3', fontSize: 14, marginBottom: 10 }}>${formatPrice(asset.current_price)}</div>
                 <div style={{ height: 8, borderRadius: 999, background: 'rgba(30, 41, 59, 0.9)', overflow: 'hidden' }}>
-                  <div style={{ width: `${asset.signalScore}%`, height: '100%', borderRadius: 999, background: asset.signalScore >= 70 ? 'linear-gradient(90deg, #38bdf8, #86efac)' : asset.signalScore >= 55 ? 'linear-gradient(90deg, #2563eb, #38bdf8)' : asset.signalScore >= 45 ? 'linear-gradient(90deg, #f59e0b, #fcd34d)' : 'linear-gradient(90deg, #ef4444, #fca5a5)' }} />
+                  <div style={{ width: `${asset.signalScore}%`, height: '100%', borderRadius: 999, background: asset.signalScore >= 70 ? 'linear-gradient(90deg, #6067F9, #8BA8FF)' : asset.signalScore >= 55 ? 'linear-gradient(90deg, #0033AD, #6067F9)' : asset.signalScore >= 45 ? 'linear-gradient(90deg, #f59e0b, #fcd34d)' : 'linear-gradient(90deg, #0033AD, #2A6BFF)' }} />
                 </div>
               </div>
             ))}
