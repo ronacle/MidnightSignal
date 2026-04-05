@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "10.2";
-const BUILD_LABEL = "signal context + news integration";
+const BUILD_VERSION = "10.3";
+const BUILD_LABEL = "retention loop";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -18,6 +18,8 @@ const STORAGE_KEYS = {
   snapshot: "ms_last_snapshot_v1",
   seenAt: "ms_last_seen_at",
   premium: "ms_premium_unlocked",
+  lastVisitTs: "ms_last_visit_ts",
+  streakCount: "ms_streak_count",
   unlockSeenAt: "ms_unlock_seen_at",
   email: "ms_user_email",
   history: "ms_signal_history_v1",
@@ -394,6 +396,9 @@ export default function Page(){
     const [lastInsight, setLastInsight] = useState("");
   const [visitDelta, setVisitDelta] = useState(null);
   const [lastSeenAt, setLastSeenAt] = useState("");
+  const [returnBanner, setReturnBanner] = useState("");
+  const [hoursAway, setHoursAway] = useState(0);
+  const [streakCount, setStreakCount] = useState(1);
   const [isPremium, setIsPremium] = useState(false);
   const [email, setEmail] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -563,6 +568,28 @@ export default function Page(){
       if (savedAuto !== null) setAutoRefreshOn(savedAuto === "true");
       const rawAlerts = window.localStorage.getItem(STORAGE_KEYS.alerts);
       if (rawAlerts) setAlerts(JSON.parse(rawAlerts));
+
+      const now = Date.now();
+      const previousVisitRaw = window.localStorage.getItem(STORAGE_KEYS.lastVisitTs);
+      const previousStreakRaw = Number(window.localStorage.getItem(STORAGE_KEYS.streakCount) || "1");
+      if (previousVisitRaw) {
+        const previousVisit = Number(previousVisitRaw);
+        if (Number.isFinite(previousVisit) && previousVisit > 0) {
+          const elapsedHours = (now - previousVisit) / 36e5;
+          setHoursAway(elapsedHours);
+          if (elapsedHours >= 6) {
+            setReturnBanner(`🌙 You’re back. Markets shifted while you were away${elapsedHours >= 24 ? ` — about ${Math.round(elapsedHours / 24)} day${Math.round(elapsedHours / 24) === 1 ? "" : "s"}` : ` — about ${Math.max(1, Math.round(elapsedHours))} hour${Math.round(elapsedHours) === 1 ? "" : "s"}`}.`);
+          }
+          let nextStreak = 1;
+          if (elapsedHours >= 12 && elapsedHours <= 36) nextStreak = Math.max(1, previousStreakRaw || 1) + 1;
+          else if (elapsedHours < 12) nextStreak = Math.max(1, previousStreakRaw || 1);
+          setStreakCount(nextStreak);
+          window.localStorage.setItem(STORAGE_KEYS.streakCount, String(nextStreak));
+        }
+      } else {
+        setStreakCount(Math.max(1, previousStreakRaw || 1));
+      }
+      window.localStorage.setItem(STORAGE_KEYS.lastVisitTs, String(now));
 
     } catch {}
   }, []);
@@ -814,6 +841,18 @@ useEffect(() => {
   const tonightBrief = buildTonightBrief(topSignal, visitDelta);
   const decisionLayer = buildDecisionLayer(topSignal, timeframeReads);
   const ritualLoop = buildRitualLoop(topSignal, visitDelta);
+  const watchlistRetentionHits = (watchlist || []).map((symbol) => {
+    const postureHit = visitDelta?.postureChanges?.find((item) => item.symbol === symbol);
+    const confidenceHit = visitDelta?.confidenceShifts?.find((item) => item.symbol === symbol);
+    if (postureHit) return { symbol, tone: postureHit.to === "Bullish" ? "up" : postureHit.to === "Bearish" ? "down" : "flat", text: `${symbol} shifted from ${postureHit.from} to ${postureHit.to}.` };
+    if (confidenceHit) return { symbol, tone: confidenceHit.delta > 0 ? "up" : confidenceHit.delta < 0 ? "down" : "flat", text: `${symbol} ${confidenceHit.delta > 0 ? "strengthening" : confidenceHit.delta < 0 ? "weakening" : "holding steady"} (${confidenceHit.delta > 0 ? "+" : ""}${confidenceHit.delta}%).` };
+    return null;
+  }).filter(Boolean).slice(0, 3);
+  const interestingCallout = visitDelta?.confidenceShifts?.[0]
+    ? `${visitDelta.confidenceShifts[0].symbol} is ${visitDelta.confidenceShifts[0].delta > 0 ? "strengthening" : "cooling"} the fastest since your last visit.`
+    : topSignal
+      ? `${topSignal.symbol} is still setting the pace for tonight’s read.`
+      : "Build one more session and the dashboard will start highlighting what changed while you were away.";
   const topAccent = topSignal ? postureAccent(topSignal.posture, topSignal.confidence) : { color: "#fff", glow: "none" };
   const activeAccent = active ? postureAccent(active.posture, active.confidence) : { color: "#fff", glow: "none" };
 
@@ -978,6 +1017,22 @@ useEffect(() => {
         </section>
 
 
+        {returnBanner ? (
+          <section className="ms-card" style={{padding:18,background:"linear-gradient(135deg, rgba(96,103,249,.18), rgba(10,18,38,.92))",border:"1px solid rgba(139,168,255,.20)"}}>
+            <div className="ms-row">
+              <div>
+                <div style={{fontSize:13,letterSpacing:".12em",textTransform:"uppercase",color:"#bcd0ff",marginBottom:8}}>Return trigger</div>
+                <div style={{fontSize:28,fontWeight:900,lineHeight:1.1}}>{returnBanner}</div>
+                <div className="ms-sub" style={{marginTop:10,color:"#dbeafe"}}>New signal shifts detected while you were away. Your next read starts with the assets that moved most.</div>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <Pill>{hoursAway >= 24 ? `${Math.max(1, Math.round(hoursAway / 24))}d away` : `${Math.max(1, Math.round(hoursAway || 1))}h away`}</Pill>
+                <Pill>{streakCount} night{streakCount === 1 ? "" : "s"} 🌙</Pill>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <section className="ms-card">
           <div className="ms-row">
             <div>
@@ -988,6 +1043,7 @@ useEffect(() => {
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               {ritualLoop ? <Pill>{ritualLoop.opening}</Pill> : null}
               {visitDelta ? <Pill>Tonight vs last visit</Pill> : <Pill>First visit rhythm</Pill>}
+              <Pill>Streak: {streakCount} night{streakCount === 1 ? "" : "s"} 🌙</Pill>
             </div>
           </div>
           <div className="ms-grid ms-hero" style={{marginTop:18}}>
@@ -1015,7 +1071,26 @@ useEffect(() => {
             <div className="ms-metric">
               <div className="ms-metric-label">Return reason</div>
               <div style={{lineHeight:1.75,color:"#e2e8f0",fontSize:16,marginTop:12}}>{ritualLoop ? ritualLoop.momentum : "The first habit loop starts once your local snapshot has been saved."}</div>
+              <div className="ms-sub" style={{marginTop:10,color:"#dbeafe"}}>{interestingCallout}</div>
             </div>
+          </div>
+        </section>
+
+        <section className="ms-grid ms-hero">
+          <div className="ms-metric">
+            <div className="ms-metric-label">Watchlist changes highlighted</div>
+            <div style={{display:"grid",gap:10,marginTop:12}}>
+              {watchlistRetentionHits.length ? watchlistRetentionHits.map((item) => (
+                <div key={item.symbol} style={{padding:12,borderRadius:14,background:item.tone === "up" ? "rgba(34,197,94,.10)" : item.tone === "down" ? "rgba(59,130,246,.10)" : "rgba(148,163,184,.10)",border:item.tone === "up" ? "1px solid rgba(34,197,94,.20)" : item.tone === "down" ? "1px solid rgba(59,130,246,.22)" : "1px solid rgba(148,163,184,.18)"}}>
+                  <b>{item.symbol}</b> — {item.text}
+                </div>
+              )) : <div className="ms-sub" style={{lineHeight:1.7}}>Your watchlist will light up here once one of your tracked assets changes posture or confidence between visits.</div>}
+            </div>
+          </div>
+          <div className="ms-metric">
+            <div className="ms-metric-label">Micro-notification</div>
+            <div style={{fontSize:22,fontWeight:800,marginTop:12}}>New signal shift detected while you were away</div>
+            <div className="ms-sub" style={{marginTop:10,lineHeight:1.75}}>{visitDelta ? interestingCallout : "Come back after another session and this area will surface the most meaningful change automatically."}</div>
           </div>
         </section>
         {topSignal && (
