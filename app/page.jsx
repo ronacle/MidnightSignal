@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "9.8";
-const BUILD_LABEL = "alerts polish";
+const BUILD_VERSION = "9.9";
+const BUILD_LABEL = "premium flow cleanup";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -136,6 +136,19 @@ function alertTypeTone(type) {
   if (type === "leader") return { border: "rgba(139,168,255,.28)", bg: "linear-gradient(135deg, rgba(96,103,249,.12), rgba(0,51,173,.14))", color: "#dbe8ff" };
   if (type === "watchlist") return { border: "rgba(0,255,157,.24)", bg: "linear-gradient(135deg, rgba(0,255,157,.10), rgba(96,103,249,.10))", color: "#d1fae5" };
   return { border: "rgba(247,247,247,.1)", bg: "rgba(247,247,247,.03)", color: "#e2e8f0" };
+}
+
+function PremiumGate({ isPremium, onUnlock, title = "Unlock Full Signal", description = "Move beyond noise. See the deeper structure behind the market.", points = [], cta = "Unlock the Signal", children }) {
+  if (isPremium) return children;
+  return (
+    <div style={{padding:18,borderRadius:18,background:"linear-gradient(135deg, rgba(96,103,249,.12), rgba(13,21,48,.88))",border:"1px solid rgba(96,103,249,.24)",boxShadow:"0 18px 48px rgba(2,6,23,.24)"}}>
+      <div style={{fontSize:13,color:"#bcd0ff",letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Premium</div>
+      <div style={{fontSize:26,fontWeight:900,marginBottom:10}}>{title}</div>
+      <div className="ms-sub" style={{lineHeight:1.7,maxWidth:520}}>{description}</div>
+      {points?.length ? <div style={{display:"grid",gap:10,marginTop:16}}>{points.map((point)=><div key={point} style={{padding:"10px 12px",borderRadius:14,background:"rgba(247,247,247,.03)",border:"1px solid rgba(247,247,247,.08)"}}>• {point}</div>)}</div> : null}
+      <button onClick={onUnlock} className="btn-strong" style={{width:"auto",marginTop:18}}>{cta}</button>
+    </div>
+  );
 }
 
 
@@ -315,6 +328,7 @@ export default function Page(){
   const [watchPulseSymbol, setWatchPulseSymbol] = useState("");
   const [alertFeedback, setAlertFeedback] = useState("");
   const previousCoinsRef = useRef([]);
+  const isDevBuild = process.env.NODE_ENV === "development";
 
   // === CORE ACTIONS ===
   async function startCheckout() {
@@ -351,6 +365,14 @@ export default function Page(){
       window.localStorage.setItem(STORAGE_KEYS.unlockSeenAt, seenAt);
     } catch {}
   }
+
+  useEffect(() => {
+    if (!isDevBuild || typeof window === "undefined") return undefined;
+    window.unlockLocally = unlockLocally;
+    return () => {
+      try { delete window.unlockLocally; } catch {}
+    };
+  }, [isDevBuild]);
 
   function playPing(intensity = "soft") {
     if (!soundOn) return;
@@ -756,12 +778,12 @@ useEffect(() => {
               <div style={{fontSize:14,color:"#94a3b8",marginBottom:6}}>Premium access</div>
               <div style={{fontSize:28,fontWeight:800}}>Unlock deeper signal intelligence</div>
               <div className="ms-sub" style={{marginTop:8}}>
-                Soft gate mode: keep exploring for free, or unlock the full reasoning layer for $9/month early access.
+                Move beyond noise. See the full structure behind the market with a cleaner premium unlock path.
               </div>
             </div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
               <Pill>{isPremium ? "Premium active" : "$9/mo early access"}</Pill>
-              {unlockSeenAt ? <Pill>{unlockSeenAt}</Pill> : null}
+              {unlockSeenAt ? <Pill>{`Unlocked ${unlockSeenAt}`}</Pill> : null}
             </div>
           </div>
           <div className="ms-grid ms-hero" style={{marginTop:18}}>
@@ -784,11 +806,10 @@ useEffect(() => {
                   onChange={(e)=>setEmail(e.target.value)}
                 />
                 <button onClick={startCheckout} className="btn-strong" disabled={checkoutLoading}>
-                  {checkoutLoading ? "Starting checkout..." : "Unlock Full Signal Intelligence"}
+                  {checkoutLoading ? "Starting checkout..." : "Unlock the Signal"}
                 </button>
-                <button onClick={unlockLocally} className="btn" type="button">
-                  Local premium preview
-                </button>
+                <div className="ms-sub">Unlock full signal breakdown, confidence context, watchlist tracking, and signal history for $9/month early access.</div>
+                {isDevBuild ? <button onClick={unlockLocally} className="btn" type="button">Hidden local premium preview</button> : null}
                 <div className="ms-sub">If Stripe env vars are missing, checkout safely falls back to a mock success route so the app still deploys cleanly.</div>
                 {checkoutError ? <div style={{color:"#fca5a5",fontSize:13}}>{checkoutError}</div> : null}
               </div>
@@ -966,7 +987,7 @@ useEffect(() => {
                     <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>{active.confidenceBand} confidence</div>
                     <div className="ms-sub" style={{lineHeight:1.7}}>{isPremium ? active.confidenceContext : "Unlock premium to read the full confidence interpretation and usage context."}</div>
                   </div>
-                  {!isPremium ? <div style={{position:"absolute",inset:0,borderRadius:16,background:"linear-gradient(180deg, rgba(13,21,48,.18), rgba(13,21,48,.72))",display:"flex",alignItems:"end",justifyContent:"center",padding:16}}><button onClick={startCheckout} className="btn-strong" style={{width:"auto"}}>Unlock full reasoning</button></div> : null}
+                  {!isPremium ? <div style={{position:"absolute",inset:0,borderRadius:16,padding:12,background:"linear-gradient(180deg, rgba(13,21,48,.12), rgba(13,21,48,.72))"}}><PremiumGate isPremium={isPremium} onUnlock={startCheckout} title="Unlock Full Signal" description="Move beyond noise. See the deeper structure behind this setup with the full reasoning layer." points={["Full Why This Signal explanation","Confidence context and usage notes","Deeper signal guidance"]} cta="Unlock the Signal" /></div> : null}
                 </div>
               </div>
 
@@ -987,7 +1008,7 @@ useEffect(() => {
                 <div className="ms-metric-label">Factor Breakdown<button className="learn-hot" type="button" onClick={()=>openLearn("momentum")}>?</button></div>
                 <div style={{marginTop:12,display:"grid",gap:14,position:"relative"}}>
                   {[{label:"Momentum",value:active.breakdown.momentum,topic:"momentum"},{label:"Trend",value:active.breakdown.trend,topic:"trend"},{label:"Volatility",value:active.breakdown.volatility,topic:"volatility"}].map((item, index)=><div key={item.label} className="asset-clickable" onClick={()=>openLearn(item.topic)} style={{opacity:isPremium ? 1 : index === 0 ? 1 : .42, filter:isPremium ? "none" : index === 0 ? "none" : "blur(2px)"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><span style={{fontSize:14,fontWeight:700}}>{item.label}</span><span style={{fontSize:13,color:"rgba(247,247,247,.68)"}}>{isPremium || index === 0 ? `${item.value}% contribution` : "Premium"}</span></div><div style={{height:10,width:"100%",borderRadius:999,background:"rgba(247,247,247,.08)",overflow:"hidden"}}><span style={{display:"block",height:"100%",width:`${isPremium || index===0 ? item.value : 68}%`,borderRadius:999,background:barColor(item.label)}}></span></div></div>)}
-                  {!isPremium ? <div style={{position:"absolute",inset:0,borderRadius:16,background:"linear-gradient(180deg, rgba(13,21,48,.08), rgba(13,21,48,.68))",display:"flex",alignItems:"end",justifyContent:"center",padding:16}}><div style={{textAlign:"center"}}><div style={{fontWeight:800,marginBottom:8}}>Unlock full factor breakdown</div><button onClick={startCheckout} className="btn-strong" style={{width:"auto"}}>Go premium</button></div></div> : null}
+                  {!isPremium ? <div style={{position:"absolute",inset:0,borderRadius:16,padding:12,background:"linear-gradient(180deg, rgba(13,21,48,.08), rgba(13,21,48,.68))"}}><PremiumGate isPremium={isPremium} onUnlock={startCheckout} title="Unlock Full Factor Breakdown" description="See the full component weighting behind momentum, trend, and volatility." points={["Multi-factor weighting","Deeper breakdown bars","Signal history context"]} cta="Go premium" /></div> : null}
                 </div>
                 <div style={{marginTop:18}}><div className="ms-metric-label">Derived Sparkline</div><div style={{marginTop:12}}>{sparkline(active.history, active.change24h>=0)}</div></div>
               </div>
