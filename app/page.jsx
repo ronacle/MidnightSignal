@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "10.8";
-const BUILD_LABEL = "X automation engine";
+const BUILD_VERSION = "10.9";
+const BUILD_LABEL = "optimization + control";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -27,6 +27,7 @@ const STORAGE_KEYS = {
   alerts: "ms_alerts_v1",
   emailPrefs: "ms_email_alert_prefs_v1",
   emailedAlertsAt: "ms_emailed_alerts_at",
+  updateMode: "ms_update_mode_v1",
 };
 
 const SEED = [
@@ -451,6 +452,7 @@ export default function Page(){
   const [marketUpdatedAt, setMarketUpdatedAt] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefreshOn, setAutoRefreshOn] = useState(true);
+  const [updateMode, setUpdateMode] = useState("calm");
   const [refreshMessage, setRefreshMessage] = useState("");
   const [alerts, setAlerts] = useState([]);
   const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(false);
@@ -475,6 +477,7 @@ export default function Page(){
   }, [email]);
   const previousCoinsRef = useRef([]);
   const isDevBuild = process.env.NODE_ENV === "development";
+  const updateModeMs = { calm: 180000, active: 60000, live: 15000 };
 
   // === CORE ACTIONS ===
   async function startCheckout() {
@@ -572,6 +575,19 @@ export default function Page(){
     setXPostRefreshAt(stamp);
     setXPostStatus("Tonight's posts refreshed from the latest signal context.");
     window.setTimeout(() => setXPostStatus(""), 2200);
+  }
+
+  function changeUpdateMode(nextMode) {
+    if (nextMode === "live" && !isPremium) {
+      setRefreshMessage("Live update mode is a premium setting.");
+      window.setTimeout(() => setRefreshMessage((current) => current === "Live update mode is a premium setting." ? "" : current), 2200);
+      return;
+    }
+    setUpdateMode(nextMode);
+    const labels = { calm: "Calm", active: "Active", live: "Live" };
+    const message = `Update mode set to ${labels[nextMode] || nextMode}.`;
+    setRefreshMessage(message);
+    window.setTimeout(() => setRefreshMessage((current) => current === message ? "" : current), 2200);
   }
 
   async function shareTopSignal() {
@@ -674,9 +690,9 @@ export default function Page(){
     if (!autoRefreshOn) return;
     const id = window.setInterval(() => {
       loadMarket("auto");
-    }, 90000);
+    }, updateModeMs[updateMode] || 180000);
     return () => window.clearInterval(id);
-  }, [autoRefreshOn]);
+  }, [autoRefreshOn, updateMode]);
 
   useEffect(() => {
     try {
@@ -706,6 +722,8 @@ export default function Page(){
       }
       const savedAuto = window.localStorage.getItem(STORAGE_KEYS.autoRefresh);
       if (savedAuto !== null) setAutoRefreshOn(savedAuto === "true");
+      const savedUpdateMode = window.localStorage.getItem(STORAGE_KEYS.updateMode);
+      if (savedUpdateMode === "calm" || savedUpdateMode === "active" || savedUpdateMode === "live") setUpdateMode(savedUpdateMode);
       const rawAlerts = window.localStorage.getItem(STORAGE_KEYS.alerts);
       if (rawAlerts) setAlerts(JSON.parse(rawAlerts));
       const rawEmailPrefs = window.localStorage.getItem(STORAGE_KEYS.emailPrefs);
@@ -749,6 +767,7 @@ export default function Page(){
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.sound, soundOn ? "true" : "false"); } catch {} }, [soundOn]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.email, email); } catch {} }, [email]);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.autoRefresh, autoRefreshOn ? "true" : "false"); } catch {} }, [autoRefreshOn]);
+  useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.updateMode, updateMode); } catch {} }, [updateMode]);
   useEffect(() => {
     try {
       window.localStorage.setItem(STORAGE_KEYS.emailPrefs, JSON.stringify({
@@ -1075,6 +1094,12 @@ export default function Page(){
   const watchlistCount = watchlist.length;
   const onboardingAssetOptions = ordered.slice(0, 8).map((coin) => coin.symbol);
   const xPosts = useMemo(() => buildXPosts(topSignal, signalContext, tonightBrief, decisionLayer, spicyPosts), [topSignal, signalContext, tonightBrief, decisionLayer, spicyPosts]);
+  const controlMetrics = useMemo(() => ([
+    { label: "Signals tracked", value: coins.length },
+    { label: "Alerts ready", value: alerts.length },
+    { label: "Posts generated", value: xPosts.length },
+    { label: "Update cadence", value: updateMode === "calm" ? "3m" : updateMode === "active" ? "1m" : "15s" },
+  ]), [coins.length, alerts.length, xPosts.length, updateMode]);
 
   const onboardingStepMeta = [
     { eyebrow: "Welcome", title: "Welcome to Midnight Signal", body: "This isn’t just data. We translate market noise into a clear nightly signal." },
@@ -1413,6 +1438,32 @@ export default function Page(){
                     <option value="90">90D</option>
                   </select>
                 </label>
+                <div>
+                  <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Update Mode</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    {[
+                      { key: "calm", label: "Calm", note: "Every 3 minutes" },
+                      { key: "active", label: "Active", note: "Every 1 minute" },
+                      { key: "live", label: isPremium ? "Live" : "Live 🔒", note: "Every 15 seconds" },
+                    ].map((option) => {
+                      const active = updateMode === option.key;
+                      return (
+                        <button
+                          key={option.key}
+                          type="button"
+                          onClick={() => changeUpdateMode(option.key)}
+                          className={active ? "btn-strong" : "btn"}
+                          style={{width:"auto"}}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="ms-sub" style={{marginTop:8}}>
+                    {updateMode === "calm" ? "Stable cadence for the nightly ritual." : updateMode === "active" ? "Faster refresh for engaged sessions." : "Near real-time premium cadence."}
+                  </div>
+                </div>
                 <label style={{display:"flex",alignItems:"center",gap:10}}>
                   <input type="checkbox" checked={soundOn} onChange={(e) => setSoundOn(e.target.checked)} />
                   <span>Signal ping on leader + alert shift</span>
@@ -1484,6 +1535,15 @@ export default function Page(){
                 {xPostStatus}
               </div>
             ) : null}
+
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(160px, 1fr))",gap:12,marginTop:18}}>
+              {controlMetrics.map((metric) => (
+                <div key={metric.label} className="ms-card" style={{padding:16}}>
+                  <div style={{fontSize:12,color:"#94a3b8",marginBottom:8}}>{metric.label}</div>
+                  <div style={{fontSize:26,fontWeight:900}}>{metric.value}</div>
+                </div>
+              ))}
+            </div>
 
             <div className="ms-grid ms-context" style={{marginTop:18}}>
               {xPosts.map((post, index) => (
