@@ -19,6 +19,7 @@ const STORAGE_KEYS = {
   email: "ms_user_email",
   history: "ms_signal_history_v1",
   autoRefresh: "ms_auto_refresh_on",
+  alerts: "ms_alerts_v1",
 };
 
 const SEED = [
@@ -294,6 +295,7 @@ export default function Page(){
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefreshOn, setAutoRefreshOn] = useState(true);
   const [refreshMessage, setRefreshMessage] = useState("");
+  const [alerts, setAlerts] = useState([]);
 
 
   async function loadMarket(reason = "manual") {
@@ -364,6 +366,8 @@ export default function Page(){
       }
       const savedAuto = window.localStorage.getItem(STORAGE_KEYS.autoRefresh);
       if (savedAuto !== null) setAutoRefreshOn(savedAuto === "true");
+      const rawAlerts = window.localStorage.getItem(STORAGE_KEYS.alerts);
+      if (rawAlerts) setAlerts(JSON.parse(rawAlerts));
     } catch {}
   }, []);
   useEffect(() => { try { window.localStorage.setItem(STORAGE_KEYS.mode, mode); } catch {} }, [mode]);
@@ -435,7 +439,28 @@ export default function Page(){
   }, []);
 
 
+  
   useEffect(() => {
+    try {
+      const prev = JSON.parse(window.localStorage.getItem(STORAGE_KEYS.alerts) || "[]");
+      const newAlerts = [...prev];
+
+      coins.forEach(c => {
+        if (c.confidence >= 75) {
+          newAlerts.push({
+            id: Date.now()+c.symbol,
+            text: `${c.symbol} showing strong alignment (${c.confidence}%)`,
+            ts: Date.now()
+          });
+        }
+      });
+
+      const trimmed = newAlerts.slice(-20);
+      setAlerts(trimmed);
+      window.localStorage.setItem(STORAGE_KEYS.alerts, JSON.stringify(trimmed));
+    } catch {}
+  }, [coins]);
+useEffect(() => {
     try {
       const previousRaw = window.localStorage.getItem(STORAGE_KEYS.history);
       const previous = previousRaw ? JSON.parse(previousRaw) : {};
@@ -695,6 +720,26 @@ export default function Page(){
           </div>
         </section>
 
+
+        <section className="ms-card">
+          <div className="ms-row">
+            <div>
+              <div style={{fontSize:14,color:"#94a3b8"}}>Daily Ritual</div>
+              <div style={{fontSize:26,fontWeight:800}}>What matters now</div>
+            </div>
+          </div>
+          <div style={{marginTop:14,display:"grid",gap:12}}>
+            <div style={{padding:12,borderRadius:14,background:"rgba(247,247,247,.04)"}}>
+              <b>Top Signal:</b> {topSignal ? `${topSignal.symbol} is ${topSignal.posture}` : "—"}
+            </div>
+            <div style={{padding:12,borderRadius:14,background:"rgba(247,247,247,.04)"}}>
+              <b>Momentum read:</b> {topSignal ? topSignal.brief : "—"}
+            </div>
+            <div style={{padding:12,borderRadius:14,background:"rgba(247,247,247,.04)"}}>
+              <b>Focus:</b> Watch for alignment continuation or breakdown.
+            </div>
+          </div>
+        </section>
         {topSignal && <section className="ms-grid ms-hero"><div className="ms-card top-signal-shell"><div className="ms-row"><div><div style={{fontSize:14,color:"#94a3b8"}}>Tonight’s Top Signal<button className="learn-hot" type="button" onClick={()=>openLearn("signal")}>?</button></div><div style={{fontSize:34,fontWeight:900,marginTop:4,color:topAccent.color,textShadow:topAccent.glow}}>{topSignal.symbol} • {topSignal.posture}</div><div className="ms-sub" style={{marginTop:8}}>Strategy: {strategy} • {timeframe}D derived history • {dataSource === "coingecko" ? "CoinGecko live + refresh" : "seed fallback"}</div></div><div className="focus-chip" style={{background:topSignal.confidence>=70?"rgba(34,197,94,0.12)":topSignal.confidence<45?"rgba(59,130,246,0.10)":"rgba(148,163,184,0.10)",color:topSignal.confidence>=70?"#86efac":topSignal.confidence<45?"#93c5fd":"#cbd5e1"}}>{topSignal.confidence}%</div></div><div style={{marginTop:18,padding:18,borderRadius:18,background:"rgba(2,6,23,0.55)",border:"1px solid rgba(148,163,184,0.12)"}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:10}}>Tonight’s Brief</div><div style={{lineHeight:1.7,color:"#e2e8f0",fontSize:16}}>{topSignal.brief}</div><div style={{marginTop:14,display:"flex",gap:8,flexWrap:"wrap"}}><Pill>{dataSource === "coingecko" ? "Live market input" : "Fallback seed data"}</Pill>{marketUpdatedAt ? <Pill>{marketUpdatedAt}</Pill> : null}</div></div><div className="ms-grid ms-stats" style={{marginTop:18}}><div className="ms-metric"><div className="ms-metric-label">Price</div><div className="ms-metric-value">{formatPrice(topSignal.price)}</div></div><div className="ms-metric"><div className="ms-metric-label">24H Change</div><div className="ms-metric-value" style={{color:topSignal.change24h>=0?"#00ff9d":"#ff4d4d"}}>{topSignal.change24h>=0?"+":""}{topSignal.change24h.toFixed(1)}%</div></div><div className="ms-metric"><div className="ms-metric-label">Volume</div><div className="ms-metric-value">{topSignal.volume}</div></div><div className="ms-metric"><div className="ms-metric-label">Risk Profile<button className="learn-hot" type="button" onClick={()=>openLearn("risk")}>?</button></div><div className="ms-metric-value">{topSignal.risk}</div></div></div></div>
           <aside className="ms-card"><div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div><div style={{display:"grid",gap:14}}><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div><select className="select" value={strategy} onChange={(e)=>setStrategy(e.target.value)}><option value="scalp">Scalp</option><option value="swing">Swing</option><option value="position">Position</option></select></label><label><div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div><select className="select" value={timeframe} onChange={(e)=>setTimeframe(e.target.value)}><option value="7">7D</option><option value="30">30D</option><option value="90">90D</option></select></label><label style={{display:"flex",alignItems:"center",gap:10}}><input type="checkbox" checked={soundOn} onChange={(e)=>setSoundOn(e.target.checked)}/><span>Signal ping on leader change</span></label><div className="ms-sub">No heavy render layer here. Just a focused pulse on the top signal and cleaner card interactions.</div></div></aside></section>}
 
@@ -1033,7 +1078,23 @@ export default function Page(){
           </aside>
         ) : null}
 
-        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.5.0 • interpretation layer</div></section>
+
+        <section className="ms-card">
+          <div className="ms-row">
+            <div>
+              <div style={{fontSize:14,color:"#94a3b8"}}>Alerts</div>
+              <div style={{fontSize:22,fontWeight:800}}>Recent signals</div>
+            </div>
+          </div>
+          <div style={{marginTop:12,display:"grid",gap:10}}>
+            {alerts.length ? alerts.slice().reverse().slice(0,6).map(a=>(
+              <div key={a.id} style={{padding:10,borderRadius:12,background:"rgba(247,247,247,.03)"}}>
+                {a.text}
+              </div>
+            )) : <div className="ms-sub">No alerts yet</div>}
+          </div>
+        </section>
+        <section style={{textAlign:"center",fontSize:12,color:"rgba(247,247,247,.45)",paddingTop:8}}><div style={{marginBottom:8}}>Midnight Signal • Terms • Privacy • Disclaimer</div><div>This application is provided for educational and informational purposes only. It does not constitute financial, investment, or trading advice.</div><div style={{marginTop:8}}>Midnight Signal v9.6.0 • alerts + ritual</div></section>
       </div>
     </main>
   );
