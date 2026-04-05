@@ -322,6 +322,17 @@ export default function Page(){
     }
   }
 
+  function unlockLocally() {
+    setCheckoutError("");
+    setIsPremium(true);
+    const seenAt = new Date().toLocaleString();
+    setUnlockSeenAt(seenAt);
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.premium, "true");
+      window.localStorage.setItem(STORAGE_KEYS.unlockSeenAt, seenAt);
+    } catch {}
+  }
+
   async function loadMarket(reason = "manual") {
     setIsRefreshing(true);
     setRefreshMessage(reason === "auto" ? "Refreshing market data..." : "Updating market data...");
