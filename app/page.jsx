@@ -4,8 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BeaconLogo from "../components/BeaconLogo";
 
-const BUILD_VERSION = "11.1";
-const BUILD_LABEL = "dashboard focus + Signal Studio";
+const BUILD_VERSION = "11.2";
+const BUILD_LABEL = "control panel polish";
 
 const STORAGE_KEYS = {
   agreed: "ms_agreement_accepted",
@@ -1169,7 +1169,7 @@ export default function Page(){
         .alert-toast{position:fixed;left:24px;bottom:24px;z-index:75;min-width:min(380px,calc(100vw - 40px));max-width:460px;padding:14px 16px;border-radius:18px;border:1px solid rgba(139,168,255,.22);background:linear-gradient(135deg, rgba(11,18,39,.96), rgba(24,28,47,.94));box-shadow:0 20px 60px rgba(0,0,0,.35);backdrop-filter:blur(16px)} .watch-star{border:1px solid rgba(247,247,247,.12);background:rgba(247,247,247,.04);border-radius:14px;padding:8px 10px;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease, color .15s ease}.watch-star:hover{transform:scale(1.08)} .watch-star.active{color:#00ff9d;box-shadow:0 0 0 1px rgba(0,255,157,.12)}
         .focus-chip{border-radius:18px;padding:14px 16px;font-weight:900;font-size:22px;letter-spacing:-.03em;min-width:92px;text-align:center}.btn,.select{width:100%;padding:12px 14px;border-radius:16px;border:1px solid rgba(247,247,247,.12);background:rgba(247,247,247,.04);color:#fff}.btn-strong{border:0;cursor:pointer;padding:12px 16px;border-radius:14px;font-weight:800;background:linear-gradient(135deg,#2563eb,#4f46e5);color:white;box-shadow:0 14px 40px rgba(37,99,235,.22)}
 .learn-fab{position:fixed;right:24px;bottom:24px;z-index:55;border:1px solid rgba(139,168,255,.28);background:linear-gradient(135deg, rgba(96,103,249,.92), rgba(0,51,173,.92));color:#fff;border-radius:999px;padding:14px 18px;font-weight:800;box-shadow:0 18px 50px rgba(0,0,0,.35);cursor:pointer}.learn-panel{position:fixed;top:0;right:0;height:100vh;width:min(420px,92vw);z-index:70;background:rgba(11,18,39,.96);border-left:1px solid rgba(247,247,247,.1);backdrop-filter:blur(14px);box-shadow:-18px 0 60px rgba(0,0,0,.4);transform:translateX(0);display:grid;grid-template-rows:auto 1fr}.learn-panel-body{overflow:auto;padding:20px 20px 28px}.learn-chip{border:1px solid rgba(247,247,247,.1);background:rgba(247,247,247,.04);color:#fff;border-radius:999px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer}.learn-chip.active{border-color:rgba(139,168,255,.45);background:rgba(96,103,249,.16);color:#dbe8ff}.learn-hot{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;border:1px solid rgba(139,168,255,.28);background:rgba(96,103,249,.12);color:#dbe8ff;font-size:11px;font-weight:800;cursor:pointer;margin-left:8px;vertical-align:middle}.learn-overlay{position:fixed;inset:0;background:rgba(0,0,0,.36);z-index:65}
-.asset-overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:57}.asset-panel{position:fixed;top:0;right:0;height:100vh;width:min(520px,96vw);z-index:58;background:rgba(11,18,39,.98);border-left:1px solid rgba(247,247,247,.1);backdrop-filter:blur(14px);box-shadow:-18px 0 60px rgba(0,0,0,.4);display:grid;grid-template-rows:auto 1fr}.asset-panel-body{overflow:auto;padding:20px 20px 30px}.asset-sheet-handle{width:56px;height:6px;border-radius:999px;background:rgba(247,247,247,.18);margin:0 auto 12px}.asset-clickable{cursor:pointer}@media (max-width:700px){.asset-panel{top:auto;right:0;left:0;bottom:0;height:min(78vh,720px);width:100%;border-left:0;border-top:1px solid rgba(247,247,247,.1);border-top-left-radius:24px;border-top-right-radius:24px;box-shadow:0 -18px 60px rgba(0,0,0,.45)} .learn-fab{right:14px;bottom:14px}}
+.asset-overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:57}.asset-panel{position:fixed;top:0;right:0;height:100vh;width:min(520px,96vw);z-index:58;background:rgba(11,18,39,.98);border-left:1px solid rgba(247,247,247,.1);backdrop-filter:blur(14px);box-shadow:-18px 0 60px rgba(0,0,0,.4);display:grid;grid-template-rows:auto 1fr}.asset-panel-body{overflow:auto;padding:20px 20px 30px}.asset-sheet-handle{width:56px;height:6px;border-radius:999px;background:rgba(247,247,247,.18);margin:0 auto 12px}.asset-clickable{cursor:pointer}.panel-section{padding:18px;border-radius:22px;border:1px solid rgba(247,247,247,.08);background:rgba(255,255,255,.03)}.panel-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}.panel-kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8ba8ff;margin-bottom:6px}.panel-title{font-size:18px;font-weight:800}.panel-note{font-size:13px;color:#94a3b8;line-height:1.7;max-width:320px}.panel-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:7px 10px;border:1px solid rgba(139,168,255,.2);background:rgba(96,103,249,.12);color:#dbe8ff;font-size:11px;font-weight:800}.panel-group{display:grid;gap:18px}.panel-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}@media (max-width:700px){.asset-panel{top:auto;right:0;left:0;bottom:0;height:min(78vh,720px);width:100%;border-left:0;border-top:1px solid rgba(247,247,247,.1);border-top-left-radius:24px;border-top-right-radius:24px;box-shadow:0 -18px 60px rgba(0,0,0,.45)} .learn-fab{right:14px;bottom:14px} .panel-grid-2{grid-template-columns:1fr}}
         @media (max-width:1100px){.ms-hero,.ms-stats,.ms-watch,.ms-coins,.ms-context{grid-template-columns:repeat(2,minmax(0,1fr))}} @media (max-width:700px){.ms-wrap{padding:0 14px;gap:16px}.ms-card{padding:18px;border-radius:24px}.ms-hero,.ms-stats,.ms-watch,.ms-coins,.ms-context{grid-template-columns:1fr}.ms-row{flex-direction:column;align-items:stretch}.ms-title{font-size:28px}.ms-sub{font-size:13px}.focus-chip{font-size:28px;padding:16px 18px;width:100%}.coin-btn,.watch-card{min-height:auto}.top-signal-shell{position:relative;top:auto}.alert-toast{left:14px;right:14px;bottom:14px;min-width:0;max-width:none}.btn,.select,.btn-strong{min-height:46px}.asset-panel-body{padding:18px 16px 26px}} @media (max-width:520px){.ms-wrap{padding:0 12px}.ms-card{padding:16px;border-radius:22px}.ms-metric{padding:14px}.ms-metric-value{font-size:22px}.coin-btn{padding:16px;border-radius:20px}.watch-card{padding:16px;border-radius:20px}}
       `}</style>
 
@@ -1724,151 +1724,179 @@ export default function Page(){
               <div style={{display:"grid",gap:18}}>
                 <div style={{padding:16,borderRadius:18,background:"linear-gradient(135deg, rgba(96,103,249,.12), rgba(13,21,48,.88))",border:"1px solid rgba(96,103,249,.20)"}}>
                   <div style={{fontSize:13,color:"#bcd0ff",letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Launch mode</div>
-                  <div style={{fontSize:22,fontWeight:800,marginBottom:8}}>A cleaner main stage</div>
-                  <div className="ms-sub" style={{lineHeight:1.75,color:"#dbe8ff"}}>Move preferences and delivery settings off the dashboard so the first read stays centered on tonight’s signal.</div>
+                  <div style={{fontSize:22,fontWeight:800,marginBottom:8}}>A cleaner control surface</div>
+                  <div className="ms-sub" style={{lineHeight:1.75,color:"#dbe8ff"}}>Group the controls by job so the panel feels intentional instead of stacked. The dashboard stays focused on tonight’s signal while this drawer handles setup, delivery, and publishing.</div>
                 </div>
 
-                <div className="ms-card" style={{padding:18}}>
-                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Session Settings</div>
-                  <div style={{display:"grid",gap:14}}>
-                    <label>
-                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Experience mode</div>
-                      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                        <button type="button" onClick={()=>chooseMode("Beginner")} className={mode==="Beginner" ? "btn-strong" : "btn"} style={{width:"auto"}}>Beginner</button>
-                        <button type="button" onClick={()=>chooseMode("Pro")} className={mode==="Pro" ? "btn-strong" : "btn"} style={{width:"auto"}}>Pro</button>
+                <div className="panel-group">
+                  <section className="panel-section">
+                    <div className="panel-section-head">
+                      <div>
+                        <div className="panel-kicker">System</div>
+                        <div className="panel-title">Update cadence</div>
+                        <div className="panel-note">Choose how often Midnight Signal refreshes while you are in session.</div>
                       </div>
-                    </label>
-                    <label>
-                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div>
-                      <select className="select" value={strategy} onChange={(e) => setStrategy(e.target.value)}>
-                        <option value="scalp">Scalp</option>
-                        <option value="swing">Swing</option>
-                        <option value="position">Position</option>
-                      </select>
-                    </label>
-                    <label>
-                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div>
-                      <select className="select" value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
-                        <option value="7">7D</option>
-                        <option value="30">30D</option>
-                        <option value="90">90D</option>
-                      </select>
-                    </label>
-                    <label style={{display:"flex",alignItems:"center",gap:10}}>
-                      <input type="checkbox" checked={soundOn} onChange={(e) => setSoundOn(e.target.checked)} />
-                      <span>Signal ping on leader + alert shift</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="ms-card" style={{padding:18}}>
-                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Update Mode</div>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    {[
-                      { key: "calm", label: "Calm", note: "Every 3 minutes" },
-                      { key: "active", label: "Active", note: "Every 1 minute" },
-                      { key: "live", label: isPremium ? "Live" : "Live 🔒", note: "Every 15 seconds" },
-                    ].map((option) => {
-                      const active = updateMode === option.key;
-                      return (
-                        <button
-                          key={option.key}
-                          type="button"
-                          onClick={() => changeUpdateMode(option.key)}
-                          className={active ? "btn-strong" : "btn"}
-                          style={{width:"auto"}}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="ms-sub" style={{marginTop:10,lineHeight:1.7}}>
-                    {updateMode === "calm" ? "Stable cadence for the nightly ritual." : updateMode === "active" ? "Faster refresh for engaged sessions." : "Near real-time premium cadence."}
-                  </div>
-                </div>
-
-                <div className="ms-card" style={{padding:18}}>
-                  <div style={{fontSize:14,color:"#94a3b8",marginBottom:12}}>Email Alerts</div>
-                  <div style={{display:"grid",gap:14}}>
-                    <label>
-                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Delivery email</div>
-                      <input className="select" type="email" placeholder="you@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
-                    </label>
-                    <label style={{display:"flex",alignItems:"center",gap:10}}>
-                      <input type="checkbox" checked={emailAlertsEnabled} onChange={(e)=>setEmailAlertsEnabled(e.target.checked)} />
-                      <span>Enable real email alerts</span>
-                    </label>
-                    <label>
-                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Alert threshold</div>
-                      <select className="select" value={alertSensitivity} onChange={(e)=>setAlertSensitivity(e.target.value)}>
-                        <option value="major">Major shifts only</option>
-                        <option value="all">All meaningful changes</option>
-                      </select>
-                    </label>
-                    <label>
-                      <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Delivery mode</div>
-                      <select className="select" value={emailDigestMode} onChange={(e)=>setEmailDigestMode(e.target.value)}>
-                        <option value="instant">Send instantly</option>
-                        <option value="digest">Digest batch</option>
-                      </select>
-                    </label>
-                    <label style={{display:"flex",alignItems:"center",gap:10}}>
-                      <input type="checkbox" checked={alertOnlyWatchlist} onChange={(e)=>setAlertOnlyWatchlist(e.target.checked)} />
-                      <span>Watchlist priority only</span>
-                    </label>
-                    <button type="button" className="btn" onClick={sendTestEmailAlert}>Send test email</button>
-                    <div className="ms-sub">Live delivery uses Resend when <code>RESEND_API_KEY</code> and <code>ALERTS_FROM_EMAIL</code> are configured in Vercel.</div>
-                    {emailAlertStatus ? <div style={{fontSize:13,color:"#cbd5e1"}}>{emailAlertStatus}</div> : null}
-                  </div>
-                </div>
-
-                <div className="ms-card" style={{padding:18}}>
-                  <div className="ms-row">
-                    <div>
-                      <div style={{fontSize:14,color:"#94a3b8",marginBottom:8}}>Signal Studio</div>
-                      <div style={{fontSize:24,fontWeight:800,marginBottom:8}}>Generate tonight's posts</div>
-                      <div className="ms-sub" style={{lineHeight:1.75}}>Turn the live signal, context feed, and community pulse into ready-to-post X content without crowding the main dashboard.</div>
+                      <div className="panel-pill">{updateMode === "calm" ? "Calm" : updateMode === "active" ? "Active" : "Live"}</div>
                     </div>
                     <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                      <Pill>{spicyPosts ? "Spicy mode" : "Clean mode"}</Pill>
-                      <Pill>{signalContext?.meta?.live ? "Live context source" : "Fallback context source"}</Pill>
-                      {xPostRefreshAt ? <Pill>{`Updated ${xPostRefreshAt}`}</Pill> : null}
+                      {[
+                        { key: "calm", label: "Calm", note: "Every 3 minutes" },
+                        { key: "active", label: "Active", note: "Every 1 minute" },
+                        { key: "live", label: isPremium ? "Live" : "Live 🔒", note: "Every 15 seconds" },
+                      ].map((option) => {
+                        const active = updateMode === option.key;
+                        return (
+                          <button
+                            key={option.key}
+                            type="button"
+                            onClick={() => changeUpdateMode(option.key)}
+                            className={active ? "btn-strong" : "btn"}
+                            style={{width:"auto"}}
+                            title={option.note}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
                     </div>
-                  </div>
-
-                  <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:16}}>
-                    <button type="button" className="btn-strong" style={{width:"auto"}} onClick={refreshXPosts}>Generate Tonight’s Posts</button>
-                    <button type="button" className="btn" style={{width:"auto"}} onClick={() => setSpicyPosts((current) => !current)}>{spicyPosts ? "Switch to clean mode" : "Switch to spicy mode"}</button>
-                    <button type="button" className="btn" style={{width:"auto"}} onClick={() => copyAllXPosts(xPosts)}>Copy all posts</button>
-                  </div>
-
-                  {xPostStatus ? (
-                    <div style={{marginTop:14,padding:"12px 14px",borderRadius:14,background:"rgba(96,103,249,.10)",border:"1px solid rgba(96,103,249,.18)",color:"#dbe8ff",fontSize:14}}>
-                      {xPostStatus}
+                    <div className="ms-sub" style={{marginTop:10,lineHeight:1.7}}>
+                      {updateMode === "calm" ? "Stable cadence for the nightly ritual." : updateMode === "active" ? "Faster refresh for engaged sessions." : "Near real-time premium cadence."}
                     </div>
-                  ) : null}
+                  </section>
 
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:12,marginTop:18}}>
-                    {controlMetrics.map((metric) => (
-                      <div key={metric.label} className="ms-card" style={{padding:16}}>
-                        <div style={{fontSize:12,color:"#94a3b8",marginBottom:8}}>{metric.label}</div>
-                        <div style={{fontSize:24,fontWeight:900}}>{metric.value}</div>
+                  <section className="panel-section">
+                    <div className="panel-section-head">
+                      <div>
+                        <div className="panel-kicker">Alerts</div>
+                        <div className="panel-title">Email delivery</div>
+                        <div className="panel-note">Control where alerts go, how often they send, and how selective they should be.</div>
                       </div>
-                    ))}
-                  </div>
+                      <div className="panel-pill">{emailAlertsEnabled ? "Enabled" : "Off"}</div>
+                    </div>
+                    <div style={{display:"grid",gap:14}}>
+                      <label>
+                        <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Delivery email</div>
+                        <input className="select" type="email" placeholder="you@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
+                      </label>
+                      <label style={{display:"flex",alignItems:"center",gap:10}}>
+                        <input type="checkbox" checked={emailAlertsEnabled} onChange={(e)=>setEmailAlertsEnabled(e.target.checked)} />
+                        <span>Enable real email alerts</span>
+                      </label>
+                      <div className="panel-grid-2">
+                        <label>
+                          <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Alert threshold</div>
+                          <select className="select" value={alertSensitivity} onChange={(e)=>setAlertSensitivity(e.target.value)}>
+                            <option value="major">Major shifts only</option>
+                            <option value="all">All meaningful changes</option>
+                          </select>
+                        </label>
+                        <label>
+                          <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Delivery mode</div>
+                          <select className="select" value={emailDigestMode} onChange={(e)=>setEmailDigestMode(e.target.value)}>
+                            <option value="instant">Send instantly</option>
+                            <option value="digest">Digest batch</option>
+                          </select>
+                        </label>
+                      </div>
+                      <label style={{display:"flex",alignItems:"center",gap:10}}>
+                        <input type="checkbox" checked={alertOnlyWatchlist} onChange={(e)=>setAlertOnlyWatchlist(e.target.checked)} />
+                        <span>Watchlist priority only</span>
+                      </label>
+                      <button type="button" className="btn" onClick={sendTestEmailAlert}>Send test email</button>
+                      <div className="ms-sub">Live delivery uses Resend when <code>RESEND_API_KEY</code> and <code>ALERTS_FROM_EMAIL</code> are configured in Vercel.</div>
+                      {emailAlertStatus ? <div style={{fontSize:13,color:"#cbd5e1"}}>{emailAlertStatus}</div> : null}
+                    </div>
+                  </section>
 
-                  <div style={{display:"grid",gap:12,marginTop:18}}>
-                    {xPosts.map((post) => (
-                      <div key={post.id} className="ms-card" style={{padding:18}}>
-                        <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"center",marginBottom:12}}>
-                          <div style={{fontSize:14,color:"#94a3b8"}}>{post.title}</div>
-                          <button type="button" className="btn" style={{width:"auto"}} onClick={() => copyXPost(post.body)}>Copy post</button>
+                  <section className="panel-section">
+                    <div className="panel-section-head">
+                      <div>
+                        <div className="panel-kicker">Session</div>
+                        <div className="panel-title">How tonight feels</div>
+                        <div className="panel-note">Tune the dashboard for a guided learning mode or a cleaner pro view.</div>
+                      </div>
+                      <div className="panel-pill">{mode}</div>
+                    </div>
+                    <div style={{display:"grid",gap:14}}>
+                      <label>
+                        <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Experience mode</div>
+                        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                          <button type="button" onClick={()=>chooseMode("Beginner")} className={mode==="Beginner" ? "btn-strong" : "btn"} style={{width:"auto"}}>Beginner</button>
+                          <button type="button" onClick={()=>chooseMode("Pro")} className={mode==="Pro" ? "btn-strong" : "btn"} style={{width:"auto"}}>Pro</button>
                         </div>
-                        <div style={{whiteSpace:"pre-wrap",lineHeight:1.75,color:"#f8fafc"}}>{post.body}</div>
+                      </label>
+                      <div className="panel-grid-2">
+                        <label>
+                          <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Trader style</div>
+                          <select className="select" value={strategy} onChange={(e) => setStrategy(e.target.value)}>
+                            <option value="scalp">Scalp</option>
+                            <option value="swing">Swing</option>
+                            <option value="position">Position</option>
+                          </select>
+                        </label>
+                        <label>
+                          <div style={{fontSize:13,color:"#94a3b8",marginBottom:8}}>Timeframe</div>
+                          <select className="select" value={timeframe} onChange={(e) => setTimeframe(e.target.value)}>
+                            <option value="7">7D</option>
+                            <option value="30">30D</option>
+                            <option value="90">90D</option>
+                          </select>
+                        </label>
                       </div>
-                    ))}
-                  </div>
+                      <label style={{display:"flex",alignItems:"center",gap:10}}>
+                        <input type="checkbox" checked={soundOn} onChange={(e) => setSoundOn(e.target.checked)} />
+                        <span>Signal ping on leader + alert shift</span>
+                      </label>
+                    </div>
+                  </section>
+
+                  <section className="panel-section">
+                    <div className="panel-section-head">
+                      <div>
+                        <div className="panel-kicker">Studio</div>
+                        <div className="panel-title">Signal Studio</div>
+                        <div className="panel-note">Generate tonight’s X posts without letting the content tools crowd the signal dashboard.</div>
+                      </div>
+                      <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                        <span className="panel-pill">{spicyPosts ? "Spicy" : "Clean"}</span>
+                        <span className="panel-pill">{signalContext?.meta?.live ? "Live context" : "Fallback context"}</span>
+                        {xPostRefreshAt ? <span className="panel-pill">{`Updated ${xPostRefreshAt}`}</span> : null}
+                      </div>
+                    </div>
+
+                    <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:4}}>
+                      <button type="button" className="btn-strong" style={{width:"auto"}} onClick={refreshXPosts}>Generate Tonight’s Posts</button>
+                      <button type="button" className="btn" style={{width:"auto"}} onClick={() => setSpicyPosts((current) => !current)}>{spicyPosts ? "Switch to clean mode" : "Switch to spicy mode"}</button>
+                      <button type="button" className="btn" style={{width:"auto"}} onClick={() => copyAllXPosts(xPosts)}>Copy all posts</button>
+                    </div>
+
+                    {xPostStatus ? (
+                      <div style={{marginTop:14,padding:"12px 14px",borderRadius:14,background:"rgba(96,103,249,.10)",border:"1px solid rgba(96,103,249,.18)",color:"#dbe8ff",fontSize:14}}>
+                        {xPostStatus}
+                      </div>
+                    ) : null}
+
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:12,marginTop:18}}>
+                      {controlMetrics.map((metric) => (
+                        <div key={metric.label} className="ms-card" style={{padding:16}}>
+                          <div style={{fontSize:12,color:"#94a3b8",marginBottom:8}}>{metric.label}</div>
+                          <div style={{fontSize:24,fontWeight:900}}>{metric.value}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{display:"grid",gap:12,marginTop:18}}>
+                      {xPosts.map((post) => (
+                        <div key={post.id} className="ms-card" style={{padding:18}}>
+                          <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"center",marginBottom:12}}>
+                            <div style={{fontSize:14,color:"#94a3b8"}}>{post.title}</div>
+                            <button type="button" className="btn" style={{width:"auto"}} onClick={() => copyXPost(post.body)}>Copy post</button>
+                          </div>
+                          <div style={{whiteSpace:"pre-wrap",lineHeight:1.75,color:"#f8fafc"}}>{post.body}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 </div>
               </div>
             </div>
