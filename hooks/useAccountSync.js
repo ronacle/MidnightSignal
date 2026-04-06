@@ -6,6 +6,7 @@ import { mergeState } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase-browser';
 
 const STORAGE_KEY = 'midnight-signal-local-state-v11.8';
+const POLL_INTERVAL_MS = 60000;
 
 function readLocalState() {
   if (typeof window === 'undefined') return DEFAULT_STATE;
@@ -25,8 +26,15 @@ export function useAccountSync() {
   const [status, setStatus] = useState('Saved locally');
   const [syncing, setSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
+
   const saveTimer = useRef(null);
   const hydrated = useRef(false);
+  const userRef = useRef(null);
+  const stateRef = useRef(DEFAULT_STATE);
+  const mountedRef = useRef(false);
+  const pullInFlightRef = useRef(false);
+  const pushInFlightRef = useRef(false);
+  const pendingPushRef = useRef(null);
 
   const persistLocal = useCallback((next) => {
     if (typeof window === 'undefined') return;
@@ -34,85 +42,127 @@ export function useAccountSync() {
   }, []);
 
   const pushRemote = useCallback(async (draftState, currentUser) => {
-    if (!supabase || !currentUser) return;
-    setSyncing(true);
-    const payload = {
-      user_id: currentUser.id,
-      state: {
-        ...draftState,
-        updatedAt: new Date().toISOString()
-      },
-      updated_at: new Date().toISOString()
-    };
-
-    const { error } = await supabase.from('user_state').upsert(payload, { onConflict: 'user_id' });
-    if (!error) {
-      setLastSyncedAt(payload.updated_at);
-      setStatus('Synced just now');
-    } else {
-      setStatus('Saved locally');
-      console.error(error);
+    if (!supabase || !currentUser) return false;
+    if (pushInFlightRef.current) {
+      pendingPushRef.current = { draftState, currentUser };
+      return false;
     }
-    setSyncing(false);
+
+    pushInFlightRef.current = true;
+    setSyncing(true);
+
+    try {
+      const timestamp = new Date().toISOString();
+      const payload = {
+        user_id: currentUser.id,
+        state: {
+          ...draftState,
+          updatedAt: timestamp
+        },
+        updated_at: timestamp
+      };
+
+      const { error } = await supabase.from('user_state').upsert(payload, { onConflict: 'user_id' });
+      if (error) {
+        console.error(error);
+        setStatus('Saved locally');
+        return false;
+      }
+
+      if (mountedRef.current) {
+        setLastSyncedAt(timestamp);
+        setStatus('Synced just now');
+      }
+      return true;
+    } finally {
+      pushInFlightRef.current = false;
+      if (!pullInFlightRef.current) {
+        setSyncing(false);
+      }
+
+      const pending = pendingPushRef.current;
+      pendingPushRef.current = null;
+      if (pending && pending.currentUser?.id === currentUser.id) {
+        void pushRemote(pending.draftState, pending.currentUser);
+      }
+    }
   }, [supabase]);
 
-  const pullRemote = useCallback(async (currentUser, localState) => {
-    if (!supabase || !currentUser) return localState;
-    setStatus('Connecting…');
-    const { data, error } = await supabase
-      .from('user_state')
-      .select('state, updated_at')
-      .eq('user_id', currentUser.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error(error);
-      setStatus('Saved locally');
-      return localState;
+  const pullRemote = useCallback(async (currentUser, localStateOverride) => {
+    if (!supabase || !currentUser) return localStateOverride || stateRef.current;
+    if (pullInFlightRef.current) return stateRef.current;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      return stateRef.current;
     }
 
-    const remoteState = mergeState(DEFAULT_STATE, data?.state || {});
-    const remoteStamp = new Date(remoteState.updatedAt || data?.updated_at || 0).getTime();
-    const localStamp = new Date(localState.updatedAt || 0).getTime();
+    pullInFlightRef.current = true;
+    setSyncing(true);
+    setStatus((previous) => (previous === 'Synced just now' ? previous : 'Connecting…'));
 
-    if (!data) {
-      await pushRemote(localState, currentUser);
-      return localState;
+    try {
+      const localState = localStateOverride || stateRef.current;
+      const { data, error } = await supabase
+        .from('user_state')
+        .select('state, updated_at')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        setStatus('Saved locally');
+        return localState;
+      }
+
+      if (!data) {
+        await pushRemote(localState, currentUser);
+        return localState;
+      }
+
+      const remoteState = mergeState(DEFAULT_STATE, data.state || {});
+      const remoteStamp = new Date(remoteState.updatedAt || data.updated_at || 0).getTime();
+      const localStamp = new Date(localState.updatedAt || 0).getTime();
+
+      if (localStamp > remoteStamp) {
+        await pushRemote(localState, currentUser);
+        return localState;
+      }
+
+      setLastSyncedAt(remoteState.updatedAt || data.updated_at || null);
+      setStatus('Synced just now');
+      return remoteState;
+    } finally {
+      pullInFlightRef.current = false;
+      if (!pushInFlightRef.current) {
+        setSyncing(false);
+      }
     }
-
-    if (localStamp > remoteStamp) {
-      await pushRemote(localState, currentUser);
-      return localState;
-    }
-
-    setLastSyncedAt(remoteState.updatedAt || data?.updated_at || null);
-    setStatus('Synced just now');
-    return remoteState;
   }, [pushRemote, supabase]);
 
   const scheduleRemoteSave = useCallback((nextState, currentUser) => {
-    if (!currentUser) return;
+    if (typeof window === 'undefined' || !currentUser) return;
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
-      pushRemote(nextState, currentUser);
-    }, 650);
+      void pushRemote(nextState, currentUser);
+    }, 900);
   }, [pushRemote]);
 
   const updateState = useCallback((updater) => {
     setState((previous) => {
       const resolved = typeof updater === 'function' ? updater(previous) : updater;
+      const now = new Date().toISOString();
       const next = {
         ...resolved,
-        updatedAt: new Date().toISOString(),
-        lastViewedAt: new Date().toISOString()
+        updatedAt: now,
+        lastViewedAt: now
       };
+      stateRef.current = next;
       persistLocal(next);
-      if (typeof window !== 'undefined' && user) {
-        scheduleRemoteSave(next, user);
+      if (typeof window !== 'undefined' && userRef.current) {
+        scheduleRemoteSave(next, userRef.current);
       }
       return next;
     });
-  }, [persistLocal, scheduleRemoteSave, user]);
+  }, [persistLocal, scheduleRemoteSave]);
 
   const signInWithEmail = useCallback(async (email) => {
     if (!supabase) {
@@ -134,74 +184,90 @@ export function useAccountSync() {
     if (!supabase) return;
     await supabase.auth.signOut();
     setUser(null);
+    userRef.current = null;
     setStatus('Saved locally');
+    setSyncing(false);
   }, [supabase]);
 
   const refreshFromCloud = useCallback(async () => {
-    if (!user) return;
-    setSyncing(true);
-    const refreshed = await pullRemote(user, state);
+    const currentUser = userRef.current;
+    if (!currentUser) return;
+    const refreshed = await pullRemote(currentUser, stateRef.current);
+    stateRef.current = refreshed;
     setState(refreshed);
     persistLocal(refreshed);
-    setSyncing(false);
-  }, [persistLocal, pullRemote, state, user]);
+  }, [persistLocal, pullRemote]);
 
   useEffect(() => {
     const local = readLocalState();
+    stateRef.current = local;
     setState(local);
     hydrated.current = true;
   }, []);
-
-  const userRef = useRef(null);
 
   useEffect(() => {
     userRef.current = user;
   }, [user]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!supabase || !hydrated.current) return;
 
-    let mounted = true;
+    let unsubscribed = false;
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      const currentUser = data?.session?.user || null;
-      if (!mounted) return;
-      setUser(currentUser);
-      if (!currentUser) {
+    const bootstrap = async (sessionUser) => {
+      if (unsubscribed) return;
+      setUser(sessionUser);
+      userRef.current = sessionUser;
+
+      if (!sessionUser) {
         setStatus('Saved locally');
+        setSyncing(false);
         return;
       }
+
       const local = readLocalState();
-      const merged = await pullRemote(currentUser, local);
-      if (!mounted) return;
+      stateRef.current = local;
+      const merged = await pullRemote(sessionUser, local);
+      if (unsubscribed) return;
+      stateRef.current = merged;
       setState(merged);
       persistLocal(merged);
+    };
+
+    supabase.auth.getSession().then(({ data }) => {
+      void bootstrap(data?.session?.user || null);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user || null;
-      if (!mounted) return;
-      setUser(currentUser);
-      if (!currentUser) {
-        setStatus('Saved locally');
-        return;
-      }
-      const local = readLocalState();
-      const merged = await pullRemote(currentUser, local);
-      if (!mounted) return;
-      setState(merged);
-      persistLocal(merged);
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      void bootstrap(session?.user || null);
     });
 
     const poll = window.setInterval(() => {
-      if (userRef.current) {
-        refreshFromCloud();
+      if (!userRef.current) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      if (pullInFlightRef.current || pushInFlightRef.current) return;
+      void refreshFromCloud();
+    }, POLL_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && userRef.current && !pullInFlightRef.current && !pushInFlightRef.current) {
+        void refreshFromCloud();
       }
-    }, 30000);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      mounted = false;
+      unsubscribed = true;
       listener.subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(poll);
       window.clearTimeout(saveTimer.current);
     };

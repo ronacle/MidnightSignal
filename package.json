@@ -1,7 +1,7 @@
 {
-  "name": "midnight-signal-v11-10-2-full-shell-restore-sync-merge",
+  "name": "midnight-signal-v11-10-5-sync-request-storm-hotfix",
   "private": true,
-  "version": "11.10.4",
+  "version": "11.10.5",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
