@@ -1,91 +1,62 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { MARKET_FIXTURES } from '@/lib/default-state';
-import { getConvictionTier } from '@/lib/utils';
-
-const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
-
-export default function WatchlistPanel({ state, setState, onAssetOpen }) {
-  const [newSymbol, setNewSymbol] = useState('LINK');
-  const assets = useMemo(() => MARKET_FIXTURES, []);
-
-  function addSymbol() {
-    if (state.watchlist.includes(newSymbol)) return;
-    setState((previous) => ({ ...previous, watchlist: [...previous.watchlist, newSymbol] }));
-  }
-
-  function removeSymbol(symbol) {
-    setState((previous) => ({
-      ...previous,
-      watchlist: previous.watchlist.filter((item) => item !== symbol),
-      selectedAsset: previous.selectedAsset === symbol ? previous.watchlist[0] || 'BTC' : previous.selectedAsset
-    }));
-  }
-
-  function selectSymbol(symbol) {
-    setState((previous) => ({ ...previous, selectedAsset: symbol }));
-    const asset = assets.find((item) => item.symbol === symbol) || {
-      symbol,
-      name: symbol,
-      conviction: 52,
-      sentiment: 'neutral',
-      story: 'Custom watchlist asset waiting for live feed wiring.'
-    };
-    onAssetOpen?.(asset);
+export default function WatchlistPanel({ watchlistItems = [], onSelectAsset, onToggleWatchlist }) {
+  if (!watchlistItems.length) {
+    return (
+      <section className="panel stack compact-watchlist-panel">
+        <div className="row space-between">
+          <h2 className="section-title">Watchlist</h2>
+          <span className="muted small">0 tracked</span>
+        </div>
+        <div className="muted small">Add assets to your watchlist to pin them here for quick access.</div>
+      </section>
+    );
   }
 
   return (
-    <aside className="panel stack watchlist-rail">
+    <section className="panel stack compact-watchlist-panel">
       <div className="row space-between">
-        <div>
-          <h2 className="section-title compact-title">Watchlist</h2>
-          <div className="muted small">Your prioritized assets</div>
-        </div>
-        <span className="badge">Synced</span>
+        <h2 className="section-title">Watchlist</h2>
+        <span className="muted small">{watchlistItems.length} tracked</span>
       </div>
 
-      <div className="watchlist-add-row">
-        <select className="select compact-select" value={newSymbol} onChange={(e) => setNewSymbol(e.target.value)}>
-          {AVAILABLE.map((symbol) => <option key={symbol}>{symbol}</option>)}
-        </select>
-        <button className="button compact-action" onClick={addSymbol}>Add</button>
-      </div>
-
-      <div className="stack compact-watchlist-stack">
-        {state.watchlist.map((symbol) => {
-          const asset = assets.find((item) => item.symbol === symbol) || {
-            symbol,
-            name: symbol,
-            conviction: 52,
-            sentiment: 'neutral',
-            story: 'Custom watchlist asset waiting for live feed wiring.'
-          };
-
-          return (
-            <div className="asset-row compact-watch-card" key={symbol}>
-              <div className="compact-watch-header">
-                <div>
-                  <div className="asset-name">{asset.symbol}</div>
-                  <div className="muted small">{asset.name}</div>
-                </div>
-                <div className={`sentiment compact-sentiment ${asset.sentiment}`}>{asset.sentiment}</div>
-              </div>
-
-              <div className="muted small compact-watch-conviction">
-                {asset.conviction}% · {getConvictionTier(asset.conviction)}
-              </div>
-
-              <div className="compact-watch-actions">
-                <button className="ghost-button compact-ghost" onClick={() => selectSymbol(symbol)}>
-                  {state.selectedAsset === symbol ? 'Open' : 'View'}
-                </button>
-                <button className="ghost-button compact-ghost" onClick={() => removeSymbol(symbol)}>Remove</button>
-              </div>
+      <div className="watchlist-compact-grid">
+        {watchlistItems.map((asset) => (
+          <div key={asset.symbol} className="watchlist-compact-card">
+            <div className="watchlist-compact-main">
+              <div className="watchlist-compact-symbol">{asset.symbol}</div>
+              <div className="watchlist-compact-name">{asset.name}</div>
             </div>
-          );
-        })}
+
+            <div className="watchlist-compact-meta">
+              <span className="watchlist-meta-pill">{asset.confidence}%</span>
+              <span className="watchlist-meta-pill">{asset.conviction || asset.posture || 'Signal'}</span>
+            </div>
+
+            <div className="watchlist-compact-actions">
+              <button
+                type="button"
+                className="icon-action"
+                aria-label={`View ${asset.symbol}`}
+                title={`View ${asset.symbol}`}
+                onClick={() => onSelectAsset?.(asset.symbol)}
+              >
+                👁
+              </button>
+
+              <button
+                type="button"
+                className="icon-action destructive"
+                aria-label={`Remove ${asset.symbol} from watchlist`}
+                title={`Remove ${asset.symbol}`}
+                onClick={() => onToggleWatchlist?.(asset.symbol)}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
-    </aside>
+    </section>
   );
 }
