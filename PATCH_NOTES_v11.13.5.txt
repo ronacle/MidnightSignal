@@ -1,0 +1,6 @@
+v11.13.5
+- moved Since Last Visit strip into hero under the main tagline
+- removed old standalone Since Last Visit section below Top Signal
+- added working Live Update Controls in the Control Drawer
+- added persisted state keys for live update preferences
+- included package.json and required deps for Next.js/Vercel builds

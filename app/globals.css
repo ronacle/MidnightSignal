@@ -747,3 +747,103 @@ button, input, select { font: inherit; }
 .watchlist-rail .compact-select {
   width: 100%;
 }
+
+
+.hero-since-slot {
+  margin-top: 12px;
+}
+
+.since-strip {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(142, 174, 230, 0.18);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.since-label {
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.since-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.since-main {
+  font-size: 0.92rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.since-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.since-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.since-action {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.toggle-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px;
+}
+
+.toggle-row input {
+  margin-top: 3px;
+}
+
+.toggle-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 860px) {
+  .since-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .since-actions {
+    justify-content: flex-start;
+  }
+
+  .since-main,
+  .since-chip {
+    white-space: normal;
+  }
+}

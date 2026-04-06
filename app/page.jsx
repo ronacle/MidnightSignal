@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
 import TopSignalCard from '@/components/signals/TopSignalCard';
@@ -41,6 +41,11 @@ export default function HomePage() {
     [state.selectedAsset]
   );
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setSinceHidden(window.localStorage.getItem('since-dismissed') === 'true');
+  }, []);
+
   function toggleWatchlist(symbol) {
     setState((previous) => ({
       ...previous,
@@ -75,27 +80,25 @@ export default function HomePage() {
           watchlistCount={state.watchlist.length}
           syncing={syncing}
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
-        />
+        >
+          {!sinceHidden ? (
+            <SinceLastVisit
+              state={state}
+              lastSyncedAt={lastSyncedAt}
+              onJump={() => jumpTo('top-signal')}
+              onDismiss={() => {
+                setSinceHidden(true);
+                if (typeof window !== 'undefined') {
+                  window.localStorage.setItem('since-dismissed', 'true');
+                }
+              }}
+            />
+          ) : null}
+        </HeroSection>
 
         <section className="top-grid" id="top-signal">
           <TopSignalCard state={state} />
           <TonightBrief selected={selected} timeframe={state.timeframe} />
-        </section>
-
-        <section id="since-last-visit">
-          {!sinceHidden ? (
-          <SinceLastVisit
-            state={state}
-            lastSyncedAt={lastSyncedAt}
-            onJump={() => jumpTo('top-signal')}
-            onDismiss={() => {
-              setSinceHidden(true);
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('since-dismissed', 'true');
-              }
-            }}
-          />
-        ) : null}
         </section>
 
         <section className="market-grid" id="market-scan">
@@ -104,7 +107,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.13.2 · alert manager with edit/remove
+          Build v11.13.5 · hero strip + live controls fix
         </div>
       </div>
 
