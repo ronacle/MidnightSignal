@@ -22,6 +22,8 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
+            </p>
+            <p>
               Know the setup, the why, and act with more confidence.
             </p>
             <div className="hero-support-copy">
