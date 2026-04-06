@@ -38,18 +38,21 @@ export default function WatchlistPanel({ state, setState, onAssetOpen }) {
   return (
     <aside className="panel stack watchlist-rail">
       <div className="row space-between">
-        <h2 className="section-title">Watchlist</h2>
-        <span className="badge">Synced with your account</span>
+        <div>
+          <h2 className="section-title compact-title">Watchlist</h2>
+          <div className="muted small">Your prioritized assets</div>
+        </div>
+        <span className="badge">Synced</span>
       </div>
 
-      <div className="row">
-        <select className="select" value={newSymbol} onChange={(e) => setNewSymbol(e.target.value)}>
+      <div className="watchlist-add-row">
+        <select className="select compact-select" value={newSymbol} onChange={(e) => setNewSymbol(e.target.value)}>
           {AVAILABLE.map((symbol) => <option key={symbol}>{symbol}</option>)}
         </select>
-        <button className="button" onClick={addSymbol}>Add asset</button>
+        <button className="button compact-action" onClick={addSymbol}>Add</button>
       </div>
 
-      <div className="stack">
+      <div className="stack compact-watchlist-stack">
         {state.watchlist.map((symbol) => {
           const asset = assets.find((item) => item.symbol === symbol) || {
             symbol,
@@ -60,17 +63,25 @@ export default function WatchlistPanel({ state, setState, onAssetOpen }) {
           };
 
           return (
-            <div className="asset-row" key={symbol}>
-              <div>
-                <div className="asset-name">{asset.symbol} · {asset.name}</div>
-                <div className="asset-meta">{asset.story}</div>
+            <div className="asset-row compact-watch-card" key={symbol}>
+              <div className="compact-watch-header">
+                <div>
+                  <div className="asset-name">{asset.symbol}</div>
+                  <div className="muted small">{asset.name}</div>
+                </div>
+                <div className={`sentiment compact-sentiment ${asset.sentiment}`}>{asset.sentiment}</div>
               </div>
-              <div className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</div>
-              <div className="row">
-                <button className="ghost-button" onClick={() => selectSymbol(symbol)}>{state.selectedAsset === symbol ? 'Selected' : 'View'}</button>
-                <button className="ghost-button" onClick={() => removeSymbol(symbol)}>Remove</button>
+
+              <div className="muted small compact-watch-conviction">
+                {asset.conviction}% · {getConvictionTier(asset.conviction)}
               </div>
-              <div className="muted small">{asset.conviction}% · {getConvictionTier(asset.conviction)}</div>
+
+              <div className="compact-watch-actions">
+                <button className="ghost-button compact-ghost" onClick={() => selectSymbol(symbol)}>
+                  {state.selectedAsset === symbol ? 'Open' : 'View'}
+                </button>
+                <button className="ghost-button compact-ghost" onClick={() => removeSymbol(symbol)}>Remove</button>
+              </div>
             </div>
           );
         })}

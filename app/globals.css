@@ -672,3 +672,78 @@ button, input, select { font: inherit; }
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+
+.sync-mini {
+  display: grid;
+  gap: 8px;
+}
+
+.sync-inline-action {
+  min-height: 36px;
+  padding: 0 12px;
+  width: fit-content;
+}
+
+.compact-title {
+  margin-bottom: 2px;
+}
+
+.watchlist-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.compact-select,
+.compact-action,
+.compact-ghost {
+  min-height: 36px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.compact-action,
+.compact-ghost {
+  padding: 0 10px;
+}
+
+.compact-watchlist-stack {
+  gap: 10px;
+}
+
+.compact-watch-card {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 12px;
+}
+
+.compact-watch-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.compact-sentiment {
+  min-width: 0;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  text-transform: capitalize;
+}
+
+.compact-watch-conviction {
+  margin-top: -2px;
+}
+
+.compact-watch-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.watchlist-rail .compact-ghost,
+.watchlist-rail .compact-action,
+.watchlist-rail .compact-select {
+  width: 100%;
+}

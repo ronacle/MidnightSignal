@@ -3,7 +3,13 @@
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
 
-export default function HeroSection({ selected, user, status, lastSyncedAt, watchlistCount }) {
+export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls }) {
+  const isLocalOnly = !user;
+  const syncLabel = user ? (syncing ? 'Syncing…' : 'Cloud sync active') : 'Saved locally';
+  const syncDetail = user
+    ? (lastSyncedAt ? `Last synced ${formatTime(lastSyncedAt)}` : 'Your settings follow you across devices.')
+    : 'Your settings are on this device only until you connect sync.';
+
   return (
     <section className="hero hero-shell">
       <div className="stack hero-copy">
@@ -12,7 +18,7 @@ export default function HeroSection({ selected, user, status, lastSyncedAt, watc
             <BeaconLogo size={108} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow">Midnight Signal · v11.12</div>
+            <div className="eyebrow">Midnight Signal · v11.13.3</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
@@ -44,10 +50,19 @@ export default function HeroSection({ selected, user, status, lastSyncedAt, watc
           <div className="value">{selected.conviction}%</div>
           <div className="muted small">Alignment of the setup</div>
         </div>
-        <div className="mini">
+        <div className="mini sync-mini">
           <div className="eyebrow">Sync state</div>
-          <div className="value">{user ? 'Cloud ready' : 'Local mode'}</div>
-          <div className="muted small">{lastSyncedAt ? formatTime(lastSyncedAt) : status}</div>
+          <div className="value">{syncLabel}</div>
+          <div className="muted small">{syncDetail}</div>
+          {isLocalOnly ? (
+            <button className="ghost-button sync-inline-action" onClick={onOpenControls}>
+              Sync now
+            </button>
+          ) : (
+            <button className="ghost-button sync-inline-action" onClick={onOpenControls}>
+              Manage sync
+            </button>
+          )}
         </div>
         <div className="mini">
           <div className="eyebrow">Watchlist</div>
