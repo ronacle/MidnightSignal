@@ -27,7 +27,7 @@ function breakdownRows(asset, timeframe) {
   ];
 }
 
-export default function AssetDetailSheet({ asset, open, onClose, timeframe, onToggleWatchlist, inWatchlist }) {
+export default function AssetDetailSheet({ asset, open, onClose, timeframe, onToggleWatchlist, inWatchlist, onOpenLearning, onSetAlert }) {
   if (!asset) return null;
 
   const breakdown = breakdownRows(asset, timeframe);
@@ -77,8 +77,8 @@ export default function AssetDetailSheet({ asset, open, onClose, timeframe, onTo
             <button className="button" onClick={() => onToggleWatchlist?.(asset.symbol)}>
               {inWatchlist ? 'Remove from watchlist' : 'Add to watchlist'}
             </button>
-            <button className="ghost-button">Set alert</button>
-            <button className="ghost-button">Open learning context</button>
+            <button className="ghost-button" onClick={() => onSetAlert?.(asset)}>Set alert</button>
+            <button className="ghost-button" onClick={() => onOpenLearning?.(asset)}>Open learning context</button>
 
             <div className="list-item stack">
               <div className="row space-between">

@@ -32,6 +32,8 @@ export default function HomePage() {
   const [controlOpen, setControlOpen] = useState(false);
   const [learningOpen, setLearningOpen] = useState(false);
   const [detailAsset, setDetailAsset] = useState(null);
+  const [learningAsset, setLearningAsset] = useState(null);
+  const [alertAsset, setAlertAsset] = useState(null);
 
   const selected = useMemo(
     () => MARKET_FIXTURES.find((item) => item.symbol === state.selectedAsset) || MARKET_FIXTURES[0],
@@ -60,8 +62,8 @@ export default function HomePage() {
           user={user}
           status={status}
           onJump={jumpTo}
-          onOpenControls={() => setControlOpen(true)}
-          onOpenLearning={() => setLearningOpen(true)}
+          onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
+          onOpenLearning={() => { setLearningAsset(null); setLearningOpen(true); }}
         />
 
         <HeroSection
@@ -87,7 +89,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.12 · surface-first layout + panel system restore
+          Build v11.13.1 · wired detail sheet actions
         </div>
       </div>
 
@@ -104,8 +106,14 @@ export default function HomePage() {
         onSignOut={signOut}
         onRefresh={refreshFromCloud}
         supabaseReady={supabaseReady}
+        alertAsset={alertAsset}
       />
-      <LearningDrawer open={learningOpen} onClose={() => setLearningOpen(false)} state={state} />
+      <LearningDrawer
+        open={learningOpen}
+        onClose={() => setLearningOpen(false)}
+        state={state}
+        focusAsset={learningAsset}
+      />
       <AssetDetailSheet
         asset={detailAsset}
         open={Boolean(detailAsset)}
@@ -113,6 +121,18 @@ export default function HomePage() {
         timeframe={state.timeframe}
         onToggleWatchlist={toggleWatchlist}
         inWatchlist={detailAsset ? state.watchlist.includes(detailAsset.symbol) : false}
+        onOpenLearning={(asset) => {
+          setDetailAsset(null);
+          setControlOpen(false);
+          setLearningAsset(asset);
+          setLearningOpen(true);
+        }}
+        onSetAlert={(asset) => {
+          setDetailAsset(null);
+          setLearningOpen(false);
+          setAlertAsset(asset);
+          setControlOpen(true);
+        }}
       />
     </main>
   );

@@ -4,7 +4,7 @@ import AuthPanel from '@/components/AuthPanel';
 import DisclaimerCard from '@/components/DisclaimerCard';
 import SettingsPanel from '@/components/SettingsPanel';
 
-function PlaceholderPanel({ title, text }) {
+function PlaceholderPanel({ title, text, asset }) {
   return (
     <div className="panel stack compact-panel">
       <div className="row space-between">
@@ -12,11 +12,16 @@ function PlaceholderPanel({ title, text }) {
         <span className="badge">Panel</span>
       </div>
       <div className="muted small">{text}</div>
+      {asset ? (
+        <div className="notice">
+          Alert target: <strong>{asset.symbol}</strong> · {asset.name}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-export default function ControlDrawer({ open, onClose, state, setState, user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady }) {
+export default function ControlDrawer({ open, onClose, state, setState, user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, alertAsset }) {
   return (
     <div className={`drawer-root ${open ? 'open' : ''}`}>
       <button type="button" className="drawer-backdrop" onClick={onClose} aria-label="Close control panel" />
@@ -41,7 +46,7 @@ export default function ControlDrawer({ open, onClose, state, setState, user, st
             supabaseReady={supabaseReady}
           />
           <SettingsPanel state={state} setState={setState} />
-          <PlaceholderPanel title="Alert Settings" text="Alert controls live here so they do not compete with the main reading flow." />
+          <PlaceholderPanel title="Alert Settings" text={alertAsset ? 'This drawer opened from the asset detail sheet so you can set an alert for the selected asset.' : 'Alert controls live here so they do not compete with the main reading flow.'} asset={alertAsset} />
           <PlaceholderPanel title="Live Update Controls" text="Live-refresh and motion controls belong in the control drawer, not on the main page." />
           <DisclaimerCard state={state} setState={setState} />
         </div>
