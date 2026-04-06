@@ -1,7 +1,3 @@
-# Midnight Signal v11.9
-
-Auth flow upgrade with cleaner magic-link UX, safer Supabase bootstrapping, clearer sync state, and guarded cross-device polling.
-
 # Midnight Signal v11.8 — Cross-Device Account Sync
 
 This bundle is a clean build focused on syncing account state across devices.

@@ -9,7 +9,7 @@ export default function SettingsPanel({ state, setState }) {
     <div className="panel stack">
       <div className="row space-between">
         <h2 className="section-title">Session Settings</h2>
-        <span className="badge">Cross-device ready</span>
+        <span className="badge">Synced preferences</span>
       </div>
 
       <div className="controls">
@@ -48,6 +48,11 @@ export default function SettingsPanel({ state, setState }) {
             <option>4H</option>
           </select>
         </div>
+      </div>
+
+      <div className="trust-list compact">
+        <div className="trust-row"><span>Mode memory</span><strong>{state.mode} persists</strong></div>
+        <div className="trust-row"><span>Trade posture</span><strong>{state.strategy} / {state.timeframe}</strong></div>
       </div>
     </div>
   );
