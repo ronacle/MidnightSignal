@@ -3,8 +3,9 @@
 import AuthPanel from '@/components/AuthPanel';
 import DisclaimerCard from '@/components/DisclaimerCard';
 import SettingsPanel from '@/components/SettingsPanel';
+import AlertManagerPanel from '@/components/panels/AlertManagerPanel';
 
-function PlaceholderPanel({ title, text, asset }) {
+function PlaceholderPanel({ title, text }) {
   return (
     <div className="panel stack compact-panel">
       <div className="row space-between">
@@ -12,16 +13,11 @@ function PlaceholderPanel({ title, text, asset }) {
         <span className="badge">Panel</span>
       </div>
       <div className="muted small">{text}</div>
-      {asset ? (
-        <div className="notice">
-          Alert target: <strong>{asset.symbol}</strong> · {asset.name}
-        </div>
-      ) : null}
     </div>
   );
 }
 
-export default function ControlDrawer({ open, onClose, state, setState, user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, alertAsset }) {
+export default function ControlDrawer({ open, onClose, state, setState, user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, alertAsset, onConsumeAlertAsset }) {
   return (
     <div className={`drawer-root ${open ? 'open' : ''}`}>
       <button type="button" className="drawer-backdrop" onClick={onClose} aria-label="Close control panel" />
@@ -46,7 +42,7 @@ export default function ControlDrawer({ open, onClose, state, setState, user, st
             supabaseReady={supabaseReady}
           />
           <SettingsPanel state={state} setState={setState} />
-          <PlaceholderPanel title="Alert Settings" text={alertAsset ? 'This drawer opened from the asset detail sheet so you can set an alert for the selected asset.' : 'Alert controls live here so they do not compete with the main reading flow.'} asset={alertAsset} />
+          <AlertManagerPanel state={state} setState={setState} alertAsset={alertAsset} onConsumeAlertAsset={onConsumeAlertAsset} />
           <PlaceholderPanel title="Live Update Controls" text="Live-refresh and motion controls belong in the control drawer, not on the main page." />
           <DisclaimerCard state={state} setState={setState} />
         </div>

@@ -661,3 +661,14 @@ button, input, select { font: inherit; }
     justify-content: flex-start;
   }
 }
+
+
+.ghost-button.destructive {
+  border-color: rgba(255, 122, 122, 0.25);
+  color: #ffc2c2;
+}
+
+.button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

@@ -89,7 +89,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.13.1 · wired detail sheet actions
+          Build v11.13.2 · alert manager with edit/remove
         </div>
       </div>
 
@@ -107,6 +107,7 @@ export default function HomePage() {
         onRefresh={refreshFromCloud}
         supabaseReady={supabaseReady}
         alertAsset={alertAsset}
+        onConsumeAlertAsset={() => setAlertAsset(null)}
       />
       <LearningDrawer
         open={learningOpen}
