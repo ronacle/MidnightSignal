@@ -27,10 +27,6 @@ export default function TopSignal({ state }) {
         </div>
       </div>
 
-      <div className="notice small">
-        Cross-device note: your selected asset, mode, strategy, timeframe, watchlist, and disclaimer acceptance stay in sync when you sign in on another device.
-      </div>
-
       <div className="muted small">Last viewed: {formatTime(state.lastViewedAt)}</div>
     </div>
   );
