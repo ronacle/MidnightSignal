@@ -34,6 +34,7 @@ export default function HomePage() {
   const [detailAsset, setDetailAsset] = useState(null);
   const [learningAsset, setLearningAsset] = useState(null);
   const [alertAsset, setAlertAsset] = useState(null);
+  const [sinceHidden, setSinceHidden] = useState(false);
 
   const selected = useMemo(
     () => MARKET_FIXTURES.find((item) => item.symbol === state.selectedAsset) || MARKET_FIXTURES[0],
@@ -82,7 +83,19 @@ export default function HomePage() {
         </section>
 
         <section id="since-last-visit">
-          <SinceLastVisit state={state} lastSyncedAt={lastSyncedAt} />
+          {!sinceHidden ? (
+          <SinceLastVisit
+            state={state}
+            lastSyncedAt={lastSyncedAt}
+            onJump={() => jumpTo('top-signal')}
+            onDismiss={() => {
+              setSinceHidden(true);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('since-dismissed', 'true');
+              }
+            }}
+          />
+        ) : null}
         </section>
 
         <section className="market-grid" id="market-scan">
