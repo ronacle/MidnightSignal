@@ -6,7 +6,7 @@ import { getConvictionTier } from '@/lib/utils';
 
 const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
 
-export default function WatchlistPanel({ state, setState }) {
+export default function WatchlistPanel({ state, setState, onAssetOpen }) {
   const [newSymbol, setNewSymbol] = useState('LINK');
   const assets = useMemo(() => MARKET_FIXTURES, []);
 
@@ -25,6 +25,14 @@ export default function WatchlistPanel({ state, setState }) {
 
   function selectSymbol(symbol) {
     setState((previous) => ({ ...previous, selectedAsset: symbol }));
+    const asset = assets.find((item) => item.symbol === symbol) || {
+      symbol,
+      name: symbol,
+      conviction: 52,
+      sentiment: 'neutral',
+      story: 'Custom watchlist asset waiting for live feed wiring.'
+    };
+    onAssetOpen?.(asset);
   }
 
   return (

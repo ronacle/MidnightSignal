@@ -3,7 +3,7 @@
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { getConvictionTier } from '@/lib/utils';
 
-export default function Top20Grid({ state, setState }) {
+export default function Top20Grid({ state, setState, onAssetOpen }) {
   const assets = [
     ...MARKET_FIXTURES,
     { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
@@ -35,7 +35,10 @@ export default function Top20Grid({ state, setState }) {
             key={asset.symbol}
             type="button"
             className={`top20-card ${state.selectedAsset === asset.symbol ? 'active' : ''}`}
-            onClick={() => setState((prev) => ({ ...prev, selectedAsset: asset.symbol }))}
+            onClick={() => {
+              setState((prev) => ({ ...prev, selectedAsset: asset.symbol }));
+              onAssetOpen?.(asset);
+            }}
           >
             <div className="row space-between">
               <div>

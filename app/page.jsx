@@ -10,6 +10,7 @@ import Top20Grid from '@/components/signals/Top20Grid';
 import WatchlistPanel from '@/components/WatchlistPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
+import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { formatTime } from '@/lib/utils';
 import { useAccountSync } from '@/hooks/useAccountSync';
@@ -30,11 +31,21 @@ export default function HomePage() {
 
   const [controlOpen, setControlOpen] = useState(false);
   const [learningOpen, setLearningOpen] = useState(false);
+  const [detailAsset, setDetailAsset] = useState(null);
 
   const selected = useMemo(
     () => MARKET_FIXTURES.find((item) => item.symbol === state.selectedAsset) || MARKET_FIXTURES[0],
     [state.selectedAsset]
   );
+
+  function toggleWatchlist(symbol) {
+    setState((previous) => ({
+      ...previous,
+      watchlist: previous.watchlist.includes(symbol)
+        ? previous.watchlist.filter((item) => item !== symbol)
+        : [...previous.watchlist, symbol]
+    }));
+  }
 
   function jumpTo(id) {
     if (typeof document === 'undefined') return;
@@ -71,8 +82,8 @@ export default function HomePage() {
         </section>
 
         <section className="market-grid" id="market-scan">
-          <Top20Grid state={state} setState={setState} />
-          <WatchlistPanel state={state} setState={setState} />
+          <Top20Grid state={state} setState={setState} onAssetOpen={setDetailAsset} />
+          <WatchlistPanel state={state} setState={setState} onAssetOpen={setDetailAsset} />
         </section>
 
         <div className="footer-note">
@@ -95,6 +106,14 @@ export default function HomePage() {
         supabaseReady={supabaseReady}
       />
       <LearningDrawer open={learningOpen} onClose={() => setLearningOpen(false)} state={state} />
+      <AssetDetailSheet
+        asset={detailAsset}
+        open={Boolean(detailAsset)}
+        onClose={() => setDetailAsset(null)}
+        timeframe={state.timeframe}
+        onToggleWatchlist={toggleWatchlist}
+        inWatchlist={detailAsset ? state.watchlist.includes(detailAsset.symbol) : false}
+      />
     </main>
   );
 }
