@@ -938,3 +938,24 @@ button, input, select { font: inherit; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+
+.toggle-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px;
+}
+
+.toggle-row input {
+  margin-top: 3px;
+}
+
+.toggle-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
