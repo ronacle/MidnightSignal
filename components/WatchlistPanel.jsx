@@ -30,7 +30,7 @@ export default function WatchlistPanel({ state, setState }) {
   return (
     <div className="panel stack">
       <div className="row space-between">
-        <h2 className="section-title">Explore your watchlist</h2>
+        <h2 className="section-title">Watchlist</h2>
         <span className="badge">Synced with your account</span>
       </div>
 
@@ -52,7 +52,7 @@ export default function WatchlistPanel({ state, setState }) {
           };
 
           return (
-            <div className="asset-row watchlist-row" key={symbol}>
+            <div className="asset-row" key={symbol}>
               <div>
                 <div className="asset-name">{asset.symbol} · {asset.name}</div>
                 <div className="asset-meta">{asset.story}</div>
@@ -62,7 +62,7 @@ export default function WatchlistPanel({ state, setState }) {
                 <button className="ghost-button" onClick={() => selectSymbol(symbol)}>{state.selectedAsset === symbol ? 'Selected' : 'View'}</button>
                 <button className="ghost-button" onClick={() => removeSymbol(symbol)}>Remove</button>
               </div>
-              <div className="muted small">Direction: {asset.sentiment} · Conviction: {asset.conviction}% · {getConvictionTier(asset.conviction)}</div>
+              <div className="muted small">{asset.conviction}% · {getConvictionTier(asset.conviction)}</div>
             </div>
           );
         })}

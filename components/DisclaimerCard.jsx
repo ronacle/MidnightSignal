@@ -10,11 +10,7 @@ export default function DisclaimerCard({ state, setState }) {
         <span className="badge">{accepted ? 'Accepted' : 'Pending'}</span>
       </div>
       <div className="muted small">
-        Midnight Signal is an educational experience, not financial advice. This acceptance flag is preserved per account so you do not have to re-accept on every device.
-      </div>
-      <div className="trust-list compact">
-        <div className="trust-row"><span>Purpose</span><strong>Education first</strong></div>
-        <div className="trust-row"><span>Sync behavior</span><strong>{accepted ? 'Shared across devices' : 'Will sync after acceptance'}</strong></div>
+        Midnight Signal is an educational experience, not financial advice. This acceptance flag is synced per account so you do not have to re-accept on every device.
       </div>
       <button
         className={accepted ? 'ghost-button' : 'button'}
