@@ -1,0 +1,100 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import TopNav from '@/components/layout/TopNav';
+import HeroSection from '@/components/layout/HeroSection';
+import TopSignalCard from '@/components/signals/TopSignalCard';
+import TonightBrief from '@/components/signals/TonightBrief';
+import SinceLastVisit from '@/components/signals/SinceLastVisit';
+import Top20Grid from '@/components/signals/Top20Grid';
+import WatchlistPanel from '@/components/WatchlistPanel';
+import ControlDrawer from '@/components/panels/ControlDrawer';
+import LearningDrawer from '@/components/panels/LearningDrawer';
+import { MARKET_FIXTURES } from '@/lib/default-state';
+import { formatTime } from '@/lib/utils';
+import { useAccountSync } from '@/hooks/useAccountSync';
+
+export default function HomePage() {
+  const {
+    state,
+    setState,
+    user,
+    status,
+    syncing,
+    lastSyncedAt,
+    signInWithEmail,
+    signOut,
+    refreshFromCloud,
+    supabaseReady
+  } = useAccountSync();
+
+  const [controlOpen, setControlOpen] = useState(false);
+  const [learningOpen, setLearningOpen] = useState(false);
+
+  const selected = useMemo(
+    () => MARKET_FIXTURES.find((item) => item.symbol === state.selectedAsset) || MARKET_FIXTURES[0],
+    [state.selectedAsset]
+  );
+
+  function jumpTo(id) {
+    if (typeof document === 'undefined') return;
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  return (
+    <main className="page">
+      <div className="shell">
+        <TopNav
+          state={state}
+          user={user}
+          status={status}
+          onJump={jumpTo}
+          onOpenControls={() => setControlOpen(true)}
+          onOpenLearning={() => setLearningOpen(true)}
+        />
+
+        <HeroSection
+          selected={selected}
+          user={user}
+          status={status}
+          lastSyncedAt={lastSyncedAt}
+          watchlistCount={state.watchlist.length}
+        />
+
+        <section className="top-grid" id="top-signal">
+          <TopSignalCard state={state} />
+          <TonightBrief selected={selected} timeframe={state.timeframe} />
+        </section>
+
+        <section id="since-last-visit">
+          <SinceLastVisit state={state} lastSyncedAt={lastSyncedAt} />
+        </section>
+
+        <section className="market-grid" id="market-scan">
+          <Top20Grid state={state} setState={setState} />
+          <WatchlistPanel state={state} setState={setState} />
+        </section>
+
+        <div className="footer-note">
+          Build v11.12 · surface-first layout + panel system restore
+        </div>
+      </div>
+
+      <ControlDrawer
+        open={controlOpen}
+        onClose={() => setControlOpen(false)}
+        state={state}
+        setState={setState}
+        user={user}
+        status={status}
+        syncing={syncing}
+        lastSyncedAt={lastSyncedAt}
+        onSignIn={signInWithEmail}
+        onSignOut={signOut}
+        onRefresh={refreshFromCloud}
+        supabaseReady={supabaseReady}
+      />
+      <LearningDrawer open={learningOpen} onClose={() => setLearningOpen(false)} state={state} />
+    </main>
+  );
+}
