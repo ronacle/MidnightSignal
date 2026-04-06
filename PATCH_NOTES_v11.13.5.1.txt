@@ -1,0 +1,5 @@
+v11.13.5.1
+- moved Since Last Visit strip into the real hero copy area under the tagline
+- removed hero-strip flicker by waiting for localStorage hydration before render
+- kept live update controls from v11.13.5
+- preserved Next.js/Vercel package.json dependencies

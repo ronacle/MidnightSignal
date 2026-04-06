@@ -749,8 +749,9 @@ button, input, select { font: inherit; }
 }
 
 
+
 .hero-since-slot {
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .since-strip {
@@ -812,25 +813,6 @@ button, input, select { font: inherit; }
   color: var(--text);
   padding: 0 12px;
   cursor: pointer;
-}
-
-.toggle-row {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.02);
-  padding: 14px;
-}
-
-.toggle-row input {
-  margin-top: 3px;
-}
-
-.toggle-title {
-  font-weight: 600;
-  margin-bottom: 4px;
 }
 
 @media (max-width: 860px) {

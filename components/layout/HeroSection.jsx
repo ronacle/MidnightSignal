@@ -3,7 +3,7 @@
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
 
-export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, children }) {
+export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, sinceStrip = null }) {
   const isLocalOnly = !user;
   const syncLabel = user ? (syncing ? 'Syncing…' : 'Cloud sync active') : 'Saved locally';
   const syncDetail = user
@@ -26,8 +26,6 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             </p>
           </div>
         </div>
-
-        {children ? <div className="hero-since-slot">{children}</div> : null}
 
         <div className="hero-pill-row">
           <span className="badge glow-badge">Surface-first flow restored</span>

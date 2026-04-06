@@ -34,7 +34,8 @@ export default function HomePage() {
   const [detailAsset, setDetailAsset] = useState(null);
   const [learningAsset, setLearningAsset] = useState(null);
   const [alertAsset, setAlertAsset] = useState(null);
-  const [sinceHidden, setSinceHidden] = useState(false);
+  const [sinceHidden, setSinceHidden] = useState(true);
+  const [sinceReady, setSinceReady] = useState(false);
 
   const selected = useMemo(
     () => MARKET_FIXTURES.find((item) => item.symbol === state.selectedAsset) || MARKET_FIXTURES[0],
@@ -44,6 +45,7 @@ export default function HomePage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     setSinceHidden(window.localStorage.getItem('since-dismissed') === 'true');
+    setSinceReady(true);
   }, []);
 
   function toggleWatchlist(symbol) {
@@ -80,21 +82,7 @@ export default function HomePage() {
           watchlistCount={state.watchlist.length}
           syncing={syncing}
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
-        >
-          {!sinceHidden ? (
-            <SinceLastVisit
-              state={state}
-              lastSyncedAt={lastSyncedAt}
-              onJump={() => jumpTo('top-signal')}
-              onDismiss={() => {
-                setSinceHidden(true);
-                if (typeof window !== 'undefined') {
-                  window.localStorage.setItem('since-dismissed', 'true');
-                }
-              }}
-            />
-          ) : null}
-        </HeroSection>
+        />
 
         <section className="top-grid" id="top-signal">
           <TopSignalCard state={state} />
@@ -107,7 +95,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.13.5 · hero strip + live controls fix
+          Build v11.13.5.1 · hero strip placement + flicker fix
         </div>
       </div>
 
