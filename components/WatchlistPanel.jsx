@@ -28,7 +28,7 @@ export default function WatchlistPanel({ state, setState }) {
   }
 
   return (
-    <div className="panel stack">
+    <aside className="panel stack watchlist-rail">
       <div className="row space-between">
         <h2 className="section-title">Watchlist</h2>
         <span className="badge">Synced with your account</span>
@@ -67,6 +67,6 @@ export default function WatchlistPanel({ state, setState }) {
           );
         })}
       </div>
-    </div>
+    </aside>
   );
 }

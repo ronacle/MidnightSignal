@@ -394,6 +394,35 @@ button, input, select { font: inherit; }
   }
 }
 
+
+.watchlist-rail {
+  align-self: start;
+  position: sticky;
+  top: 88px;
+}
+
+.watchlist-rail .asset-row {
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.watchlist-rail .row {
+  align-items: stretch;
+}
+
+.watchlist-rail .ghost-button,
+.watchlist-rail .button,
+.watchlist-rail .select {
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .watchlist-rail {
+    position: static;
+    top: auto;
+  }
+}
+
 .top20-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
