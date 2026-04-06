@@ -3,12 +3,12 @@
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
 
-export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls }) {
+export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, sinceStrip = null }) {
   const isLocalOnly = !user;
   const syncLabel = user ? (syncing ? 'Syncing…' : 'Sync Active') : 'Saved locally';
   const syncDetail = user
     ? (lastSyncedAt ? `Last synced ${formatTime(lastSyncedAt)}` : 'Your settings follow you across devices.')
-    : 'Your settings are on this device only until you connect sync.';
+    : 'Saved locally on this device.';
 
   return (
     <section className="hero hero-shell">
@@ -24,6 +24,11 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
               Know the setup, the why, and act with more confidence.
             </p>
+            <div className="hero-support-copy">
+              <p>Start with the top signal, read the why, then scan the Top 20 for broader market context.</p>
+              <p>When signed in, your selected asset, mode, strategy, timeframe, watchlist, and disclaimer acceptance stay in sync across devices.</p>
+            </div>
+            {sinceStrip ? <div className="hero-since-slot">{sinceStrip}</div> : null}
           </div>
         </div>
 
