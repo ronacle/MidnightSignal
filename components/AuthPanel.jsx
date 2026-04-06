@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady }) {
+export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, clientError }) {
   const [email, setEmail] = useState('');
   const [feedback, setFeedback] = useState('');
 
@@ -22,7 +22,7 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
 
       {!supabaseReady && (
         <div className="notice small">
-          Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to enable cloud sync.
+          {clientError?.message || 'Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable cloud sync.'}
         </div>
       )}
 

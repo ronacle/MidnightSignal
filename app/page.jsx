@@ -20,7 +20,8 @@ export default function HomePage() {
     signInWithEmail,
     signOut,
     refreshFromCloud,
-    supabaseReady
+    supabaseReady,
+    clientError
   } = useAccountSync();
 
   const selected = MARKET_FIXTURES.find((item) => item.symbol === state.selectedAsset) || MARKET_FIXTURES[0];
@@ -83,6 +84,7 @@ export default function HomePage() {
               onSignOut={signOut}
               onRefresh={refreshFromCloud}
               supabaseReady={supabaseReady}
+              clientError={clientError}
             />
             <DisclaimerCard state={state} setState={setState} />
           </div>

@@ -19,14 +19,26 @@ function readLocalState() {
 }
 
 export function useAccountSync() {
-  const supabase = useMemo(() => getSupabaseBrowser(), []);
+  const [clientError, setClientError] = useState(null);
+  const supabase = useMemo(() => {
+    try {
+      return getSupabaseBrowser();
+    } catch (error) {
+      setClientError(error);
+      return null;
+    }
+  }, []);
+
   const [state, setState] = useState(DEFAULT_STATE);
   const [user, setUser] = useState(null);
-  const [status, setStatus] = useState('Local-only');
+  const [status, setStatus] = useState(clientError ? 'Supabase config missing' : 'Local-only');
   const [syncing, setSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const saveTimer = useRef(null);
   const hydrated = useRef(false);
+  const mountedRef = useRef(false);
+  const userRef = useRef(null);
+  const syncInFlight = useRef(false);
 
   const persistLocal = useCallback((next) => {
     if (typeof window === 'undefined') return;
@@ -34,40 +46,53 @@ export function useAccountSync() {
   }, []);
 
   const pushRemote = useCallback(async (draftState, currentUser) => {
-    if (!supabase || !currentUser) return;
+    if (!supabase || !currentUser || syncInFlight.current) return;
+    syncInFlight.current = true;
     setSyncing(true);
+
+    const now = new Date().toISOString();
     const payload = {
       user_id: currentUser.id,
       state: {
         ...draftState,
-        updatedAt: new Date().toISOString()
+        updatedAt: now
       },
-      updated_at: new Date().toISOString()
+      updated_at: now
     };
 
     const { error } = await supabase.from('user_state').upsert(payload, { onConflict: 'user_id' });
+
+    if (!mountedRef.current) return;
+
     if (!error) {
       setLastSyncedAt(payload.updated_at);
       setStatus('Synced across devices');
     } else {
       setStatus('Sync error — using local fallback');
-      console.error(error);
+      console.error('pushRemote failed', error);
     }
+
+    syncInFlight.current = false;
     setSyncing(false);
   }, [supabase]);
 
   const pullRemote = useCallback(async (currentUser, localState) => {
-    if (!supabase || !currentUser) return localState;
+    if (!supabase || !currentUser || syncInFlight.current) return localState;
+    syncInFlight.current = true;
     setStatus('Checking cloud state…');
+
     const { data, error } = await supabase
       .from('user_state')
       .select('state, updated_at')
       .eq('user_id', currentUser.id)
       .maybeSingle();
 
+    if (!mountedRef.current) return localState;
+
     if (error) {
-      console.error(error);
+      console.error('pullRemote failed', error);
       setStatus('Sync error — using local fallback');
+      syncInFlight.current = false;
       return localState;
     }
 
@@ -75,23 +100,20 @@ export function useAccountSync() {
     const remoteStamp = new Date(remoteState.updatedAt || data?.updated_at || 0).getTime();
     const localStamp = new Date(localState.updatedAt || 0).getTime();
 
-    if (!data) {
-      await pushRemote(localState, currentUser);
-      return localState;
-    }
-
-    if (localStamp > remoteStamp) {
+    if (!data || localStamp > remoteStamp) {
+      syncInFlight.current = false;
       await pushRemote(localState, currentUser);
       return localState;
     }
 
     setLastSyncedAt(remoteState.updatedAt || data?.updated_at || null);
     setStatus('Synced across devices');
+    syncInFlight.current = false;
     return remoteState;
   }, [pushRemote, supabase]);
 
   const scheduleRemoteSave = useCallback((nextState, currentUser) => {
-    if (!currentUser) return;
+    if (!currentUser || typeof window === 'undefined') return;
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       pushRemote(nextState, currentUser);
@@ -107,44 +129,49 @@ export function useAccountSync() {
         lastViewedAt: new Date().toISOString()
       };
       persistLocal(next);
-      if (typeof window !== 'undefined' && user) {
-        scheduleRemoteSave(next, user);
+      if (typeof window !== 'undefined' && userRef.current) {
+        scheduleRemoteSave(next, userRef.current);
       }
       return next;
     });
-  }, [persistLocal, scheduleRemoteSave, user]);
+  }, [persistLocal, scheduleRemoteSave]);
 
   const signInWithEmail = useCallback(async (email) => {
     if (!supabase) {
+      const error = new Error(clientError?.message || 'Missing Supabase credentials');
       setStatus('Add Supabase keys to enable account sync');
-      return { error: new Error('Missing Supabase credentials') };
+      return { error };
     }
-    const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+
+    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/` : undefined;
     const result = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: redirectTo }
     });
+
     if (!result.error) {
       setStatus('Magic link sent');
     }
     return result;
-  }, [supabase]);
+  }, [clientError, supabase]);
 
   const signOut = useCallback(async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
+    userRef.current = null;
     setUser(null);
     setStatus('Local-only');
   }, [supabase]);
 
   const refreshFromCloud = useCallback(async () => {
-    if (!user) return;
+    if (!userRef.current || syncInFlight.current) return;
     setSyncing(true);
-    const refreshed = await pullRemote(user, state);
+    const refreshed = await pullRemote(userRef.current, state);
+    if (!mountedRef.current) return;
     setState(refreshed);
     persistLocal(refreshed);
     setSyncing(false);
-  }, [persistLocal, pullRemote, state, user]);
+  }, [persistLocal, pullRemote, state]);
 
   useEffect(() => {
     const local = readLocalState();
@@ -153,48 +180,80 @@ export function useAccountSync() {
   }, []);
 
   useEffect(() => {
-    if (!supabase || !hydrated.current) return;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-    let mounted = true;
+  useEffect(() => {
+    if (!supabase || !hydrated.current) {
+      if (clientError) setStatus('Supabase config missing');
+      return;
+    }
 
-    supabase.auth.getUser().then(async ({ data }) => {
-      const currentUser = data?.user || null;
-      if (!mounted) return;
+    let cancelled = false;
+
+    async function bootstrap() {
+      const { data, error } = await supabase.auth.getSession();
+      if (cancelled || !mountedRef.current) return;
+      if (error) {
+        console.error('getSession failed', error);
+        setStatus('Auth session error');
+        return;
+      }
+
+      const currentUser = data.session?.user || null;
+      userRef.current = currentUser;
       setUser(currentUser);
-      if (!currentUser) return;
-      const local = readLocalState();
-      const merged = await pullRemote(currentUser, local);
-      if (!mounted) return;
-      setState(merged);
-      persistLocal(merged);
-    });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user || null;
-      setUser(currentUser);
       if (!currentUser) {
         setStatus('Local-only');
         return;
       }
+
       const local = readLocalState();
       const merged = await pullRemote(currentUser, local);
+      if (cancelled || !mountedRef.current) return;
+      setState(merged);
+      persistLocal(merged);
+    }
+
+    bootstrap();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (cancelled || !mountedRef.current) return;
+      const currentUser = session?.user || null;
+      userRef.current = currentUser;
+      setUser(currentUser);
+
+      if (!currentUser) {
+        setStatus('Local-only');
+        return;
+      }
+
+      const local = readLocalState();
+      const merged = await pullRemote(currentUser, local);
+      if (cancelled || !mountedRef.current) return;
       setState(merged);
       persistLocal(merged);
     });
 
-    const poll = window.setInterval(() => {
-      if (user) {
-        refreshFromCloud();
-      }
-    }, 30000);
+    const poll = typeof window !== 'undefined'
+      ? window.setInterval(() => {
+          if (userRef.current && !syncInFlight.current) {
+            refreshFromCloud();
+          }
+        }, 30000)
+      : null;
 
     return () => {
-      mounted = false;
+      cancelled = true;
       listener.subscription.unsubscribe();
-      window.clearInterval(poll);
-      window.clearTimeout(saveTimer.current);
+      if (poll) window.clearInterval(poll);
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
     };
-  }, [persistLocal, pullRemote, refreshFromCloud, supabase, user]);
+  }, [clientError, persistLocal, pullRemote, refreshFromCloud, supabase]);
 
   return {
     state,
@@ -206,6 +265,7 @@ export function useAccountSync() {
     signInWithEmail,
     signOut,
     refreshFromCloud,
-    supabaseReady: !!supabase
+    supabaseReady: !!supabase,
+    clientError
   };
 }
