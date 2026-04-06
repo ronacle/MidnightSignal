@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { MARKET_FIXTURES } from '@/lib/default-state';
-import { getConvictionTier } from '@/lib/utils';
 
 const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
 
@@ -16,11 +15,14 @@ export default function WatchlistPanel({ state, setState, onAssetOpen }) {
   }
 
   function removeSymbol(symbol) {
-    setState((previous) => ({
-      ...previous,
-      watchlist: previous.watchlist.filter((item) => item !== symbol),
-      selectedAsset: previous.selectedAsset === symbol ? previous.watchlist[0] || 'BTC' : previous.selectedAsset
-    }));
+    setState((previous) => {
+      const nextWatchlist = previous.watchlist.filter((item) => item !== symbol);
+      return {
+        ...previous,
+        watchlist: nextWatchlist,
+        selectedAsset: previous.selectedAsset === symbol ? (nextWatchlist[0] || 'BTC') : previous.selectedAsset
+      };
+    });
   }
 
   function selectSymbol(symbol) {
@@ -52,7 +54,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen }) {
         <button className="button compact-action" onClick={addSymbol}>Add</button>
       </div>
 
-      <div className="watchlist-compact-grid">
+      <div className="watchlist-rail-grid">
         {state.watchlist.map((symbol) => {
           const asset = assets.find((item) => item.symbol === symbol) || {
             symbol,
@@ -63,37 +65,36 @@ export default function WatchlistPanel({ state, setState, onAssetOpen }) {
           };
 
           return (
-            <div className="watchlist-compact-card" key={symbol}>
-              <div className="watchlist-compact-main">
-                <div className="watchlist-compact-symbol">{asset.symbol}</div>
-                <div className="watchlist-compact-name">{asset.name}</div>
+            <div className="watchlist-rail-card" key={symbol}>
+              <div className="watchlist-rail-top">
+                <div className="watchlist-rail-identity">
+                  <span className="watchlist-rail-symbol">{asset.symbol}</span>
+                  <span className="watchlist-rail-confidence">{asset.conviction}%</span>
+                </div>
+
+                <div className="watchlist-rail-actions">
+                  <button
+                    type="button"
+                    className="rail-icon-action"
+                    aria-label={`View ${asset.symbol}`}
+                    title={`View ${asset.symbol}`}
+                    onClick={() => selectSymbol(symbol)}
+                  >
+                    👁
+                  </button>
+                  <button
+                    type="button"
+                    className="rail-icon-action destructive"
+                    aria-label={`Remove ${asset.symbol}`}
+                    title={`Remove ${asset.symbol}`}
+                    onClick={() => removeSymbol(symbol)}
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
-              <div className="watchlist-compact-meta">
-                <span className="watchlist-meta-pill">{asset.conviction}%</span>
-                <span className="watchlist-meta-pill">{getConvictionTier(asset.conviction)}</span>
-              </div>
-
-              <div className="watchlist-compact-actions">
-                <button
-                  type="button"
-                  className="icon-action"
-                  aria-label={`View ${asset.symbol}`}
-                  title={`View ${asset.symbol}`}
-                  onClick={() => selectSymbol(symbol)}
-                >
-                  👁
-                </button>
-                <button
-                  type="button"
-                  className="icon-action destructive"
-                  aria-label={`Remove ${asset.symbol}`}
-                  title={`Remove ${asset.symbol}`}
-                  onClick={() => removeSymbol(symbol)}
-                >
-                  ✕
-                </button>
-              </div>
+              <div className="watchlist-rail-name" title={asset.name}>{asset.name}</div>
             </div>
           );
         })}

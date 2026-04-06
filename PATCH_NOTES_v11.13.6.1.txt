@@ -1,6 +1,0 @@
-v11.13.6.1
-- actually moved Since Last Visit into HeroSection under the tagline
-- removed old Since Last Visit section below Top Signal
-- added the two supporting hero lines under the main copy
-- rebuilt WatchlistPanel in a compact format without breaking existing props
-- kept Sync Active label trim

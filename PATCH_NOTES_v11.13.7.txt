@@ -1,0 +1,5 @@
+v11.13.7
+- rebuilt watchlist into a denser two-row rail layout
+- kept only symbol, name, confidence, view, and remove actions
+- reduced icon size and padding so actions stop dominating the card
+- increased watchlist density to fit more items per row on desktop

@@ -1,5 +1,0 @@
-v11.13.6
-- added two supporting hero copy lines under the Market Wisdom tagline
-- trimmed sync label from 'Cloud sync active' to 'Sync Active'
-- rebuilt watchlist into compact utility cards with ticker, name, confidence/conviction, view, and remove actions
-- kept Next.js/Vercel package.json dependencies in place

@@ -959,3 +959,126 @@ button, input, select { font: inherit; }
   font-weight: 600;
   margin-bottom: 4px;
 }
+
+
+
+.compact-watchlist-panel {
+  gap: 12px;
+}
+
+.watchlist-rail-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.watchlist-rail-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  min-width: 0;
+  transition: border-color 140ms ease, transform 140ms ease, background 140ms ease;
+}
+
+.watchlist-rail-card:hover {
+  border-color: rgba(120, 170, 255, 0.28);
+  background: rgba(255,255,255,0.045);
+  transform: translateY(-1px);
+}
+
+.watchlist-rail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.watchlist-rail-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.watchlist-rail-symbol {
+  font-weight: 800;
+  font-size: 0.98rem;
+  line-height: 1;
+}
+
+.watchlist-rail-confidence {
+  padding: 4px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  font-size: 0.72rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.watchlist-rail-name {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.watchlist-rail-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.rail-icon-action {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.rail-icon-action:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.rail-icon-action.destructive {
+  font-weight: 700;
+}
+
+@media (max-width: 1180px) {
+  .watchlist-rail-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .watchlist-rail-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .watchlist-rail-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .watchlist-rail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

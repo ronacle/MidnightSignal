@@ -1,5 +1,0 @@
-v11.13.6.2
-- restored Live Update Controls in the Control Drawer
-- preserved hero support-copy placement
-- preserved Since Last Visit strip in HeroSection
-- preserved compact watchlist and Sync Active label

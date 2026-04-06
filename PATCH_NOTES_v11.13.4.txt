@@ -1,5 +1,0 @@
-v11.13.4 patch:
-- Added package.json dependencies needed for Vercel/Next.js detection
-- Added @supabase/supabase-js dependency to fix build failure from lib/supabase-browser.js
-- Replaced bulky SinceLastVisit panel with compact strip
-- Wired Top Signal and Hide actions in app/page.jsx
