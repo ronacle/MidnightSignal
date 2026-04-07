@@ -1,0 +1,9 @@
+Midnight Signal v11.22.0 merged lead-signal flow
+
+Changes included:
+- Replaced separate Top Signal + Tonight's Brief cards with one lead panel
+- Lead panel now shows brief first and expands into the full signal breakdown on click
+- Moved Watchlist below the market scan so the top of page is easier to consume
+- Added new component: components/signals/LeadSignalPanel.jsx
+- Updated TopSignal.jsx to support embedded detail mode
+- Updated app/page.jsx and app/globals.css

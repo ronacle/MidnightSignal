@@ -396,14 +396,14 @@ button, input, select { font: inherit; }
 
 
 .watchlist-rail {
-  align-self: start;
+  align-self: flex-start;
   position: sticky;
   top: 88px;
 }
 
 .watchlist-rail .asset-row {
   grid-template-columns: 1fr;
-  align-items: start;
+  align-items: flex-start;
 }
 
 .watchlist-rail .row {
@@ -615,7 +615,7 @@ button, input, select { font: inherit; }
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  align-items: start;
+  align-items: flex-start;
   margin-bottom: 16px;
 }
 
@@ -720,7 +720,7 @@ button, input, select { font: inherit; }
 
 .compact-watch-header {
   display: flex;
-  align-items: start;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
 }
@@ -1226,7 +1226,7 @@ button, input, select { font: inherit; }
   display: grid;
   grid-template-columns: 1.25fr 0.75fr;
   gap: 12px;
-  align-items: start;
+  align-items: flex-start;
 }
 
 .compact-brief-main {
@@ -1264,7 +1264,7 @@ button, input, select { font: inherit; }
   display: flex;
   flex-direction: column;
   gap: 14px;
-  align-self: start;
+  align-self: flex-start;
 }
 
 .compact-brief-header {
@@ -1328,7 +1328,7 @@ button, input, select { font: inherit; }
 }
 
 .top-grid {
-  align-items: start;
+  align-items: flex-start;
 }
 
 @media (max-width: 900px) {
@@ -1405,4 +1405,67 @@ button, input, select { font: inherit; }
   .alert-pulse {
     animation: none !important;
   }
+}
+
+
+/* v11.22.0 merged lead signal flow */
+.lead-signal-panel {
+  gap: 14px;
+}
+
+.lead-signal-header .section-title {
+  margin-bottom: 6px;
+}
+
+.lead-signal-title {
+  margin: 0 0 6px;
+}
+
+.lead-identity-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.lead-badge-row {
+  gap: 8px;
+}
+
+.lead-brief-rows {
+  gap: 10px;
+}
+
+.lead-signal-actions {
+  margin-top: 2px;
+}
+
+.lead-signal-detail-wrap {
+  display: grid;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.top-signal-detail {
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.market-grid-single {
+  grid-template-columns: 1fr;
+}
+
+.watchlist-section {
+  display: grid;
+  gap: 12px;
+}
+
+.watchlist-section .watchlist-rail {
+  position: static;
+  top: auto;
 }
