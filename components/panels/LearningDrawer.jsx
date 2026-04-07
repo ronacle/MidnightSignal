@@ -2,9 +2,7 @@
 
 const GLOSSARY = [
   { term: 'Top Signal', beginner: 'The system-selected asset that currently ranks highest after the engine scores all tracked assets.', pro: 'Highest-ranked asset in the current model pass.' },
-  { term: 'Top Signal Brief</h2>
-      <div className="eyebrow lead-brief-eyebrow">Tonight</div>
-      <h2 className="section-title lead-brief-title"', beginner: 'A plain-English explanation of why the top signal is leading right now.', pro: 'Narrative summary of current signal leadership.' },
+  { term: 'Top Signal Brief', beginner: 'A plain-English explanation of why the top signal is leading right now.', pro: 'Narrative summary of current signal leadership.' },
   { term: 'Posture', beginner: 'A quick decision framing label like Favorable, Watch, Cautious, or Avoid so you can understand the setup at a glance.', pro: 'Action-oriented signal framing layer.' },
   { term: 'Market Regime', beginner: 'The current market environment, such as Trending, Chop, Directional, or Mixed. Regime changes how the engine weighs factors.', pro: 'Detected market state used for adaptive weighting.' },
   { term: 'Factor Breakdown', beginner: 'The ingredients behind the signal score, like momentum, trend, volume, relative strength, and volatility.', pro: 'Per-factor model contribution view.' },
