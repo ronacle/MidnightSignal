@@ -231,7 +231,7 @@ export default function HomePage() {
           watchlistCount={state.watchlist.length}
           syncing={syncing}
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
-
+        />
 
         <section className="top-grid" id="top-signal">
           <TopSignalCard
