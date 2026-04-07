@@ -1,0 +1,5 @@
+v11.21.2
+- removed Since Your Last Visit panel
+- replaced with lightweight alert indicator under hero
+- indicator shows unread alert count and quick access to Alert Center
+- reduces UI clutter and aligns with alert-driven flow

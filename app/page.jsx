@@ -86,7 +86,7 @@ export default function HomePage() {
         </section>
 
         <section id="since-last-visit">
-          <SinceLastVisit state={state} lastSyncedAt={lastSyncedAt} />
+          
         </section>
 
         <section className="market-grid" id="market-scan">

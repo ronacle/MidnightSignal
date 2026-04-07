@@ -753,3 +753,17 @@ button, input, select { font: inherit; }
   border-color: rgba(120, 170, 255, 0.35);
   background: rgba(255,255,255,0.05);
 }
+
+
+/* v11.21.2 alert indicator */
+.alert-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
