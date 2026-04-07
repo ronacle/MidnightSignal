@@ -24,6 +24,13 @@ function formatRelative(dateString) {
   return `${days}d ago`;
 }
 
+function getSessionLabel() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Morning scan';
+  if (hour < 17) return 'Midday check';
+  return 'Evening scan';
+}
+
 function getTonightRead(asset, decisionLayer, regimeSummary, validationSummary) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
   const regime = String(regimeSummary?.regime || '').toLowerCase();
@@ -62,7 +69,7 @@ function getWhyItMatters(asset, regimeSummary, topDrivers) {
 
 function getWhatChanged(asset, signalHistory, snapshot) {
   const current = asset?.symbol;
-  const previous = snapshot?.symbol || signalHistory?.[1]?.symbol ? (snapshot?.symbol ? snapshot : signalHistory?.[1]) : null;
+  const previous = snapshot?.symbol ? snapshot : signalHistory?.[1];
 
   if (!previous?.symbol || !current) {
     return 'This is the first stored snapshot, so there is no prior leader to compare yet.';
@@ -186,6 +193,44 @@ function getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers) {
   };
 }
 
+function getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers) {
+  const sentiment = String(asset?.sentiment || '').toLowerCase();
+  const validation = String(validationSummary?.scoreTrend || '').toLowerCase();
+  const regime = String(regimeSummary?.regime || '').toLowerCase();
+  const posture = decisionLayer?.posture || (sentiment === 'bullish' ? 'Constructive' : sentiment === 'bearish' ? 'Defensive' : 'Neutral');
+
+  let actionMode = 'Wait';
+  if (sentiment === 'bullish' && (validation.includes('strong') || regime.includes('trend') || regime.includes('risk-on'))) {
+    actionMode = 'Attack';
+  } else if (sentiment === 'bullish') {
+    actionMode = 'Probe';
+  } else if (sentiment === 'bearish') {
+    actionMode = 'Defend';
+  }
+
+  let approach = 'Stay patient and let the setup clarify before committing harder.';
+  if (actionMode === 'Attack') {
+    approach = 'Lean into continuation only if strength stays confirmed instead of chasing a weak push.';
+  } else if (actionMode == 'Probe') {
+    approach = 'Treat this as an early setup and size cautiously until confirmation improves.';
+  } else if (actionMode === 'Defend') {
+    approach = 'Favor risk control and let weak bounces prove otherwise before getting aggressive.';
+  }
+
+  let focus = 'Watch the next directional push.';
+  if (topDrivers.includes('volume')) {
+    focus = 'Volume support on the next move.';
+  } else if (topDrivers.includes('trend')) {
+    focus = 'Trend structure holding cleanly.';
+  } else if (topDrivers.includes('momentum')) {
+    focus = 'Momentum resolving with direction.';
+  } else if (topDrivers.includes('volatility')) {
+    focus = 'Whether expansion is controlled or chaotic.';
+  }
+
+  return { posture, actionMode, approach, focus };
+}
+
 export default function TonightBrief({
   asset,
   timeframe,
@@ -216,7 +261,9 @@ export default function TonightBrief({
   const watchTrigger = getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers);
   const sinceLastVisit = getSinceLastVisit(asset, state);
   const signalAlerts = getSignalAlerts(asset, regimeSummary, state);
+  const tonightPlan = getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers);
   const pulseEnabled = Boolean(state?.livePulseEnabled);
+  const sessionLabel = getSessionLabel();
 
   return (
     <section className="panel compact-brief-panel" id="brief">
@@ -227,6 +274,11 @@ export default function TonightBrief({
           <div className="eyebrow compact-brief-subtitle">Human translation of the lead setup</div>
         </div>
         <span className="badge compact-brief-badge">{timeframe}</span>
+      </div>
+
+      <div className="compact-brief-session">
+        <span className="compact-brief-session-label">Session</span>
+        <span className="compact-brief-session-value">{sessionLabel}</span>
       </div>
 
       <div className="compact-brief-since">
@@ -241,6 +293,27 @@ export default function TonightBrief({
           ))}
         </div>
       ) : null}
+
+      <div className="compact-brief-plan">
+        <div className="compact-brief-plan-header">
+          <div className="eyebrow">Tonight&apos;s Plan</div>
+          <span className={`badge compact-brief-plan-badge mode-${tonightPlan.actionMode.toLowerCase()}`}>{tonightPlan.actionMode}</span>
+        </div>
+        <div className="compact-brief-plan-grid">
+          <div className="compact-brief-plan-item">
+            <span className="compact-brief-plan-label">Posture</span>
+            <span className="compact-brief-plan-text">{tonightPlan.posture}</span>
+          </div>
+          <div className="compact-brief-plan-item">
+            <span className="compact-brief-plan-label">Approach</span>
+            <span className="compact-brief-plan-text">{tonightPlan.approach}</span>
+          </div>
+          <div className="compact-brief-plan-item">
+            <span className="compact-brief-plan-label">Focus</span>
+            <span className="compact-brief-plan-text">{tonightPlan.focus}</span>
+          </div>
+        </div>
+      </div>
 
       <div className="compact-brief-main">
         <div className={`value brief-value ${pulseEnabled ? 'live-signal-value' : ''}`}>
