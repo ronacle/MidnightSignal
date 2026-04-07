@@ -1,5 +1,0 @@
-v11.21.4.4
-- removed malformed HeroSection sinceStrip prop remnants from app/page.jsx
-- removed leftover SinceLastVisit import/state/effect references
-- kept since-last-visit hidden via CSS fallback
-- intended to fix the Unexpected token / empty prop build error in app/page.jsx

@@ -1,4 +1,0 @@
-v11.21.4.1
-- removed remaining SinceLastVisit runtime references from app/page.jsx
-- kept since-last-visit CSS fallback hidden
-- intended to fix ReferenceError: SinceLastVisit is not defined
