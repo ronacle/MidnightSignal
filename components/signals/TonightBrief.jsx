@@ -1,6 +1,12 @@
 'use client';
 
-export default function TonightBrief({ asset, timeframe, signalHistory = [], validationSummary = null, regimeSummary = null }) {
+export default function TonightBrief({
+  asset,
+  timeframe,
+  signalHistory = [],
+  validationSummary = null,
+  regimeSummary = null,
+}) {
   if (!asset) return null;
 
   const factorPairs = [
@@ -17,39 +23,63 @@ export default function TonightBrief({ asset, timeframe, signalHistory = [], val
     .map(([label]) => label);
 
   const previous = signalHistory[1];
+
   const changeLine = previous
     ? previous.symbol === asset.symbol
-      ? `Top signal unchanged (${asset.symbol}).`
-      : `Signal rotated from ${previous.symbol} to ${asset.symbol}.`
+      ? `${asset.symbol} remains the top signal.`
+      : `Top signal rotated from ${previous.symbol} to ${asset.symbol}.`
     : 'First stored snapshot.';
 
-  const regimeLine = regimeSummary
-    ? `Regime: ${regimeSummary.regime}.`
-    : 'Regime loading.';
+  const regimeLine = regimeSummary?.regime
+    ? regimeSummary.regime
+    : 'Loading';
+
+  const validationLine = validationSummary?.scoreTrend
+    ? validationSummary.scoreTrend
+    : null;
 
   return (
-    <div className="panel compact-brief-panel" id="brief">
-      <div className="row space-between">
+    <section className="panel compact-brief-panel" id="brief">
+      <div className="compact-brief-header">
         <div>
-          <h2 className="section-title">Tonight&apos;s Brief</h2>
+          <h2 className="section-title compact-brief-title">Tonight's Brief</h2>
           <div className="eyebrow compact-brief-subtitle">Why the top signal matters</div>
         </div>
-        <span className="badge">{timeframe}</span>
+        <span className="badge compact-brief-badge">{timeframe}</span>
       </div>
 
-      <div className="compact-brief-grid">
-        <div className="compact-brief-main">
-          <div className="value brief-value">{asset.symbol} · {asset.sentiment}</div>
-          <div className="muted">{asset.story}</div>
+      <div className="compact-brief-main">
+        <div className="value brief-value">
+          {asset.symbol} · {asset.sentiment}
+        </div>
+        <p className="muted compact-brief-story">{asset.story}</p>
+      </div>
+
+      <div className="compact-brief-rows">
+        {topDrivers.length ? (
+          <div className="compact-brief-row">
+            <span className="compact-brief-label">Drivers</span>
+            <span className="compact-brief-text">{topDrivers.join(' · ')}</span>
+          </div>
+        ) : null}
+
+        <div className="compact-brief-row">
+          <span className="compact-brief-label">Regime</span>
+          <span className="compact-brief-text">{regimeLine}</span>
         </div>
 
-        <div className="compact-brief-side">
-          {topDrivers.length ? <div className="compact-brief-chip">Drivers: {topDrivers.join(' · ')}</div> : null}
-          <div className="compact-brief-chip">{regimeLine}</div>
-          <div className="compact-brief-chip">{changeLine}</div>
-          {validationSummary ? <div className="compact-brief-chip">Validation: {validationSummary.scoreTrend}</div> : null}
+        <div className="compact-brief-row">
+          <span className="compact-brief-label">Shift</span>
+          <span className="compact-brief-text">{changeLine}</span>
         </div>
+
+        {validationLine ? (
+          <div className="compact-brief-row">
+            <span className="compact-brief-label">Validation</span>
+            <span className="compact-brief-text">{validationLine}</span>
+          </div>
+        ) : null}
       </div>
-    </div>
+    </section>
   );
 }
