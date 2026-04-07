@@ -1,1 +1,0 @@
-v11.14.0\n- decoupled Tonight's Top Signal from selectedAsset\n- decoupled Tonight's Brief from selectedAsset\n- added live market fetch from /api/market and merged it into ranked signal selection\n- Top 20 click now only changes selected/detail asset while Top Signal stays system-selected\n- footer now shows current signal source\n

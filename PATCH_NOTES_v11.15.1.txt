@@ -1,6 +1,0 @@
-v11.15.1
-- preserved v11.15.0 factor signal engine
-- restored Live Update Controls in Control Drawer
-- restored Sync Active label in hero
-- restored Since Last Visit strip into hero area and removed old section
-- restored condensed watchlist rail layout

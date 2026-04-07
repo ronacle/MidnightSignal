@@ -21,7 +21,6 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <div className="eyebrow">Midnight Signal · v11.13.3</div>
             <h1>What’s the signal tonight?</h1>
             <p>
-              Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
               Know the setup, the why, and act with more confidence.
             </p>
             <div className="hero-support-copy">
@@ -33,9 +32,11 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
         </div>
 
         <div className="hero-pill-row">
-          <span className="badge glow-badge">Surface-first flow restored</span>
-          <span className="badge">Learning drawer</span>
-          <span className="badge">Controls drawer</span>
+          Transforming        
+          <span className="badge glow-badge">Data</span>→
+          <span className="badge">Information</span>→
+          <span className="badge">Knowledge</span>→
+          <span className="badge">Wisdom</span>
         </div>
       </div>
 
