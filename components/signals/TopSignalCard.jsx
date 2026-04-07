@@ -10,7 +10,9 @@ export default function TopSignalCard({
   marketReady,
   signalHistory = [],
   validationSummary = null,
-  regimeSummary = null
+  regimeSummary = null,
+  forwardValidation = [],
+  forwardScorecard = null
 }) {
   return (
     <TopSignal
@@ -22,6 +24,8 @@ export default function TopSignalCard({
       signalHistory={signalHistory}
       validationSummary={validationSummary}
       regimeSummary={regimeSummary}
+      forwardValidation={forwardValidation}
+      forwardScorecard={forwardScorecard}
     />
   );
 }

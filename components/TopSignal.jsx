@@ -10,7 +10,9 @@ export default function TopSignal({
   marketReady,
   signalHistory = [],
   validationSummary = null,
-  regimeSummary = null
+  regimeSummary = null,
+  forwardValidation = [],
+  forwardScorecard = null
 }) {
   if (!asset) return null;
 
@@ -23,6 +25,7 @@ export default function TopSignal({
   ].filter(([, value]) => typeof value === 'number');
 
   const recent = signalHistory.slice(0, 4);
+  const forwardRecent = forwardValidation.slice(0, 5);
   const tf = asset?.timeframe || {};
 
   return (
@@ -75,7 +78,7 @@ export default function TopSignal({
         <div className="eyebrow">Factor breakdown</div>
         <div className="factor-grid">
           {factorRows.map(([label, value]) => (
-            <div key={label} className="factor-chip">
+            <div className="factor-chip" key={label}>
               <span>{label}</span>
               <strong>{value}</strong>
             </div>
@@ -108,6 +111,46 @@ export default function TopSignal({
           </div>
         </div>
       ) : null}
+
+      {forwardScorecard ? (
+        <div className="factor-block">
+          <div className="eyebrow">Forward scorecard</div>
+          <div className="factor-grid">
+            <div className="factor-chip"><span>Tracked signals</span><strong>{forwardScorecard.trackedSignals}</strong></div>
+            <div className="factor-chip"><span>Scored signals</span><strong>{forwardScorecard.scoredSignals}</strong></div>
+            <div className="factor-chip"><span>Hit rate</span><strong>{forwardScorecard.hitRate ?? '—'}{forwardScorecard.hitRate !== null ? '%' : ''}</strong></div>
+            <div className="factor-chip"><span>Avg 1h</span><strong>{forwardScorecard.avg1h ?? '—'}{forwardScorecard.avg1h !== null ? '%' : ''}</strong></div>
+            <div className="factor-chip"><span>Avg 4h</span><strong>{forwardScorecard.avg4h ?? '—'}{forwardScorecard.avg4h !== null ? '%' : ''}</strong></div>
+            <div className="factor-chip"><span>Avg 24h</span><strong>{forwardScorecard.avg24h ?? '—'}{forwardScorecard.avg24h !== null ? '%' : ''}</strong></div>
+          </div>
+
+          {forwardScorecard.regimePerformance?.length ? (
+            <div className="history-stack">
+              {forwardScorecard.regimePerformance.map((entry) => (
+                <div className="history-row" key={entry.regime}>
+                  <span>{entry.regime}</span>
+                  <span>{entry.avgReturn ?? '—'}{entry.avgReturn !== null ? '%' : ''}</span>
+                  <span>{entry.samples} samples</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="factor-block">
+        <div className="eyebrow">Forward signal log</div>
+        <div className="history-stack">
+          {forwardRecent.length ? forwardRecent.map((entry) => (
+            <div className="history-row" key={entry.id}>
+              <span>{entry.symbol}</span>
+              <span>{entry.score}%</span>
+              <span>{entry.regime}</span>
+              <span>1h {entry.checkpoints?.['1h']?.returnPct ?? '—'}% · 4h {entry.checkpoints?.['4h']?.returnPct ?? '—'}% · 24h {entry.checkpoints?.['24h']?.returnPct ?? '—'}%</span>
+            </div>
+          )) : <div className="muted small">No forward validation signals tracked yet.</div>}
+        </div>
+      </div>
 
       <div className="row">
         <div className="muted small">

@@ -15,6 +15,7 @@ import { MARKET_FIXTURES } from '@/lib/default-state';
 import { useAccountSync } from '@/hooks/useAccountSync';
 import { rankAssets, buildSignalSnapshot, detectMarketRegime } from '@/lib/signal-engine';
 import { appendSignalSnapshot, buildValidationSummary, readSignalHistory } from '@/lib/signal-history';
+import { buildForwardScorecard, readForwardValidation, updateForwardCheckpoints, upsertForwardSignal, writeForwardValidation } from '@/lib/signal-forward-validation';
 
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
@@ -79,9 +80,11 @@ export default function HomePage() {
   const [marketUpdatedAt, setMarketUpdatedAt] = useState(null);
   const [marketReady, setMarketReady] = useState(false);
   const [signalHistory, setSignalHistory] = useState([]);
+  const [forwardValidation, setForwardValidation] = useState([]);
 
   useEffect(() => {
     setSignalHistory(readSignalHistory());
+    setForwardValidation(readForwardValidation());
   }, []);
 
   useEffect(() => {
@@ -147,6 +150,11 @@ export default function HomePage() {
     [rankedAssets]
   );
 
+  const forwardScorecard = useMemo(
+    () => buildForwardScorecard(forwardValidation),
+    [forwardValidation]
+  );
+
   const validationSummary = useMemo(
     () => buildValidationSummary(signalHistory),
     [signalHistory]
@@ -157,6 +165,16 @@ export default function HomePage() {
     const next = appendSignalSnapshot(buildSignalSnapshot(topSignal, marketSource));
     setSignalHistory(next);
   }, [topSignal, marketSource, marketReady]);
+
+  useEffect(() => {
+    if (!topSignal || !marketReady) return;
+    setForwardValidation((previous) => {
+      const seeded = upsertForwardSignal(previous, topSignal, regimeSummary?.regime, marketSource);
+      const updated = updateForwardCheckpoints(seeded, liveItems);
+      writeForwardValidation(updated);
+      return updated;
+    });
+  }, [topSignal, regimeSummary, marketSource, marketReady, liveItems]);
 
   function toggleWatchlist(symbol) {
     setState((previous) => ({
@@ -219,6 +237,8 @@ export default function HomePage() {
             signalHistory={signalHistory}
             validationSummary={validationSummary}
             regimeSummary={regimeSummary}
+            forwardValidation={forwardValidation}
+            forwardScorecard={forwardScorecard}
           />
           <TonightBrief
             asset={topSignal}
@@ -235,7 +255,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.17.0 · factor signal engine + restored UX fixes · source: {marketSource}
+          Build v11.18.0 · factor signal engine + restored UX fixes · source: {marketSource}
         </div>
       </div>
 
