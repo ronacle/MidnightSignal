@@ -233,7 +233,7 @@ export default function HomePage() {
           watchlistCount={state.watchlist.length}
           syncing={syncing}
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
-          sinceStrip={
+          /* sinceStrip={
             sinceReady && !sinceHidden ? (
               <SinceLastVisit
                 state={state}
@@ -247,7 +247,7 @@ export default function HomePage() {
                 }}
               />
             ) : null
-          }
+          } */
         />
 
         <section className="top-grid" id="top-signal">
