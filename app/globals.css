@@ -1206,7 +1206,7 @@ button, input, select { font: inherit; }
 }
 
 
-/* v11.21.4.5 clean remove since + compact brief */
+/* v11.21.4.7 clean keep-intelligence + compact brief */
 #since-last-visit {
   display: none !important;
 }
@@ -1253,6 +1253,3 @@ button, input, select { font: inherit; }
     grid-template-columns: 1fr;
   }
 }
-
-/* v11.21.4.6 jsx fix */
-#since-last-visit{display:none!important;}

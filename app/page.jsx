@@ -74,13 +74,15 @@ export default function HomePage() {
   const [detailAsset, setDetailAsset] = useState(null);
   const [learningAsset, setLearningAsset] = useState(null);
   const [alertAsset, setAlertAsset] = useState(null);
+  const [sinceHidden, setSinceHidden] = useState(true);
+  const [sinceReady, setSinceReady] = useState(false);
   const [liveItems, setLiveItems] = useState([]);
   const [marketSource, setMarketSource] = useState('fallback');
   const [marketUpdatedAt, setMarketUpdatedAt] = useState(null);
   const [marketReady, setMarketReady] = useState(false);
   const [signalHistory, setSignalHistory] = useState([]);
   const [forwardValidation, setForwardValidation] = useState([]);
-  const [adaptiveWeights, setAdaptiveWeights] = useState();
+  const [adaptiveWeights, setAdaptiveWeights] = useState({});
 
   useEffect(() => {
     setSignalHistory(readSignalHistory());
@@ -123,6 +125,12 @@ export default function HomePage() {
       cancelled = true;
       window.clearInterval(timer);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setSinceHidden(window.localStorage.getItem('since-dismissed') === 'true');
+    setSinceReady(true);
   }, []);
 
   const rankedAssets = useMemo(
@@ -214,8 +222,8 @@ export default function HomePage() {
           status={status}
           onJump={jumpTo}
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
-          onOpenLearning={() => { setLearningAsset(null); setLearningOpen(true); }
-            />
+          onOpenLearning={() => { setLearningAsset(null); setLearningOpen(true); }}
+        />
 
         <HeroSection
           selected={topSignal}
@@ -225,11 +233,22 @@ export default function HomePage() {
           watchlistCount={state.watchlist.length}
           syncing={syncing}
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
-                }
-            />
+          sinceStrip={
+            sinceReady && !sinceHidden ? (
+              <SinceLastVisit
+                state={state}
+                lastSyncedAt={lastSyncedAt}
+                onJump={() => jumpTo('top-signal')}
+                onDismiss={() => {
+                  setSinceHidden(true);
+                  if (typeof window !== 'undefined') {
+                    window.localStorage.setItem('since-dismissed', 'true');
+                  }
+                }}
+              />
             ) : null
-          
-            />
+          }
+        />
 
         <section className="top-grid" id="top-signal">
           <TopSignalCard
@@ -244,15 +263,15 @@ export default function HomePage() {
             forwardValidation={forwardValidation}
             forwardScorecard={forwardScorecard}
             adaptiveSummary={adaptiveSummary}
-            decisionLayer={decisionLayer
-            />
+            decisionLayer={decisionLayer}
+          />
           <TonightBrief
             asset={topSignal}
             timeframe={state.timeframe}
             signalHistory={signalHistory}
             validationSummary={validationSummary}
-            regimeSummary={regimeSummary
-            />
+            regimeSummary={regimeSummary}
+          />
         </section>
 
         <section className="market-grid" id="market-scan">
@@ -261,7 +280,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.21.4.6 · factor signal engine + restored UX fixes · source: {marketSource}
+          Build v11.21.4.7 · factor signal engine + restored UX fixes · source: {marketSource}
         </div>
       </div>
 
@@ -279,14 +298,14 @@ export default function HomePage() {
         onRefresh={refreshFromCloud}
         supabaseReady={supabaseReady}
         alertAsset={alertAsset}
-        onConsumeAlertAsset={() => setAlertAsset(null)
-            />
+        onConsumeAlertAsset={() => setAlertAsset(null)}
+      />
       <LearningDrawer
         open={learningOpen}
         onClose={() => setLearningOpen(false)}
         state={state}
-        focusAsset={learningAsset
-            />
+        focusAsset={learningAsset}
+      />
       <AssetDetailSheet
         asset={detailAsset || selected}
         open={Boolean(detailAsset)}
@@ -305,8 +324,8 @@ export default function HomePage() {
           setLearningOpen(false);
           setAlertAsset(asset);
           setControlOpen(true);
-        }
-            />
+        }}
+      />
     </main>
   );
 }
