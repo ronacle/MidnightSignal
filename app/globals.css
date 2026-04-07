@@ -1253,3 +1253,6 @@ button, input, select { font: inherit; }
     grid-template-columns: 1fr;
   }
 }
+
+/* v11.21.4.6 jsx fix */
+#since-last-visit{display:none!important;}
