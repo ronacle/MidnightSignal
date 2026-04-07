@@ -1,6 +1,6 @@
 'use client';
 
-export default function TonightBrief({ asset, timeframe, signalHistory = [], validationSummary = null }) {
+export default function TonightBrief({ asset, timeframe, signalHistory = [], validationSummary = null, regimeSummary = null }) {
   if (!asset) return null;
 
   const factorPairs = [
@@ -23,6 +23,10 @@ export default function TonightBrief({ asset, timeframe, signalHistory = [], val
       : `The lead asset changed from ${previous.symbol} to ${asset.symbol}, so market leadership is rotating.`
     : 'This is the first stored snapshot for the current signal history.';
 
+  const regimeLine = regimeSummary
+    ? `Current regime: ${regimeSummary.regime}. This engine adapts factor weighting to fit the broader market character.`
+    : 'Current regime data is still loading.';
+
   return (
     <div className="panel stack" id="brief">
       <div className="row space-between">
@@ -40,9 +44,8 @@ export default function TonightBrief({ asset, timeframe, signalHistory = [], val
           </div>
         ) : null}
 
-        <div className="notice small">
-          {changeLine}
-        </div>
+        <div className="notice small">{regimeLine}</div>
+        <div className="notice small">{changeLine}</div>
 
         {validationSummary ? (
           <div className="notice small">

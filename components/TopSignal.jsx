@@ -9,7 +9,8 @@ export default function TopSignal({
   marketUpdatedAt,
   marketReady,
   signalHistory = [],
-  validationSummary = null
+  validationSummary = null,
+  regimeSummary = null
 }) {
   if (!asset) return null;
 
@@ -22,6 +23,7 @@ export default function TopSignal({
   ].filter(([, value]) => typeof value === 'number');
 
   const recent = signalHistory.slice(0, 4);
+  const tf = asset?.timeframe || {};
 
   return (
     <div className="panel stack">
@@ -48,6 +50,27 @@ export default function TopSignal({
         This signal is chosen automatically from the ranked factor model and stays separate from the asset you click for details.
       </div>
 
+      {regimeSummary ? (
+        <div className="factor-block">
+          <div className="eyebrow">Market regime</div>
+          <div className="regime-row">
+            <span className="badge">{regimeSummary.regime}</span>
+            <span className="muted small">Avg move: {Number(regimeSummary.avgChange24h || 0).toFixed(2)}%</span>
+            <span className="muted small">Breadth: {Math.round((regimeSummary.bullishBreadth || 0) * 100)}% bullish</span>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="factor-block">
+        <div className="eyebrow">Multi-timeframe read</div>
+        <div className="factor-grid">
+          <div className="factor-chip"><span>5m</span><strong>{tf.tf5m ?? '—'}</strong></div>
+          <div className="factor-chip"><span>15m</span><strong>{tf.tf15m ?? '—'}</strong></div>
+          <div className="factor-chip"><span>1h</span><strong>{tf.tf1h ?? '—'}</strong></div>
+          <div className="factor-chip"><span>MTF Momentum</span><strong>{tf.mtfMomentum ?? '—'}</strong></div>
+        </div>
+      </div>
+
       <div className="factor-block">
         <div className="eyebrow">Factor breakdown</div>
         <div className="factor-grid">
@@ -67,6 +90,7 @@ export default function TopSignal({
             <div className="history-row" key={`${entry.symbol}-${entry.timestamp}-${index}`}>
               <span>{entry.symbol}</span>
               <span>{entry.signalScore}%</span>
+              <span>{entry.regime || 'Mixed'}</span>
               <span>{formatTime(entry.timestamp)}</span>
             </div>
           )) : <div className="muted small">No snapshots yet.</div>}

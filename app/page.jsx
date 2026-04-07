@@ -13,7 +13,7 @@ import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { useAccountSync } from '@/hooks/useAccountSync';
-import { rankAssets, buildSignalSnapshot } from '@/lib/signal-engine';
+import { rankAssets, buildSignalSnapshot, detectMarketRegime } from '@/lib/signal-engine';
 import { appendSignalSnapshot, buildValidationSummary, readSignalHistory } from '@/lib/signal-history';
 
 const EXTRA_SCAN_ASSETS = [
@@ -142,6 +142,11 @@ export default function HomePage() {
     [rankedAssets, state.selectedAsset, topSignal]
   );
 
+  const regimeSummary = useMemo(
+    () => detectMarketRegime(rankedAssets),
+    [rankedAssets]
+  );
+
   const validationSummary = useMemo(
     () => buildValidationSummary(signalHistory),
     [signalHistory]
@@ -213,12 +218,14 @@ export default function HomePage() {
             marketReady={marketReady}
             signalHistory={signalHistory}
             validationSummary={validationSummary}
+            regimeSummary={regimeSummary}
           />
           <TonightBrief
             asset={topSignal}
             timeframe={state.timeframe}
             signalHistory={signalHistory}
             validationSummary={validationSummary}
+            regimeSummary={regimeSummary}
           />
         </section>
 
@@ -228,7 +235,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.16.0 · factor signal engine + restored UX fixes · source: {marketSource}
+          Build v11.17.0 · factor signal engine + restored UX fixes · source: {marketSource}
         </div>
       </div>
 

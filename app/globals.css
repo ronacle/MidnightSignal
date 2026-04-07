@@ -1156,3 +1156,13 @@ button, input, select { font: inherit; }
     align-items: flex-start;
   }
 }
+
+
+
+/* v11.17.0 regime-aware + MTF */
+.regime-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
