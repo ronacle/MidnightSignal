@@ -12,6 +12,9 @@ export default function TonightBrief({ selected, timeframe }) {
         <div className="value brief-value">{selected.symbol} · {selected.sentiment}</div>
         <div className="muted">{selected.story}</div>
       </div>
+      <div className="notice small">
+        Start with the top signal, read the why, then scan the Top 20 for broader market context.
+      </div>
     </div>
   );
 }

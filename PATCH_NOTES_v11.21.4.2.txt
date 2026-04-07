@@ -1,0 +1,5 @@
+v11.21.4.2
+- removed broken empty sinceStrip ternary from HeroSection usage
+- removed leftover SinceLastVisit state/effect references from app/page.jsx
+- kept Since Your Last Visit hidden via CSS fallback
+- intended to fix the app/page.jsx parenthesized expression build error

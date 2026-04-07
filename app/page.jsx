@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
 import TopSignalCard from '@/components/signals/TopSignalCard';
@@ -33,19 +33,11 @@ export default function HomePage() {
   const [detailAsset, setDetailAsset] = useState(null);
   const [learningAsset, setLearningAsset] = useState(null);
   const [alertAsset, setAlertAsset] = useState(null);
-  const [sinceHidden, setSinceHidden] = useState(true);
-  const [sinceReady, setSinceReady] = useState(false);
 
   const selected = useMemo(
     () => MARKET_FIXTURES.find((item) => item.symbol === state.selectedAsset) || MARKET_FIXTURES[0],
     [state.selectedAsset]
   );
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    setSinceHidden(window.localStorage.getItem('since-dismissed') === 'true');
-    setSinceReady(true);
-  }, []);
 
   function toggleWatchlist(symbol) {
     setState((previous) => ({
@@ -81,18 +73,12 @@ export default function HomePage() {
           watchlistCount={state.watchlist.length}
           syncing={syncing}
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
-          sinceStrip={
-            sinceReady && !sinceHidden ? (
-              
-            ) : null
-          }
         />
 
         <section className="top-grid" id="top-signal">
           <TopSignalCard state={state} />
           <TonightBrief selected={selected} timeframe={state.timeframe} />
         </section>
-
 
         <section className="market-grid" id="market-scan">
           <Top20Grid state={state} setState={setState} onAssetOpen={setDetailAsset} />
