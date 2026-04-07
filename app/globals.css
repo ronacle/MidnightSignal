@@ -1256,7 +1256,8 @@ button, input, select { font: inherit; }
 }
  */
 
- .compact-brief-panel {
+/* Tonight's Brief: interpretation panel */
+.compact-brief-panel {
   padding: 18px 18px 16px;
   min-height: unset;
   height: auto;
@@ -1279,6 +1280,10 @@ button, input, select { font: inherit; }
 
 .compact-brief-subtitle {
   margin: 0;
+}
+
+.compact-brief-badge {
+  flex-shrink: 0;
 }
 
 .compact-brief-main {
@@ -1320,6 +1325,10 @@ button, input, select { font: inherit; }
 .compact-brief-text {
   text-align: right;
   line-height: 1.35;
+}
+
+.top-grid {
+  align-items: start;
 }
 
 @media (max-width: 900px) {
