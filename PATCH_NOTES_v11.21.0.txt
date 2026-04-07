@@ -1,0 +1,6 @@
+v11.21.0
+- added meaningful alert rules for top-signal changes, posture changes, regime shifts, score thresholds, and validation drops
+- added Alert Center drawer with beginner/pro alert wording
+- added alert persistence and mark-read behavior
+- added alert terms to the Learning Panel glossary
+- preserved decision layer, adaptive weights, forward scorecard, regime-aware engine, watchlist, hero fixes, and live controls

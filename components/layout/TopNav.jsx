@@ -1,6 +1,6 @@
 'use client';
 
-export default function TopNav({ state, user, status, onJump, onOpenControls, onOpenLearning }) {
+export default function TopNav({ state, user, status, onJump, onOpenControls, onOpenLearning, onOpenAlerts }) {
   const links = [
     ['top-signal', 'Top Signal'],
     ['since-last-visit', 'Since Last Visit'],
