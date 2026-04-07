@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
-import TopSignalCard from '@/components/signals/TopSignalCard';
-import TonightBrief from '@/components/signals/TonightBrief';
 import Top20Grid from '@/components/signals/Top20Grid';
+import LeadSignalPanel from '@/components/signals/LeadSignalPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
@@ -232,8 +231,8 @@ export default function HomePage() {
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
         />
 
-        <section className="top-grid" id="top-signal">
-          <TopSignalCard
+        <section className="top-grid lead-flow-grid">
+          <LeadSignalPanel
             asset={topSignal}
             state={state}
             marketSource={marketSource}
@@ -247,13 +246,6 @@ export default function HomePage() {
             adaptiveSummary={adaptiveSummary}
             decisionLayer={decisionLayer}
           />
-          <TonightBrief
-            asset={topSignal}
-            timeframe={state.timeframe}
-            signalHistory={signalHistory}
-            validationSummary={validationSummary}
-            regimeSummary={regimeSummary}
-          />
         </section>
 
         <section className="market-grid market-grid-single" id="market-scan">
@@ -261,7 +253,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.22.1 · lead-flow cleanup + watchlist removed from homepage · source: {marketSource}
+          Build v11.22.2 · merged lead signal flow + homepage watchlist removed · source: {marketSource}
         </div>
       </div>
 

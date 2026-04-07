@@ -395,11 +395,6 @@ button, input, select { font: inherit; }
 }
 
 
-
-.market-grid-single {
-  grid-template-columns: 1fr;
-}
-
 .watchlist-rail {
   align-self: start;
   position: sticky;
@@ -1410,4 +1405,33 @@ button, input, select { font: inherit; }
   .alert-pulse {
     animation: none !important;
   }
+}
+
+
+/* v11.22.2 merged lead signal flow */
+.lead-flow-grid {
+  grid-template-columns: 1fr;
+}
+
+.market-grid-single {
+  grid-template-columns: 1fr;
+}
+
+.lead-signal-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.lead-signal-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.lead-signal-toggle {
+  min-height: 40px;
+}
+
+.lead-signal-breakdown {
+  display: grid;
+  gap: 12px;
 }
