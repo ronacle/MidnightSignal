@@ -95,6 +95,7 @@ export default function LeadSignalPanel({
         regimeSummary={regimeSummary}
         decisionLayer={decisionLayer}
         state={awarenessState}
+        forwardScorecard={forwardScorecard}
       />
 
       <div className="lead-signal-actions">

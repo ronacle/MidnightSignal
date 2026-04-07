@@ -31,6 +31,17 @@ function getSessionLabel() {
   return 'Evening scan';
 }
 
+function getConfidenceState(asset, validationSummary, state) {
+  const snapshot = state?.lastTopSignalSnapshot;
+  const currentScore = Number(asset?.signalScore ?? asset?.conviction ?? 0);
+  const previousScore = Number(snapshot?.signalScore ?? currentScore);
+  const validation = String(validationSummary?.scoreTrend || '').toLowerCase();
+
+  if (validation.includes('improv') || currentScore - previousScore >= 4) return 'Rising';
+  if (validation.includes('weak') || previousScore - currentScore >= 4) return 'Weakening';
+  return 'Stable';
+}
+
 function getTonightRead(asset, decisionLayer, regimeSummary, validationSummary) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
   const regime = String(regimeSummary?.regime || '').toLowerCase();
@@ -211,7 +222,7 @@ function getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, 
   let approach = 'Stay patient and let the setup clarify before committing harder.';
   if (actionMode === 'Attack') {
     approach = 'Lean into continuation only if strength stays confirmed instead of chasing a weak push.';
-  } else if (actionMode == 'Probe') {
+  } else if (actionMode === 'Probe') {
     approach = 'Treat this as an early setup and size cautiously until confirmation improves.';
   } else if (actionMode === 'Defend') {
     approach = 'Favor risk control and let weak bounces prove otherwise before getting aggressive.';
@@ -231,6 +242,35 @@ function getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, 
   return { posture, actionMode, approach, focus };
 }
 
+function getPerformanceInsight(forwardScorecard) {
+  if (!forwardScorecard) {
+    return 'Advanced performance insights coming soon.';
+  }
+
+  const regimeRows = Array.isArray(forwardScorecard.regimePerformance) ? forwardScorecard.regimePerformance : [];
+  const bestRegime = regimeRows
+    .filter((row) => typeof row?.avgReturn === 'number')
+    .sort((a, b) => b.avgReturn - a.avgReturn)[0];
+
+  if (bestRegime?.regime) {
+    return `Signals have recently performed best in ${String(bestRegime.regime).toLowerCase()} conditions.`;
+  }
+
+  if (typeof forwardScorecard.hitRate === 'number' && forwardScorecard.hitRate < 45) {
+    return 'Recent conditions have been less reliable, so patience matters more than frequency.';
+  }
+
+  return 'Performance insight will sharpen as more scored signals accumulate.';
+}
+
+function getBestRegime(forwardScorecard) {
+  const rows = Array.isArray(forwardScorecard?.regimePerformance) ? forwardScorecard.regimePerformance : [];
+  const best = rows
+    .filter((row) => typeof row?.avgReturn === 'number')
+    .sort((a, b) => b.avgReturn - a.avgReturn)[0];
+  return best?.regime || '—';
+}
+
 export default function TonightBrief({
   asset,
   timeframe,
@@ -239,6 +279,7 @@ export default function TonightBrief({
   regimeSummary = null,
   decisionLayer = null,
   state = null,
+  forwardScorecard = null,
 }) {
   if (!asset) return null;
 
@@ -262,6 +303,8 @@ export default function TonightBrief({
   const sinceLastVisit = getSinceLastVisit(asset, state);
   const signalAlerts = getSignalAlerts(asset, regimeSummary, state);
   const tonightPlan = getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers);
+  const confidenceState = getConfidenceState(asset, validationSummary, state);
+  const performanceInsight = getPerformanceInsight(forwardScorecard);
   const pulseEnabled = Boolean(state?.livePulseEnabled);
   const sessionLabel = getSessionLabel();
 
@@ -324,10 +367,37 @@ export default function TonightBrief({
           <span className={`badge compact-brief-change-badge ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>
             24h {formatPct(asset.change24h || 0)}
           </span>
+          <span className={`badge compact-confidence-badge state-${confidenceState.toLowerCase()}`}>Confidence: {confidenceState}</span>
         </div>
         <p className="muted compact-brief-story">
           {asset.story}
         </p>
+      </div>
+
+      <div className="compact-performance-panel">
+        <div className="compact-performance-header">
+          <div className="eyebrow">Your Signal Performance</div>
+          <span className="compact-performance-coming-soon">Advanced insights coming soon</span>
+        </div>
+        <div className="compact-performance-grid">
+          <div className="compact-performance-item">
+            <span className="compact-performance-label">Last signals</span>
+            <strong>{forwardScorecard?.trackedSignals ?? 0}</strong>
+          </div>
+          <div className="compact-performance-item">
+            <span className="compact-performance-label">Hit rate</span>
+            <strong>{typeof forwardScorecard?.hitRate === 'number' ? `${forwardScorecard.hitRate}%` : '—'}</strong>
+          </div>
+          <div className="compact-performance-item">
+            <span className="compact-performance-label">Avg 4h</span>
+            <strong>{typeof forwardScorecard?.avg4h === 'number' ? `${forwardScorecard.avg4h}%` : '—'}</strong>
+          </div>
+          <div className="compact-performance-item">
+            <span className="compact-performance-label">Best regime</span>
+            <strong>{getBestRegime(forwardScorecard)}</strong>
+          </div>
+        </div>
+        <div className="compact-performance-insight">{performanceInsight}</div>
       </div>
 
       <div className="compact-brief-rows">

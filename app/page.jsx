@@ -260,7 +260,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.26 · daily ritual layer + tonight plan + action modes · source: {marketSource}
+          Build v11.27 · feedback loop + performance panel + confidence state · source: {marketSource}
         </div>
       </div>
 
