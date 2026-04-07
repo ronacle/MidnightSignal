@@ -13,48 +13,46 @@ export default function TonightBrief({ asset, timeframe, signalHistory = [], val
 
   const topDrivers = factorPairs
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
+    .slice(0, 2)
     .map(([label]) => label);
 
   const previous = signalHistory[1];
   const changeLine = previous
     ? previous.symbol === asset.symbol
-      ? `The top signal remains ${asset.symbol}, which suggests continuity rather than a regime shift.`
-      : `The lead asset changed from ${previous.symbol} to ${asset.symbol}, so market leadership is rotating.`
-    : 'This is the first stored snapshot for the current signal history.';
+      ? `Top signal unchanged (${asset.symbol}).`
+      : `Signal rotated from ${previous.symbol} to ${asset.symbol}.`
+    : 'First stored snapshot.';
 
   const regimeLine = regimeSummary
-    ? `Current regime: ${regimeSummary.regime}. This engine adapts factor weighting to fit the broader market character.`
-    : 'Current regime data is still loading.';
+    ? `Regime: ${regimeSummary.regime}.`
+    : 'Regime loading.';
 
   return (
-    <div className="panel stack" id="brief">
+    <div className="panel compact-brief-panel" id="brief">
       <div className="row space-between">
-        <h2 className="section-title">Tonight&apos;s Brief</h2>
+        <div>
+          <h2 className="section-title">Tonight&apos;s Brief</h2>
+          <div className="eyebrow compact-brief-subtitle">Why the top signal matters</div>
+        </div>
         <span className="badge">{timeframe}</span>
       </div>
-      <div className="list-item stack">
-        <div className="eyebrow">Why the top signal matters</div>
-        <div className="value brief-value">{asset.symbol} · {asset.sentiment}</div>
-        <div className="muted">{asset.story}</div>
 
-        {topDrivers.length ? (
-          <div className="notice small">
-            Strongest factor drivers: {topDrivers.join(' · ')}.
-          </div>
-        ) : null}
+      <div className="compact-brief-grid">
+        <div className="compact-brief-main">
+          <div className="value brief-value">{asset.symbol} · {asset.sentiment}</div>
+          <div className="muted">{asset.story}</div>
+        </div>
 
-        <div className="notice small">{regimeLine}</div>
-        <div className="notice small">{changeLine}</div>
-
-        {validationSummary ? (
-          <div className="notice small">
-            Validation status: {validationSummary.scoreTrend}. {validationSummary.directionalRead}
-          </div>
-        ) : null}
-      </div>
-      <div className="notice small">
-        The brief follows the system-selected top signal, not the asset opened in the detail sheet.
+        <div className="compact-brief-side">
+          {topDrivers.length ? (
+            <div className="compact-brief-chip">Drivers: {topDrivers.join(' · ')}</div>
+          ) : null}
+          <div className="compact-brief-chip">{regimeLine}</div>
+          <div className="compact-brief-chip">{changeLine}</div>
+          {validationSummary ? (
+            <div className="compact-brief-chip">Validation: {validationSummary.scoreTrend}</div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

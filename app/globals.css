@@ -1204,3 +1204,52 @@ button, input, select { font: inherit; }
   border: 1px solid var(--line);
   background: rgba(255,255,255,0.04);
 }
+
+
+/* v11.21.4 remove since-last-visit + compact brief */
+#since-last-visit {
+  display: none !important;
+}
+
+.compact-brief-panel {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.compact-brief-subtitle {
+  margin-top: 4px;
+}
+
+.compact-brief-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.compact-brief-main {
+  display: grid;
+  gap: 8px;
+}
+
+.compact-brief-side {
+  display: grid;
+  gap: 8px;
+}
+
+.compact-brief-chip {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 860px) {
+  .compact-brief-grid {
+    grid-template-columns: 1fr;
+  }
+}

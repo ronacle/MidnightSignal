@@ -5,7 +5,6 @@ import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
 import TopSignalCard from '@/components/signals/TopSignalCard';
 import TonightBrief from '@/components/signals/TonightBrief';
-import SinceLastVisit from '@/components/signals/SinceLastVisit';
 import Top20Grid from '@/components/signals/Top20Grid';
 import WatchlistPanel from '@/components/WatchlistPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
@@ -281,7 +280,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.21.3 · factor signal engine + restored UX fixes · source: {marketSource}
+          Build v11.21.4 · factor signal engine + restored UX fixes · source: {marketSource}
         </div>
       </div>
 
