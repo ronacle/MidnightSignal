@@ -13,6 +13,7 @@ import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { useAccountSync } from '@/hooks/useAccountSync';
+import { rankAssets } from '@/lib/signal-engine';
 
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
@@ -29,75 +30,25 @@ const EXTRA_SCAN_ASSETS = [
   { symbol: 'ARB', name: 'Arbitrum', conviction: 58, sentiment: 'neutral', story: 'Constructive, but not yet decisive.' },
   { symbol: 'OP', name: 'Optimism', conviction: 55, sentiment: 'neutral', story: 'Moderate alignment with room for stronger confirmation.' },
   { symbol: 'ATOM', name: 'Cosmos', conviction: 49, sentiment: 'neutral', story: 'Balanced posture with limited edge.' },
-  { symbol: 'SEI', name: 'Sei', conviction: 64, sentiment: 'bullish', story: 'Momentum is improving with better follow-through.' }
-];
+  { symbol: 'SEI', name: 'Sei', conviction: 64, sentiment: 'bullish', story: 'Momentum is improving with better follow-through.' },
+].slice(0, 15);
 
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
+function buildMarketUniverse(liveItems = []) {
+  const fallbackAssets = [...MARKET_FIXTURES, ...EXTRA_SCAN_ASSETS].slice(0, 20);
+  const liveBySymbol = new Map((liveItems || []).map((item) => [item.symbol, item]));
 
-function getSentiment(conviction) {
-  if (conviction >= 68) return 'bullish';
-  if (conviction <= 44) return 'bearish';
-  return 'neutral';
-}
-
-function buildStory(symbol, conviction, change24h) {
-  const move = Number.isFinite(change24h) ? change24h : 0;
-  if (conviction >= 72) {
-    return `${symbol} is leading tonight as price strength and structure are aligning.`;
-  }
-  if (conviction >= 60) {
-    return `${symbol} is constructive with improving trend quality, but follow-through still matters.`;
-  }
-  if (conviction >= 45) {
-    return `${symbol} is sitting in the middle zone with mixed signals and selective opportunity.`;
-  }
-  return `${symbol} is lagging tonight as momentum and participation remain weak.`;
-}
-
-function convictionFromMarket(item) {
-  const change = Number(item?.change24h ?? 0);
-  const rank = Number(item?.rank ?? 25);
-  const volume = Number(item?.volumeNum ?? 0);
-
-  let score = 56;
-  score += change * 4.25;
-  score += rank <= 3 ? 8 : rank <= 8 ? 4 : rank <= 15 ? 1 : -2;
-  score += volume >= 10_000_000_000 ? 4 : volume >= 1_000_000_000 ? 2 : 0;
-
-  return clamp(Math.round(score), 28, 92);
-}
-
-function mergeAssets(liveItems) {
-  const liveMap = new Map((liveItems || []).map((item) => [item.symbol, item]));
-  const baseAssets = [...MARKET_FIXTURES, ...EXTRA_SCAN_ASSETS].slice(0, 20);
-
-  const merged = baseAssets.map((asset) => {
-    const live = liveMap.get(asset.symbol);
-    if (!live) return asset;
-
-    const conviction = convictionFromMarket(live);
-    const sentiment = getSentiment(conviction);
-
+  return fallbackAssets.map((asset, index) => {
+    const live = liveBySymbol.get(asset.symbol);
     return {
       ...asset,
-      conviction,
-      sentiment,
-      story: buildStory(asset.symbol, conviction, live.change24h),
-      price: live.price,
-      change24h: live.change24h,
-      rank: live.rank,
-      volumeNum: live.volumeNum,
-      marketCap: live.marketCap,
-      lastUpdated: live.lastUpdated,
-      live: true
+      rank: live?.rank || index + 1,
+      price: live?.price ?? null,
+      change24h: live?.change24h ?? 0,
+      volumeNum: live?.volumeNum ?? 0,
+      marketCap: live?.marketCap ?? 0,
+      lastUpdated: live?.lastUpdated ?? null,
+      live: Boolean(live),
     };
-  });
-
-  return merged.sort((a, b) => {
-    if (b.conviction !== a.conviction) return b.conviction - a.conviction;
-    return String(a.symbol).localeCompare(String(b.symbol));
   });
 }
 
@@ -121,21 +72,9 @@ export default function HomePage() {
   const [learningAsset, setLearningAsset] = useState(null);
   const [alertAsset, setAlertAsset] = useState(null);
   const [liveItems, setLiveItems] = useState([]);
-  const [marketSource, setMarketSource] = useState('fixtures');
+  const [marketSource, setMarketSource] = useState('fallback');
   const [marketUpdatedAt, setMarketUpdatedAt] = useState(null);
   const [marketReady, setMarketReady] = useState(false);
-
-  const rankedAssets = useMemo(() => mergeAssets(liveItems), [liveItems]);
-
-  const topSignal = useMemo(
-    () => rankedAssets[0] || MARKET_FIXTURES[0],
-    [rankedAssets]
-  );
-
-  const selected = useMemo(
-    () => rankedAssets.find((item) => item.symbol === state.selectedAsset) || topSignal,
-    [rankedAssets, state.selectedAsset, topSignal]
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -149,35 +88,45 @@ export default function HomePage() {
         if (data?.ok && Array.isArray(data.items) && data.items.length) {
           setLiveItems(data.items);
           setMarketSource(data.source || 'coingecko');
-          setMarketUpdatedAt(new Date().toISOString());
         } else {
           setLiveItems([]);
           setMarketSource(data?.source || 'fallback');
-          setMarketUpdatedAt(new Date().toISOString());
         }
       } catch {
         if (cancelled) return;
         setLiveItems([]);
         setMarketSource('fallback');
-        setMarketUpdatedAt(new Date().toISOString());
       } finally {
-        if (!cancelled) setMarketReady(true);
+        if (!cancelled) {
+          setMarketUpdatedAt(new Date().toISOString());
+          setMarketReady(true);
+        }
       }
     }
 
     loadMarket();
-    const interval = window.setInterval(loadMarket, 60_000);
+    const timer = window.setInterval(loadMarket, 60000);
+
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      window.clearInterval(timer);
     };
   }, []);
 
-  useEffect(() => {
-    if (!state.selectedAsset && topSignal?.symbol) {
-      setState((previous) => ({ ...previous, selectedAsset: topSignal.symbol }));
-    }
-  }, [state.selectedAsset, topSignal, setState]);
+  const rankedAssets = useMemo(
+    () => rankAssets(buildMarketUniverse(liveItems)),
+    [liveItems]
+  );
+
+  const topSignal = useMemo(
+    () => rankedAssets[0] || MARKET_FIXTURES[0],
+    [rankedAssets]
+  );
+
+  const selected = useMemo(
+    () => rankedAssets.find((item) => item.symbol === state.selectedAsset) || topSignal,
+    [rankedAssets, state.selectedAsset, topSignal]
+  );
 
   function toggleWatchlist(symbol) {
     setState((previous) => ({
@@ -218,11 +167,10 @@ export default function HomePage() {
         <section className="top-grid" id="top-signal">
           <TopSignalCard
             asset={topSignal}
-            mode={state.mode}
-            strategy={state.strategy}
-            source={marketSource}
-            updatedAt={marketUpdatedAt}
-            liveReady={marketReady}
+            state={state}
+            marketSource={marketSource}
+            marketUpdatedAt={marketUpdatedAt}
+            marketReady={marketReady}
           />
           <TonightBrief asset={topSignal} timeframe={state.timeframe} />
         </section>
@@ -232,17 +180,12 @@ export default function HomePage() {
         </section>
 
         <section className="market-grid" id="market-scan">
-          <Top20Grid
-            state={state}
-            setState={setState}
-            onAssetOpen={setDetailAsset}
-            assets={rankedAssets}
-          />
-          <WatchlistPanel state={state} setState={setState} onAssetOpen={setDetailAsset} />
+          <Top20Grid state={state} setState={setState} onAssetOpen={setDetailAsset} assets={rankedAssets} />
+          <WatchlistPanel state={state} setState={setState} onAssetOpen={setDetailAsset} assets={rankedAssets} />
         </section>
 
         <div className="footer-note">
-          Build v11.14.0 · top signal decoupled from selected asset · source: {marketSource}
+          Build v11.15.0 · factor signal engine · source: {marketSource}
         </div>
       </div>
 

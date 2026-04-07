@@ -1,0 +1,1 @@
+v11.15.0\n- added /lib/signal-engine.js with factor-based scoring\n- ranked assets using momentum, trend, volume, relative strength, and volatility\n- decoupled Tonight's Top Signal and Tonight's Brief from selectedAsset\n- integrated /api/market fetch into signal ranking\n- Top 20 and Watchlist now consume ranked assets instead of fixed fixtures only\n

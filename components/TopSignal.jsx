@@ -2,10 +2,8 @@
 
 import { formatTime, getConvictionTier } from '@/lib/utils';
 
-export default function TopSignal({ asset, mode, strategy, source, updatedAt, liveReady }) {
+export default function TopSignal({ asset, state, marketSource, marketUpdatedAt, marketReady }) {
   if (!asset) return null;
-
-  const sourceLabel = source === 'coingecko' ? 'Live data' : source === 'fallback' ? 'Fallback model' : 'Signal model';
 
   return (
     <div className="panel stack">
@@ -21,19 +19,21 @@ export default function TopSignal({ asset, mode, strategy, source, updatedAt, li
         </div>
         <div className="muted">{asset.story}</div>
         <div className="row">
-          <span className="badge">{asset.conviction}% confidence</span>
-          <span className="badge">{getConvictionTier(asset.conviction)}</span>
-          <span className="badge">{mode} mode</span>
-          <span className="badge">{strategy}</span>
+          <span className="badge">{asset.signalScore ?? asset.conviction}% score</span>
+          <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
+          <span className="badge">{state.mode} mode</span>
+          <span className="badge">{state.strategy}</span>
         </div>
       </div>
 
       <div className="notice small">
-        This signal is chosen automatically from incoming market data and stays separate from the asset you click into for details.
+        This signal is chosen automatically from the ranked factor model and stays separate from the asset you click for details.
       </div>
 
       <div className="row">
-        <div className="muted small">{liveReady ? `${sourceLabel} · updated ${formatTime(updatedAt)}` : 'Loading market signal…'}</div>
+        <div className="muted small">
+          {marketReady ? `Source: ${marketSource} · Updated ${formatTime(marketUpdatedAt)}` : 'Loading signal engine…'}
+        </div>
       </div>
     </div>
   );

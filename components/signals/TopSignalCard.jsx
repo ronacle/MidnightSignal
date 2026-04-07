@@ -2,15 +2,14 @@
 
 import TopSignal from '@/components/TopSignal';
 
-export default function TopSignalCard({ asset, mode, strategy, source, updatedAt, liveReady }) {
+export default function TopSignalCard({ asset, state, marketSource, marketUpdatedAt, marketReady }) {
   return (
     <TopSignal
       asset={asset}
-      mode={mode}
-      strategy={strategy}
-      source={source}
-      updatedAt={updatedAt}
-      liveReady={liveReady}
+      state={state}
+      marketSource={marketSource}
+      marketUpdatedAt={marketUpdatedAt}
+      marketReady={marketReady}
     />
   );
 }

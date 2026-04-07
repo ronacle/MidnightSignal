@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import { MARKET_FIXTURES } from '@/lib/default-state';
-import { getConvictionTier } from '@/lib/utils';
 
 const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
 
-export default function WatchlistPanel({ state, setState, onAssetOpen }) {
+export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [] }) {
   const [newSymbol, setNewSymbol] = useState('LINK');
-  const assets = useMemo(() => MARKET_FIXTURES, []);
+  const assetPool = useMemo(
+    () => (assets?.length ? assets : MARKET_FIXTURES),
+    [assets]
+  );
 
   function addSymbol() {
     if (state.watchlist.includes(newSymbol)) return;
@@ -25,7 +27,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen }) {
 
   function selectSymbol(symbol) {
     setState((previous) => ({ ...previous, selectedAsset: symbol }));
-    const asset = assets.find((item) => item.symbol === symbol) || {
+    const asset = assetPool.find((item) => item.symbol === symbol) || {
       symbol,
       name: symbol,
       conviction: 52,
@@ -54,7 +56,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen }) {
 
       <div className="stack compact-watchlist-stack">
         {state.watchlist.map((symbol) => {
-          const asset = assets.find((item) => item.symbol === symbol) || {
+          const asset = assetPool.find((item) => item.symbol === symbol) || {
             symbol,
             name: symbol,
             conviction: 52,
@@ -73,7 +75,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen }) {
               </div>
 
               <div className="muted small compact-watch-conviction">
-                {asset.conviction}% · {getConvictionTier(asset.conviction)}
+                {asset.signalScore ?? asset.conviction}% · score
               </div>
 
               <div className="compact-watch-actions">

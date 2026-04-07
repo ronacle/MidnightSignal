@@ -49,8 +49,8 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
             </div>
             <div className="muted small">{asset.story}</div>
             <div className="row">
-              <span className="badge">{asset.conviction}%</span>
-              <span className="badge">{getConvictionTier(asset.conviction)}</span>
+              <span className="badge">{asset.signalScore ?? asset.conviction}%</span>
+              <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
             </div>
           </button>
         ))}
