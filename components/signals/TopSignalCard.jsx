@@ -13,7 +13,8 @@ export default function TopSignalCard({
   regimeSummary = null,
   forwardValidation = [],
   forwardScorecard = null,
-  adaptiveSummary = []
+  adaptiveSummary = [],
+  decisionLayer = null
 }) {
   return (
     <TopSignal
@@ -28,6 +29,7 @@ export default function TopSignalCard({
       forwardValidation={forwardValidation}
       forwardScorecard={forwardScorecard}
       adaptiveSummary={adaptiveSummary}
+      decisionLayer={decisionLayer}
     />
   );
 }

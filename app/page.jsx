@@ -17,6 +17,7 @@ import { rankAssets, buildSignalSnapshot, detectMarketRegime } from '@/lib/signa
 import { appendSignalSnapshot, buildValidationSummary, readSignalHistory } from '@/lib/signal-history';
 import { buildForwardScorecard, readForwardValidation, updateForwardCheckpoints, upsertForwardSignal, writeForwardValidation } from '@/lib/signal-forward-validation';
 import { buildAdaptiveSummary, deriveAdaptiveWeights, readAdaptiveWeights, writeAdaptiveWeights } from '@/lib/adaptive-weights';
+import { buildDecisionLayer } from '@/lib/decision-layer';
 
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
@@ -148,6 +149,16 @@ export default function HomePage() {
     [rankedAssets, state.selectedAsset, topSignal]
   );
 
+  const previousSignalEntry = useMemo(
+    () => signalHistory[1] || null,
+    [signalHistory]
+  );
+
+  const decisionLayer = useMemo(
+    () => buildDecisionLayer(topSignal, previousSignalEntry),
+    [topSignal, previousSignalEntry]
+  );
+
   const regimeSummary = useMemo(
     () => detectMarketRegime(rankedAssets),
     [rankedAssets]
@@ -253,6 +264,7 @@ export default function HomePage() {
             forwardValidation={forwardValidation}
             forwardScorecard={forwardScorecard}
             adaptiveSummary={adaptiveSummary}
+            decisionLayer={decisionLayer}
           />
           <TonightBrief
             asset={topSignal}
@@ -269,7 +281,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.19.0 · factor signal engine + restored UX fixes · source: {marketSource}
+          Build v11.20.0 · factor signal engine + restored UX fixes · source: {marketSource}
         </div>
       </div>
 

@@ -1192,3 +1192,15 @@ button, input, select { font: inherit; }
     text-align: left;
   }
 }
+
+
+
+/* v11.20.0 decision layer */
+.decision-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+}

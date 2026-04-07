@@ -1,6 +1,0 @@
-v11.19.0
-- added adaptive weight learning from forward validation results
-- derived regime-specific weight adjustments from 1h / 4h / 24h outcomes
-- persisted adaptive weights locally and reused them in the ranking engine
-- added adaptive weight summary UI to Tonight's Top Signal
-- preserved forward scorecard, regime-aware MTF engine, factor breakdown, history, hero fixes, watchlist, and live controls

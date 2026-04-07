@@ -13,10 +13,12 @@ export default function TopSignal({
   regimeSummary = null,
   forwardValidation = [],
   forwardScorecard = null,
-  adaptiveSummary = []
+  adaptiveSummary = [],
+  decisionLayer = null
 }) {
   if (!asset) return null;
 
+  const beginner = (state?.mode || 'Beginner') === 'Beginner';
   const factorRows = [
     ['Momentum', asset?.factors?.momentum],
     ['Trend', asset?.factors?.trend],
@@ -51,6 +53,28 @@ export default function TopSignal({
         </div>
       </div>
 
+      {decisionLayer ? (
+        <div className="decision-card">
+          <div className="row space-between">
+            <div>
+              <div className="eyebrow">Decision layer</div>
+              <div className="value">{decisionLayer.posture}</div>
+            </div>
+            <span className="badge">{asset.marketRegime || 'Mixed'} regime</span>
+          </div>
+          <div className="muted">{beginner ? `This posture helps translate the signal into a simpler read: ${decisionLayer.posture}.` : decisionLayer.riskContext}</div>
+          <div className="notice small">{decisionLayer.bestFor}</div>
+          <div className="history-stack">
+            {decisionLayer.changeSummary.map((item, index) => (
+              <div className="history-row" key={`${item}-${index}`}>
+                <span>Change</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="notice small">
         This signal is chosen automatically from the ranked factor model and stays separate from the asset you click for details.
       </div>
@@ -63,6 +87,7 @@ export default function TopSignal({
             <span className="muted small">Avg move: {Number(regimeSummary.avgChange24h || 0).toFixed(2)}%</span>
             <span className="muted small">Breadth: {Math.round((regimeSummary.bullishBreadth || 0) * 100)}% bullish</span>
           </div>
+          {beginner ? <div className="muted small">Regime tells you what kind of market environment the engine thinks it is operating in.</div> : null}
         </div>
       ) : null}
 
@@ -73,7 +98,7 @@ export default function TopSignal({
             <>
               <div className="history-row"><span>Regime</span><span>{currentAdaptive.regime}</span></div>
               <div className="history-row"><span>Top drivers</span><span>{currentAdaptive.topDrivers.join(' · ')}</span></div>
-              <div className="muted small">Weights are adapting based on recent forward performance in this regime.</div>
+              <div className="muted small">{beginner ? 'The engine is slightly increasing or decreasing factor importance based on recent results.' : 'Weights are adapting based on recent forward performance in this regime.'}</div>
             </>
           ) : (
             <div className="muted small">Adaptive weights will become more informative as more forward results accumulate.</div>
@@ -89,6 +114,7 @@ export default function TopSignal({
           <div className="factor-chip"><span>1h</span><strong>{tf.tf1h ?? '—'}</strong></div>
           <div className="factor-chip"><span>MTF Momentum</span><strong>{tf.mtfMomentum ?? '—'}</strong></div>
         </div>
+        {beginner ? <div className="muted small">This blends short and medium views together so the app is not overreacting to only one moment.</div> : null}
       </div>
 
       <div className="factor-block">
@@ -101,6 +127,7 @@ export default function TopSignal({
             </div>
           ))}
         </div>
+        {beginner ? <div className="muted small">These are the main ingredients driving the current signal score.</div> : null}
       </div>
 
       <div className="factor-block">
