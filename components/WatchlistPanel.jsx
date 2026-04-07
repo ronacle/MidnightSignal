@@ -7,10 +7,7 @@ const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
 
 export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [] }) {
   const [newSymbol, setNewSymbol] = useState('LINK');
-  const assetPool = useMemo(
-    () => (assets?.length ? assets : MARKET_FIXTURES),
-    [assets]
-  );
+  const assetPool = useMemo(() => (assets?.length ? assets : MARKET_FIXTURES), [assets]);
 
   function addSymbol() {
     if (state.watchlist.includes(newSymbol)) return;
@@ -18,11 +15,14 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
   }
 
   function removeSymbol(symbol) {
-    setState((previous) => ({
-      ...previous,
-      watchlist: previous.watchlist.filter((item) => item !== symbol),
-      selectedAsset: previous.selectedAsset === symbol ? previous.watchlist[0] || 'BTC' : previous.selectedAsset
-    }));
+    setState((previous) => {
+      const nextWatchlist = previous.watchlist.filter((item) => item !== symbol);
+      return {
+        ...previous,
+        watchlist: nextWatchlist,
+        selectedAsset: previous.selectedAsset === symbol ? (nextWatchlist[0] || 'BTC') : previous.selectedAsset
+      };
+    });
   }
 
   function selectSymbol(symbol) {
@@ -38,7 +38,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
   }
 
   return (
-    <aside className="panel stack watchlist-rail">
+    <aside className="panel stack watchlist-rail compact-watchlist-panel">
       <div className="row space-between">
         <div>
           <h2 className="section-title compact-title">Watchlist</h2>
@@ -54,7 +54,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
         <button className="button compact-action" onClick={addSymbol}>Add</button>
       </div>
 
-      <div className="stack compact-watchlist-stack">
+      <div className="watchlist-rail-grid">
         {state.watchlist.map((symbol) => {
           const asset = assetPool.find((item) => item.symbol === symbol) || {
             symbol,
@@ -65,25 +65,36 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
           };
 
           return (
-            <div className="asset-row compact-watch-card" key={symbol}>
-              <div className="compact-watch-header">
-                <div>
-                  <div className="asset-name">{asset.symbol}</div>
-                  <div className="muted small">{asset.name}</div>
+            <div className="watchlist-rail-card" key={symbol}>
+              <div className="watchlist-rail-top">
+                <div className="watchlist-rail-identity">
+                  <span className="watchlist-rail-symbol">{asset.symbol}</span>
+                  <span className="watchlist-rail-confidence">{asset.signalScore ?? asset.conviction}%</span>
                 </div>
-                <div className={`sentiment compact-sentiment ${asset.sentiment}`}>{asset.sentiment}</div>
+
+                <div className="watchlist-rail-actions">
+                  <button
+                    type="button"
+                    className="rail-icon-action"
+                    aria-label={`View ${asset.symbol}`}
+                    title={`View ${asset.symbol}`}
+                    onClick={() => selectSymbol(symbol)}
+                  >
+                    👁
+                  </button>
+                  <button
+                    type="button"
+                    className="rail-icon-action destructive"
+                    aria-label={`Remove ${asset.symbol}`}
+                    title={`Remove ${asset.symbol}`}
+                    onClick={() => removeSymbol(symbol)}
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
-              <div className="muted small compact-watch-conviction">
-                {asset.signalScore ?? asset.conviction}% · score
-              </div>
-
-              <div className="compact-watch-actions">
-                <button className="ghost-button compact-ghost" onClick={() => selectSymbol(symbol)}>
-                  {state.selectedAsset === symbol ? 'Open' : 'View'}
-                </button>
-                <button className="ghost-button compact-ghost" onClick={() => removeSymbol(symbol)}>Remove</button>
-              </div>
+              <div className="watchlist-rail-name" title={asset.name}>{asset.name}</div>
             </div>
           );
         })}

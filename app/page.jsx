@@ -71,6 +71,8 @@ export default function HomePage() {
   const [detailAsset, setDetailAsset] = useState(null);
   const [learningAsset, setLearningAsset] = useState(null);
   const [alertAsset, setAlertAsset] = useState(null);
+  const [sinceHidden, setSinceHidden] = useState(true);
+  const [sinceReady, setSinceReady] = useState(false);
   const [liveItems, setLiveItems] = useState([]);
   const [marketSource, setMarketSource] = useState('fallback');
   const [marketUpdatedAt, setMarketUpdatedAt] = useState(null);
@@ -111,6 +113,12 @@ export default function HomePage() {
       cancelled = true;
       window.clearInterval(timer);
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setSinceHidden(window.localStorage.getItem('since-dismissed') === 'true');
+    setSinceReady(true);
   }, []);
 
   const rankedAssets = useMemo(
@@ -162,6 +170,21 @@ export default function HomePage() {
           watchlistCount={state.watchlist.length}
           syncing={syncing}
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
+          sinceStrip={
+            sinceReady && !sinceHidden ? (
+              <SinceLastVisit
+                state={state}
+                lastSyncedAt={lastSyncedAt}
+                onJump={() => jumpTo('top-signal')}
+                onDismiss={() => {
+                  setSinceHidden(true);
+                  if (typeof window !== 'undefined') {
+                    window.localStorage.setItem('since-dismissed', 'true');
+                  }
+                }}
+              />
+            ) : null
+          }
         />
 
         <section className="top-grid" id="top-signal">
@@ -175,17 +198,13 @@ export default function HomePage() {
           <TonightBrief asset={topSignal} timeframe={state.timeframe} />
         </section>
 
-        <section id="since-last-visit">
-          <SinceLastVisit state={state} lastSyncedAt={lastSyncedAt} />
-        </section>
-
         <section className="market-grid" id="market-scan">
           <Top20Grid state={state} setState={setState} onAssetOpen={setDetailAsset} assets={rankedAssets} />
           <WatchlistPanel state={state} setState={setState} onAssetOpen={setDetailAsset} assets={rankedAssets} />
         </section>
 
         <div className="footer-note">
-          Build v11.15.0 · factor signal engine · source: {marketSource}
+          Build v11.15.1 · factor signal engine + restored UX fixes · source: {marketSource}
         </div>
       </div>
 
