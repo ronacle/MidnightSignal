@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
-import LeadSignalPanel from '@/components/signals/LeadSignalPanel';
+import TopSignalCard from '@/components/signals/TopSignalCard';
+import TonightBrief from '@/components/signals/TonightBrief';
 import Top20Grid from '@/components/signals/Top20Grid';
-import WatchlistPanel from '@/components/WatchlistPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
@@ -124,6 +124,12 @@ export default function HomePage() {
     };
   }, []);
 
+/*    useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setSinceHidden(window.localStorage.getItem('since-dismissed') === 'true');
+    setSinceReady(true);
+  }, []); */
+
   const rankedAssets = useMemo(
     () => rankAssets(buildMarketUniverse(liveItems), adaptiveWeights),
     [liveItems]
@@ -226,31 +232,36 @@ export default function HomePage() {
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
         />
 
-        <LeadSignalPanel
-          asset={topSignal}
-          state={state}
-          marketSource={marketSource}
-          marketUpdatedAt={marketUpdatedAt}
-          marketReady={marketReady}
-          signalHistory={signalHistory}
-          validationSummary={validationSummary}
-          regimeSummary={regimeSummary}
-          forwardValidation={forwardValidation}
-          forwardScorecard={forwardScorecard}
-          adaptiveSummary={adaptiveSummary}
-          decisionLayer={decisionLayer}
-        />
+        <section className="top-grid" id="top-signal">
+          <TopSignalCard
+            asset={topSignal}
+            state={state}
+            marketSource={marketSource}
+            marketUpdatedAt={marketUpdatedAt}
+            marketReady={marketReady}
+            signalHistory={signalHistory}
+            validationSummary={validationSummary}
+            regimeSummary={regimeSummary}
+            forwardValidation={forwardValidation}
+            forwardScorecard={forwardScorecard}
+            adaptiveSummary={adaptiveSummary}
+            decisionLayer={decisionLayer}
+          />
+          <TonightBrief
+            asset={topSignal}
+            timeframe={state.timeframe}
+            signalHistory={signalHistory}
+            validationSummary={validationSummary}
+            regimeSummary={regimeSummary}
+          />
+        </section>
 
         <section className="market-grid market-grid-single" id="market-scan">
           <Top20Grid state={state} setState={setState} onAssetOpen={setDetailAsset} assets={rankedAssets} />
         </section>
 
-        <section className="watchlist-section" id="watchlist">
-          <WatchlistPanel state={state} setState={setState} onAssetOpen={setDetailAsset} assets={rankedAssets} />
-        </section>
-
         <div className="footer-note">
-          Build v11.21.5 · factor signal engine + restored UX fixes · source: {marketSource}
+          Build v11.22.1 · lead-flow cleanup + watchlist removed from homepage · source: {marketSource}
         </div>
       </div>
 
