@@ -260,7 +260,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.23 · living signal + since-last-visit brief + improved expand flow · source: {marketSource}
+          Build v11.24 · trigger watch language + stronger brief emphasis · source: {marketSource}
         </div>
       </div>
 

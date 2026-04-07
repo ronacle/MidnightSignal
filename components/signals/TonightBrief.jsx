@@ -96,36 +96,68 @@ function getSinceLastVisit(asset, signalHistory, state) {
   return `Since your last visit · ${current} remains in front with a steady read · viewed ${lastViewed}`;
 }
 
-function getWhatToWatch(asset, validationSummary, regimeSummary, topDrivers) {
+function getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
   const validation = String(validationSummary?.scoreTrend || '').toLowerCase();
   const regime = String(regimeSummary?.regime || '').toLowerCase();
 
   if (sentiment === 'bullish') {
     if (topDrivers.includes('volume')) {
-      return 'Watch for volume expansion to stay supportive — that is the cleanest way this setup upgrades from promising to stronger conviction.';
+      return {
+        label: 'Trigger',
+        text: 'Volume expands and holds on the next push higher.',
+        note: 'That would upgrade this from a promising read to stronger conviction.'
+      };
     }
     if (topDrivers.includes('trend')) {
-      return 'Watch for trend structure to keep holding — a cleaner continuation would confirm this lead is still earning its spot.';
+      return {
+        label: 'Trigger',
+        text: 'Trend structure keeps holding through the next continuation attempt.',
+        note: 'That would confirm the leader is still earning its spot.'
+      };
     }
     if (validation.includes('weak') || regime.includes('chop') || regime.includes('range')) {
-      return 'Watch for a cleaner directional break — rangey conditions can keep a good read from becoming a decisive move.';
+      return {
+        label: 'Trigger',
+        text: 'Price breaks cleanly out of the current range with follow-through.',
+        note: 'That is the clearest sign this setup is escaping noisy conditions.'
+      };
     }
-    return 'Watch for stronger follow-through on the next push higher — that would confirm the signal is moving from constructive to more decisive.';
+    return {
+      label: 'Trigger',
+      text: 'The next push higher shows cleaner follow-through than the last one.',
+      note: 'That would turn a constructive read into a more decisive one.'
+    };
   }
 
   if (sentiment === 'bearish') {
     if (topDrivers.includes('volatility')) {
-      return 'Watch for failed bounce attempts and renewed expansion lower — that is the clearest sign downside pressure is still in control.';
+      return {
+        label: 'Trigger',
+        text: 'Bounce attempts fail quickly and downside expansion returns.',
+        note: 'That would confirm sellers are still in control.'
+      };
     }
-    return 'Watch for weaker bounces and fading support — that would confirm the defensive posture is still the right read.';
+    return {
+      label: 'Trigger',
+      text: 'Support weakens and rebounds lose strength.',
+      note: 'That would keep the defensive posture intact.'
+    };
   }
 
   if (topDrivers.includes('momentum')) {
-    return 'Watch for momentum to resolve with cleaner direction — the next push is more important than the current snapshot.';
+    return {
+      label: 'Trigger',
+      text: 'Momentum resolves with a cleaner directional push.',
+      note: 'The next move matters more than the current snapshot.'
+    };
   }
 
-  return 'Watch for a cleaner break in either direction — that is the next clue that this neutral read is resolving.';
+  return {
+    label: 'Trigger',
+    text: 'Price breaks clearly in either direction.',
+    note: 'That is the next clue that this neutral read is resolving.'
+  };
 }
 
 export default function TonightBrief({
@@ -155,7 +187,7 @@ export default function TonightBrief({
   const tonightRead = getTonightRead(asset, decisionLayer, regimeSummary, validationSummary);
   const whyItMatters = getWhyItMatters(asset, regimeSummary, topDrivers);
   const whatChanged = getWhatChanged(asset, signalHistory);
-  const whatToWatch = getWhatToWatch(asset, validationSummary, regimeSummary, topDrivers);
+  const watchTrigger = getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers);
   const sinceLastVisit = getSinceLastVisit(asset, signalHistory, state);
   const pulseEnabled = Boolean(state?.livePulseEnabled);
 
@@ -201,8 +233,11 @@ export default function TonightBrief({
         </div>
 
         <div className="compact-brief-row compact-brief-watch-row">
-          <span className="compact-brief-label">What to Watch</span>
-          <span className="compact-brief-text">{whatToWatch}</span>
+          <span className="compact-brief-label compact-brief-watch-label">{watchTrigger.label}</span>
+          <span className="compact-brief-text compact-brief-watch-text">
+            <strong>{watchTrigger.text}</strong>
+            <span className="compact-brief-watch-note">{watchTrigger.note}</span>
+          </span>
         </div>
       </div>
     </section>
