@@ -19,17 +19,18 @@ const GLOSSARY = [
 
 export default function LearningDrawer({ open, onClose, state, focusAsset }) {
   if (!open) return null;
+
   const beginner = (state?.mode || 'Beginner') === 'Beginner';
 
   return (
-    <div className="drawer-backdrop" onClick={onClose}>
+    <div className="drawer-backdrop" role="presentation" onClick={onClose}>
       <aside className="drawer learning-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="row space-between">
           <div>
             <div className="eyebrow">Learning Panel</div>
             <h2 className="section-title" style={{ marginTop: 6 }}>Understand the signal system</h2>
           </div>
-          <button className="ghost-button" onClick={onClose}>Close</button>
+          <button type="button" className="ghost-button" onClick={onClose}>Close</button>
         </div>
 
         {focusAsset ? (
