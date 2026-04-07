@@ -1,7 +1,0 @@
-v11.20.0
-- added decision layer with posture labels: Favorable / Watch / Cautious / Avoid
-- added signal change summary vs prior signal snapshot
-- added action framing and risk context to Tonight's Top Signal
-- expanded beginner-mode explanations in the top-signal surface
-- moved all new terms and concepts into the Learning Panel glossary
-- preserved adaptive weights, forward scorecard, regime-aware MTF engine, factor breakdown, history, hero fixes, watchlist, and live controls

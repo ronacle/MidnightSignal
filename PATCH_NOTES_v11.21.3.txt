@@ -1,5 +1,0 @@
-v11.21.3
-- restored the full Top Signal intelligence layer from the last known-good build
-- restored Decision Layer, Market Regime, Adaptive Weights, Multi-Timeframe Read,
-  Factor Breakdown, Signal History, Validation Scaffolding, and Forward Scorecard
-- preserved the later real drawer-compatible Learning Panel structure
