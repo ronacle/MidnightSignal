@@ -1179,3 +1179,16 @@ button, input, select { font: inherit; }
     text-align: left;
   }
 }
+
+
+
+/* v11.19.0 adaptive learning */
+.history-row span:last-child {
+  text-align: right;
+}
+
+@media (max-width: 860px) {
+  .history-row span:last-child {
+    text-align: left;
+  }
+}

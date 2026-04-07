@@ -12,7 +12,8 @@ export default function TopSignal({
   validationSummary = null,
   regimeSummary = null,
   forwardValidation = [],
-  forwardScorecard = null
+  forwardScorecard = null,
+  adaptiveSummary = []
 }) {
   if (!asset) return null;
 
@@ -27,6 +28,7 @@ export default function TopSignal({
   const recent = signalHistory.slice(0, 4);
   const forwardRecent = forwardValidation.slice(0, 5);
   const tf = asset?.timeframe || {};
+  const currentAdaptive = adaptiveSummary.find((entry) => entry.regime === (regimeSummary?.regime || asset?.marketRegime));
 
   return (
     <div className="panel stack">
@@ -63,6 +65,21 @@ export default function TopSignal({
           </div>
         </div>
       ) : null}
+
+      <div className="factor-block">
+        <div className="eyebrow">Adaptive weights</div>
+        <div className="history-stack">
+          {currentAdaptive ? (
+            <>
+              <div className="history-row"><span>Regime</span><span>{currentAdaptive.regime}</span></div>
+              <div className="history-row"><span>Top drivers</span><span>{currentAdaptive.topDrivers.join(' · ')}</span></div>
+              <div className="muted small">Weights are adapting based on recent forward performance in this regime.</div>
+            </>
+          ) : (
+            <div className="muted small">Adaptive weights will become more informative as more forward results accumulate.</div>
+          )}
+        </div>
+      </div>
 
       <div className="factor-block">
         <div className="eyebrow">Multi-timeframe read</div>

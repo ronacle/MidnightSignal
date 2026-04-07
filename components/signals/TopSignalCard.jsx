@@ -12,7 +12,8 @@ export default function TopSignalCard({
   validationSummary = null,
   regimeSummary = null,
   forwardValidation = [],
-  forwardScorecard = null
+  forwardScorecard = null,
+  adaptiveSummary = []
 }) {
   return (
     <TopSignal
@@ -26,6 +27,7 @@ export default function TopSignalCard({
       regimeSummary={regimeSummary}
       forwardValidation={forwardValidation}
       forwardScorecard={forwardScorecard}
+      adaptiveSummary={adaptiveSummary}
     />
   );
 }

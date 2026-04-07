@@ -16,6 +16,7 @@ import { useAccountSync } from '@/hooks/useAccountSync';
 import { rankAssets, buildSignalSnapshot, detectMarketRegime } from '@/lib/signal-engine';
 import { appendSignalSnapshot, buildValidationSummary, readSignalHistory } from '@/lib/signal-history';
 import { buildForwardScorecard, readForwardValidation, updateForwardCheckpoints, upsertForwardSignal, writeForwardValidation } from '@/lib/signal-forward-validation';
+import { buildAdaptiveSummary, deriveAdaptiveWeights, readAdaptiveWeights, writeAdaptiveWeights } from '@/lib/adaptive-weights';
 
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
@@ -81,10 +82,12 @@ export default function HomePage() {
   const [marketReady, setMarketReady] = useState(false);
   const [signalHistory, setSignalHistory] = useState([]);
   const [forwardValidation, setForwardValidation] = useState([]);
+  const [adaptiveWeights, setAdaptiveWeights] = useState({});
 
   useEffect(() => {
     setSignalHistory(readSignalHistory());
     setForwardValidation(readForwardValidation());
+    setAdaptiveWeights(readAdaptiveWeights());
   }, []);
 
   useEffect(() => {
@@ -131,7 +134,7 @@ export default function HomePage() {
   }, []);
 
   const rankedAssets = useMemo(
-    () => rankAssets(buildMarketUniverse(liveItems)),
+    () => rankAssets(buildMarketUniverse(liveItems), adaptiveWeights),
     [liveItems]
   );
 
@@ -155,6 +158,11 @@ export default function HomePage() {
     [forwardValidation]
   );
 
+  const adaptiveSummary = useMemo(
+    () => buildAdaptiveSummary(adaptiveWeights),
+    [adaptiveWeights]
+  );
+
   const validationSummary = useMemo(
     () => buildValidationSummary(signalHistory),
     [signalHistory]
@@ -172,6 +180,11 @@ export default function HomePage() {
       const seeded = upsertForwardSignal(previous, topSignal, regimeSummary?.regime, marketSource);
       const updated = updateForwardCheckpoints(seeded, liveItems);
       writeForwardValidation(updated);
+
+      const nextAdaptive = deriveAdaptiveWeights(updated);
+      writeAdaptiveWeights(nextAdaptive);
+      setAdaptiveWeights(nextAdaptive);
+
       return updated;
     });
   }, [topSignal, regimeSummary, marketSource, marketReady, liveItems]);
@@ -239,6 +252,7 @@ export default function HomePage() {
             regimeSummary={regimeSummary}
             forwardValidation={forwardValidation}
             forwardScorecard={forwardScorecard}
+            adaptiveSummary={adaptiveSummary}
           />
           <TonightBrief
             asset={topSignal}
@@ -255,7 +269,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.18.0 · factor signal engine + restored UX fixes · source: {marketSource}
+          Build v11.19.0 · factor signal engine + restored UX fixes · source: {marketSource}
         </div>
       </div>
 
