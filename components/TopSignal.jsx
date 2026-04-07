@@ -1,6 +1,6 @@
 'use client';
 
-import { formatTime, getConvictionTier } from '@/lib/utils';
+import { formatPct, formatPrice, formatTime, getConvictionTier } from '@/lib/utils';
 
 export default function TopSignal({
   asset,
@@ -46,6 +46,12 @@ export default function TopSignal({
         <div>
           <div className="eyebrow">{embedded ? 'Expanded system view' : 'System-selected lead asset'}</div>
           <div className="value">{asset.symbol} · {asset.name}</div>
+        </div>
+        <div className="top-signal-price-row">
+          <span className="signal-price">{formatPrice(asset.price)}</span>
+          <span className={`signal-change ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>
+            {formatPct(asset.change24h || 0)} 24h
+          </span>
         </div>
         <div className="muted">{asset.story}</div>
         <div className="row">

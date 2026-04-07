@@ -260,7 +260,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.24 · trigger watch language + stronger brief emphasis · source: {marketSource}
+          Build v11.24.1 · price return across brief, signal, and board · source: {marketSource}
         </div>
       </div>
 

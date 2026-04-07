@@ -1714,3 +1714,66 @@ button, input, select { font: inherit; }
     text-align: left;
   }
 }
+
+
+/* v11.24.1 price return */
+.compact-brief-price-row,
+.top20-price-row,
+.top-signal-price-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.compact-brief-price-badge,
+.top20-price {
+  font-weight: 700;
+}
+
+.compact-brief-change-badge.is-up,
+.top20-change.is-up,
+.signal-change.is-up {
+  color: #7ee2a8;
+}
+
+.compact-brief-change-badge.is-down,
+.top20-change.is-down,
+.signal-change.is-down {
+  color: #ff8f8f;
+}
+
+.top-signal-price-row {
+  margin-top: 2px;
+}
+
+.signal-price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.signal-change {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.top20-price-row {
+  justify-content: space-between;
+}
+
+.top20-price {
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.top20-change {
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .top20-price-row {
+    justify-content: flex-start;
+  }
+}

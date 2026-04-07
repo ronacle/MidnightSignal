@@ -1,5 +1,7 @@
 'use client';
 
+import { formatPct, formatPrice } from '@/lib/utils';
+
 function toSentence(value) {
   if (!value) return '';
   const text = String(value).replace(/[_-]+/g, ' ').trim();
@@ -210,6 +212,12 @@ export default function TonightBrief({
       <div className="compact-brief-main">
         <div className={`value brief-value ${pulseEnabled ? 'live-signal-value' : ''}`}>
           {asset.symbol} · {asset.sentiment}
+        </div>
+        <div className="compact-brief-price-row">
+          <span className="badge compact-brief-price-badge">{formatPrice(asset.price)}</span>
+          <span className={`badge compact-brief-change-badge ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>
+            24h {formatPct(asset.change24h || 0)}
+          </span>
         </div>
         <p className="muted compact-brief-story">
           {asset.story}
