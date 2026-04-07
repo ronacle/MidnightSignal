@@ -281,7 +281,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.20.0 · factor signal engine + restored UX fixes · source: {marketSource}
+          Build v11.20.2 · factor signal engine + restored UX fixes · source: {marketSource}
         </div>
       </div>
 
@@ -303,7 +303,10 @@ export default function HomePage() {
       />
       <LearningDrawer
         open={learningOpen}
-        onClose={() => setLearningOpen(false)}
+        onClose={() => {
+          setLearningOpen(false);
+          setLearningAsset(null);
+        }}
         state={state}
         focusAsset={learningAsset}
       />
