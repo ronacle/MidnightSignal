@@ -1,9 +1,0 @@
-Midnight Signal v11.22.2
-
-Changes
-- Merged the top-of-page flow into a single lead signal experience.
-- Tonight's Brief is now the default first view.
-- Full diagnostics are hidden behind a click-to-expand breakdown.
-- Removed the large homepage Watchlist section.
-- Kept watchlist behavior in asset detail interactions.
-- Expanded the market scan section to a single-column layout.
