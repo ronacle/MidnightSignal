@@ -2,8 +2,26 @@
 
 import { formatTime, getConvictionTier } from '@/lib/utils';
 
-export default function TopSignal({ asset, state, marketSource, marketUpdatedAt, marketReady }) {
+export default function TopSignal({
+  asset,
+  state,
+  marketSource,
+  marketUpdatedAt,
+  marketReady,
+  signalHistory = [],
+  validationSummary = null
+}) {
   if (!asset) return null;
+
+  const factorRows = [
+    ['Momentum', asset?.factors?.momentum],
+    ['Trend', asset?.factors?.trend],
+    ['Volume', asset?.factors?.volume],
+    ['Relative Strength', asset?.factors?.relativeStrength],
+    ['Volatility', asset?.factors?.volatility],
+  ].filter(([, value]) => typeof value === 'number');
+
+  const recent = signalHistory.slice(0, 4);
 
   return (
     <div className="panel stack">
@@ -29,6 +47,43 @@ export default function TopSignal({ asset, state, marketSource, marketUpdatedAt,
       <div className="notice small">
         This signal is chosen automatically from the ranked factor model and stays separate from the asset you click for details.
       </div>
+
+      <div className="factor-block">
+        <div className="eyebrow">Factor breakdown</div>
+        <div className="factor-grid">
+          {factorRows.map(([label, value]) => (
+            <div key={label} className="factor-chip">
+              <span>{label}</span>
+              <strong>{value}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="factor-block">
+        <div className="eyebrow">Signal history</div>
+        <div className="history-stack">
+          {recent.length ? recent.map((entry, index) => (
+            <div className="history-row" key={`${entry.symbol}-${entry.timestamp}-${index}`}>
+              <span>{entry.symbol}</span>
+              <span>{entry.signalScore}%</span>
+              <span>{formatTime(entry.timestamp)}</span>
+            </div>
+          )) : <div className="muted small">No snapshots yet.</div>}
+        </div>
+      </div>
+
+      {validationSummary ? (
+        <div className="factor-block">
+          <div className="eyebrow">Validation scaffolding</div>
+          <div className="history-stack">
+            <div className="history-row"><span>Tracked</span><span>{validationSummary.trackedSignals}</span></div>
+            <div className="history-row"><span>Score trend</span><span>{validationSummary.scoreTrend}</span></div>
+            <div className="history-row"><span>Signal change</span><span>{validationSummary.lastChange}</span></div>
+            <div className="muted small">{validationSummary.directionalRead}</div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="row">
         <div className="muted small">

@@ -13,7 +13,8 @@ import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { useAccountSync } from '@/hooks/useAccountSync';
-import { rankAssets } from '@/lib/signal-engine';
+import { rankAssets, buildSignalSnapshot } from '@/lib/signal-engine';
+import { appendSignalSnapshot, buildValidationSummary, readSignalHistory } from '@/lib/signal-history';
 
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
@@ -77,6 +78,11 @@ export default function HomePage() {
   const [marketSource, setMarketSource] = useState('fallback');
   const [marketUpdatedAt, setMarketUpdatedAt] = useState(null);
   const [marketReady, setMarketReady] = useState(false);
+  const [signalHistory, setSignalHistory] = useState([]);
+
+  useEffect(() => {
+    setSignalHistory(readSignalHistory());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +142,17 @@ export default function HomePage() {
     [rankedAssets, state.selectedAsset, topSignal]
   );
 
+  const validationSummary = useMemo(
+    () => buildValidationSummary(signalHistory),
+    [signalHistory]
+  );
+
+  useEffect(() => {
+    if (!topSignal || !marketReady) return;
+    const next = appendSignalSnapshot(buildSignalSnapshot(topSignal, marketSource));
+    setSignalHistory(next);
+  }, [topSignal, marketSource, marketReady]);
+
   function toggleWatchlist(symbol) {
     setState((previous) => ({
       ...previous,
@@ -194,8 +211,15 @@ export default function HomePage() {
             marketSource={marketSource}
             marketUpdatedAt={marketUpdatedAt}
             marketReady={marketReady}
+            signalHistory={signalHistory}
+            validationSummary={validationSummary}
           />
-          <TonightBrief asset={topSignal} timeframe={state.timeframe} />
+          <TonightBrief
+            asset={topSignal}
+            timeframe={state.timeframe}
+            signalHistory={signalHistory}
+            validationSummary={validationSummary}
+          />
         </section>
 
         <section className="market-grid" id="market-scan">
@@ -204,7 +228,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.15.1 · factor signal engine + restored UX fixes · source: {marketSource}
+          Build v11.16.0 · factor signal engine + restored UX fixes · source: {marketSource}
         </div>
       </div>
 

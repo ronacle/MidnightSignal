@@ -2,7 +2,15 @@
 
 import TopSignal from '@/components/TopSignal';
 
-export default function TopSignalCard({ asset, state, marketSource, marketUpdatedAt, marketReady }) {
+export default function TopSignalCard({
+  asset,
+  state,
+  marketSource,
+  marketUpdatedAt,
+  marketReady,
+  signalHistory = [],
+  validationSummary = null
+}) {
   return (
     <TopSignal
       asset={asset}
@@ -10,6 +18,8 @@ export default function TopSignalCard({ asset, state, marketSource, marketUpdate
       marketSource={marketSource}
       marketUpdatedAt={marketUpdatedAt}
       marketReady={marketReady}
+      signalHistory={signalHistory}
+      validationSummary={validationSummary}
     />
   );
 }
