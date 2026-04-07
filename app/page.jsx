@@ -74,8 +74,6 @@ export default function HomePage() {
   const [detailAsset, setDetailAsset] = useState(null);
   const [learningAsset, setLearningAsset] = useState(null);
   const [alertAsset, setAlertAsset] = useState(null);
-  const [sinceHidden, setSinceHidden] = useState(true);
-  const [sinceReady, setSinceReady] = useState(false);
   const [liveItems, setLiveItems] = useState([]);
   const [marketSource, setMarketSource] = useState('fallback');
   const [marketUpdatedAt, setMarketUpdatedAt] = useState(null);
@@ -127,11 +125,11 @@ export default function HomePage() {
     };
   }, []);
 
-  useEffect(() => {
+/*   useEffect(() => {
     if (typeof window === 'undefined') return;
     setSinceHidden(window.localStorage.getItem('since-dismissed') === 'true');
     setSinceReady(true);
-  }, []);
+  }, []); */
 
   const rankedAssets = useMemo(
     () => rankAssets(buildMarketUniverse(liveItems), adaptiveWeights),
@@ -233,22 +231,7 @@ export default function HomePage() {
           watchlistCount={state.watchlist.length}
           syncing={syncing}
           onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
-          /* sinceStrip={
-            sinceReady && !sinceHidden ? (
-              <SinceLastVisit
-                state={state}
-                lastSyncedAt={lastSyncedAt}
-                onJump={() => jumpTo('top-signal')}
-                onDismiss={() => {
-                  setSinceHidden(true);
-                  if (typeof window !== 'undefined') {
-                    window.localStorage.setItem('since-dismissed', 'true');
-                  }
-                }}
-              />
-            ) : null
-          } */
-        />
+
 
         <section className="top-grid" id="top-signal">
           <TopSignalCard
