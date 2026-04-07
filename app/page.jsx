@@ -125,11 +125,11 @@ export default function HomePage() {
     };
   }, []);
 
-/*   useEffect(() => {
+   useEffect(() => {
     if (typeof window === 'undefined') return;
     setSinceHidden(window.localStorage.getItem('since-dismissed') === 'true');
     setSinceReady(true);
-  }, []); */
+  }, []);
 
   const rankedAssets = useMemo(
     () => rankAssets(buildMarketUniverse(liveItems), adaptiveWeights),
