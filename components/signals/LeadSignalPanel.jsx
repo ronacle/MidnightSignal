@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import TonightBrief from '@/components/signals/TonightBrief';
 import TopSignalCard from '@/components/signals/TopSignalCard';
 
@@ -19,6 +19,17 @@ export default function LeadSignalPanel({
   decisionLayer = null,
 }) {
   const [expanded, setExpanded] = useState(false);
+  const breakdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!expanded || !breakdownRef.current || typeof window === 'undefined') return;
+
+    const timer = window.setTimeout(() => {
+      breakdownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 140);
+
+    return () => window.clearTimeout(timer);
+  }, [expanded]);
 
   if (!asset) return null;
 
@@ -31,6 +42,7 @@ export default function LeadSignalPanel({
         validationSummary={validationSummary}
         regimeSummary={regimeSummary}
         decisionLayer={decisionLayer}
+        state={state}
       />
 
       <div className="lead-signal-actions">
@@ -47,6 +59,7 @@ export default function LeadSignalPanel({
       </div>
 
       <div
+        ref={breakdownRef}
         className={`lead-signal-breakdown-shell ${expanded ? 'is-open' : ''}`}
         aria-hidden={!expanded}
       >

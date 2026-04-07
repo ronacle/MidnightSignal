@@ -6,6 +6,22 @@ function toSentence(value) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+function formatRelative(dateString) {
+  if (!dateString) return 'this session';
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  if (!Number.isFinite(diffMs) || diffMs < 0) return 'recently';
+
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+}
+
 function getTonightRead(asset, decisionLayer, regimeSummary, validationSummary) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
   const regime = String(regimeSummary?.regime || '').toLowerCase();
@@ -57,20 +73,56 @@ function getWhatChanged(asset, signalHistory) {
   return `Leadership rotated from ${previous.symbol} to ${current}, suggesting the market is rewarding a different setup tonight.`;
 }
 
-function getWhatToWatch(asset, validationSummary, regimeSummary) {
+function getSinceLastVisit(asset, signalHistory, state) {
+  const previous = signalHistory?.[1];
+  const current = asset?.symbol;
+  const currentScore = Number(asset?.signalScore ?? asset?.conviction ?? 0);
+  const previousScore = Number(previous?.signalScore ?? 0);
+  const lastViewed = state?.lastViewedAt ? formatRelative(state.lastViewedAt) : 'this session';
+
+  if (!previous?.symbol || !current) {
+    return `Since your last visit · first snapshot on this device · viewed ${lastViewed}`;
+  }
+
+  if (previous.symbol !== current) {
+    return `Since your last visit · leadership rotated ${previous.symbol} → ${current} · viewed ${lastViewed}`;
+  }
+
+  if (Number.isFinite(currentScore) && Number.isFinite(previousScore) && Math.abs(currentScore - previousScore) >= 3) {
+    const direction = currentScore > previousScore ? 'conviction increased' : 'conviction softened';
+    return `Since your last visit · ${current} stayed in front and ${direction} by ${Math.abs(currentScore - previousScore)} pts · viewed ${lastViewed}`;
+  }
+
+  return `Since your last visit · ${current} remains in front with a steady read · viewed ${lastViewed}`;
+}
+
+function getWhatToWatch(asset, validationSummary, regimeSummary, topDrivers) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
   const validation = String(validationSummary?.scoreTrend || '').toLowerCase();
   const regime = String(regimeSummary?.regime || '').toLowerCase();
 
   if (sentiment === 'bullish') {
-    if (validation.includes('weak') || regime.includes('chop') || regime.includes('range')) {
-      return 'Watch for stronger follow-through and cleaner confirmation before treating this as a full-conviction move.';
+    if (topDrivers.includes('volume')) {
+      return 'Watch for volume expansion to stay supportive — that is the cleanest way this setup upgrades from promising to stronger conviction.';
     }
-    return 'Watch for trend continuation and volume support — that is what would keep this setup in control.';
+    if (topDrivers.includes('trend')) {
+      return 'Watch for trend structure to keep holding — a cleaner continuation would confirm this lead is still earning its spot.';
+    }
+    if (validation.includes('weak') || regime.includes('chop') || regime.includes('range')) {
+      return 'Watch for a cleaner directional break — rangey conditions can keep a good read from becoming a decisive move.';
+    }
+    return 'Watch for stronger follow-through on the next push higher — that would confirm the signal is moving from constructive to more decisive.';
   }
 
   if (sentiment === 'bearish') {
-    return 'Watch for failed bounces and renewed weakness — that would confirm the downside posture is still in charge.';
+    if (topDrivers.includes('volatility')) {
+      return 'Watch for failed bounce attempts and renewed expansion lower — that is the clearest sign downside pressure is still in control.';
+    }
+    return 'Watch for weaker bounces and fading support — that would confirm the defensive posture is still the right read.';
+  }
+
+  if (topDrivers.includes('momentum')) {
+    return 'Watch for momentum to resolve with cleaner direction — the next push is more important than the current snapshot.';
   }
 
   return 'Watch for a cleaner break in either direction — that is the next clue that this neutral read is resolving.';
@@ -83,6 +135,7 @@ export default function TonightBrief({
   validationSummary = null,
   regimeSummary = null,
   decisionLayer = null,
+  state = null,
 }) {
   if (!asset) return null;
 
@@ -102,7 +155,9 @@ export default function TonightBrief({
   const tonightRead = getTonightRead(asset, decisionLayer, regimeSummary, validationSummary);
   const whyItMatters = getWhyItMatters(asset, regimeSummary, topDrivers);
   const whatChanged = getWhatChanged(asset, signalHistory);
-  const whatToWatch = getWhatToWatch(asset, validationSummary, regimeSummary);
+  const whatToWatch = getWhatToWatch(asset, validationSummary, regimeSummary, topDrivers);
+  const sinceLastVisit = getSinceLastVisit(asset, signalHistory, state);
+  const pulseEnabled = Boolean(state?.livePulseEnabled);
 
   return (
     <section className="panel compact-brief-panel" id="brief">
@@ -115,8 +170,13 @@ export default function TonightBrief({
         <span className="badge compact-brief-badge">{timeframe}</span>
       </div>
 
+      <div className="compact-brief-since">
+        <span className="signal-dot brief-signal-dot" aria-hidden="true" />
+        <span>{sinceLastVisit}</span>
+      </div>
+
       <div className="compact-brief-main">
-        <div className="value brief-value">
+        <div className={`value brief-value ${pulseEnabled ? 'live-signal-value' : ''}`}>
           {asset.symbol} · {asset.sentiment}
         </div>
         <p className="muted compact-brief-story">
@@ -140,7 +200,7 @@ export default function TonightBrief({
           <span className="compact-brief-text">{whatChanged}</span>
         </div>
 
-        <div className="compact-brief-row">
+        <div className="compact-brief-row compact-brief-watch-row">
           <span className="compact-brief-label">What to Watch</span>
           <span className="compact-brief-text">{whatToWatch}</span>
         </div>

@@ -249,11 +249,18 @@ export default function HomePage() {
         </section>
 
         <section className="market-grid market-grid-single" id="market-scan">
+          <div className="market-scan-header">
+            <div>
+              <div className="eyebrow">Next up</div>
+              <h2 className="section-title">Tonight&apos;s Board</h2>
+            </div>
+            <div className="muted small">Scan the field, open a name, and save favorites from the board.</div>
+          </div>
           <Top20Grid state={state} setState={setState} onAssetOpen={setDetailAsset} assets={rankedAssets} />
         </section>
 
         <div className="footer-note">
-          Build v11.22.4 · lead panel polish + smoother breakdown flow · source: {marketSource}
+          Build v11.23 · living signal + since-last-visit brief + improved expand flow · source: {marketSource}
         </div>
       </div>
 

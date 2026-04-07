@@ -1560,3 +1560,111 @@ button, input, select { font: inherit; }
     transition: none !important;
   }
 }
+
+
+/* v11.23 living signal */
+.compact-brief-since {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 160, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  line-height: 1.3;
+  font-size: 0.9rem;
+}
+
+.brief-signal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #bde6ff, #63c1ff);
+  box-shadow: 0 0 12px rgba(107, 197, 255, 0.7);
+  flex-shrink: 0;
+}
+
+.live-signal-value {
+  position: relative;
+}
+
+.live-signal-value::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: rgba(107, 197, 255, 0.9);
+  box-shadow: 0 0 16px rgba(107, 197, 255, 0.7);
+  animation: signalPulse 2.4s ease-in-out infinite;
+}
+
+.compact-brief-watch-row {
+  border-color: rgba(107, 197, 255, 0.18);
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.025));
+}
+
+.lead-signal-toggle {
+  scroll-margin-top: 84px;
+}
+
+.lead-signal-breakdown-shell {
+  transform-origin: top center;
+  transform: translateY(-4px);
+}
+
+.lead-signal-breakdown-shell.is-open {
+  transform: translateY(0);
+}
+
+.market-scan-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 12px;
+}
+
+.market-scan-header .section-title {
+  margin: 0;
+}
+
+@keyframes signalPulse {
+  0% {
+    opacity: 0.42;
+    transform: translateY(-50%) scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.18);
+  }
+  100% {
+    opacity: 0.42;
+    transform: translateY(-50%) scale(0.85);
+  }
+}
+
+@media (max-width: 900px) {
+  .compact-brief-since {
+    display: flex;
+    border-radius: 16px;
+  }
+
+  .market-scan-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-signal-value::after,
+  .brief-signal-dot,
+  .lead-signal-breakdown-shell {
+    animation: none !important;
+    transition: none !important;
+  }
+}
