@@ -1,0 +1,6 @@
+v11.18.0
+- added forward validation storage for top-signal snapshots with 1h / 4h / 24h checkpoints
+- added forward scorecard metrics: hit rate, avg 1h/4h/24h return, scored signals
+- added regime performance summary to compare returns by market regime
+- added forward signal log for recent tracked top signals
+- preserved regime-aware multi-timeframe signal engine, factor breakdown, history, hero fixes, watchlist, and live controls

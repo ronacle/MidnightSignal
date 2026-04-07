@@ -1,0 +1,6 @@
+v11.21.5
+- added subtle motion to the Top Signal card when live pulse is enabled
+- added a small animated signal dot beside the Top Signal heading
+- polished Alert Center unread states with a subtle pulse/highlight
+- added unread summary text inside the Alert Center
+- preserved the restored intelligence layer, compact brief, learning drawer, and since-last-visit removal

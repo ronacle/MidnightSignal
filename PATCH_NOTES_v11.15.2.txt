@@ -1,0 +1,7 @@
+v11.15.2 full clean zip
+- includes all v11.15.1 fixes plus watchlist final refinement
+- keeps factor signal engine and decoupled top signal/brief
+- keeps Live Update Controls restored
+- keeps Sync Active label
+- keeps Since Last Visit strip in hero area
+- keeps condensed watchlist rail, then tightens alignment and reduces pill styling

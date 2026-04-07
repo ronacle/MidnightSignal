@@ -1,0 +1,5 @@
+v11.21.4.7
+- rebuilt from v11.21.3 known-good base to preserve the full Top Signal intelligence layer
+- removed Since Your Last Visit section from app/page.jsx only
+- compacted Tonight's Brief only
+- preserved the drawer-compatible Learning Panel fix

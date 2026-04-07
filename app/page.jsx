@@ -280,7 +280,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.21.4.7 · factor signal engine + restored UX fixes · source: {marketSource}
+          Build v11.21.5 · factor signal engine + restored UX fixes · source: {marketSource}
         </div>
       </div>
 

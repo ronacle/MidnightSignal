@@ -31,11 +31,12 @@ export default function TopSignal({
   const forwardRecent = forwardValidation.slice(0, 5);
   const tf = asset?.timeframe || {};
   const currentAdaptive = adaptiveSummary.find((entry) => entry.regime === (regimeSummary?.regime || asset?.marketRegime));
+  const topSignalMotion = Boolean(state?.livePulseEnabled);
 
   return (
-    <div className="panel stack">
+    <div className={`panel stack ${topSignalMotion ? "top-signal-motion" : ""}`}>
       <div className="row space-between">
-        <h2 className="section-title">Tonight&apos;s Top Signal</h2>
+        <h2 className="section-title">Tonight&apos;s Top Signal <span className="signal-dot" aria-hidden="true" /></h2>
         <span className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</span>
       </div>
 
