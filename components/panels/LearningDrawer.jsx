@@ -18,14 +18,18 @@ const GLOSSARY = [
 ];
 
 export default function LearningDrawer({ open, onClose, state, focusAsset }) {
-  if (!open) return null;
-
   const beginner = (state?.mode || 'Beginner') === 'Beginner';
 
   return (
-    <div className="drawer-backdrop" role="presentation" onClick={onClose}>
-      <aside className="drawer learning-drawer" onClick={(e) => e.stopPropagation()}>
-        <div className="row space-between">
+    <div className={`drawer-root ${open ? 'open' : ''}`} aria-hidden={!open}>
+      <button
+        type="button"
+        className="drawer-backdrop"
+        aria-label="Close learning panel"
+        onClick={onClose}
+      />
+      <aside className="drawer drawer-right learning-drawer" role="dialog" aria-modal="true" aria-label="Learning Panel">
+        <div className="drawer-header">
           <div>
             <div className="eyebrow">Learning Panel</div>
             <h2 className="section-title" style={{ marginTop: 6 }}>Understand the signal system</h2>
@@ -33,21 +37,23 @@ export default function LearningDrawer({ open, onClose, state, focusAsset }) {
           <button type="button" className="ghost-button" onClick={onClose}>Close</button>
         </div>
 
-        {focusAsset ? (
-          <div className="list-item stack">
-            <div className="eyebrow">Focused asset</div>
-            <div className="value">{focusAsset.symbol} · {focusAsset.name}</div>
-            <div className="muted">{focusAsset.story}</div>
-          </div>
-        ) : null}
-
-        <div className="stack">
-          {GLOSSARY.map((item) => (
-            <div key={item.term} className="list-item stack">
-              <div className="eyebrow">{item.term}</div>
-              <div className="muted">{beginner ? item.beginner : item.pro}</div>
+        <div className="drawer-content stack">
+          {focusAsset ? (
+            <div className="list-item stack">
+              <div className="eyebrow">Focused asset</div>
+              <div className="value">{focusAsset.symbol} · {focusAsset.name}</div>
+              <div className="muted">{focusAsset.story}</div>
             </div>
-          ))}
+          ) : null}
+
+          <div className="stack">
+            {GLOSSARY.map((item) => (
+              <div key={item.term} className="list-item stack">
+                <div className="eyebrow">{item.term}</div>
+                <div className="muted">{beginner ? item.beginner : item.pro}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </aside>
     </div>
