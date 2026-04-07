@@ -60,9 +60,9 @@ function getWhyItMatters(asset, regimeSummary, topDrivers) {
   return `${symbol} is leading tonight because ${driverText}, while the broader backdrop still reflects ${regime.toLowerCase()}.`;
 }
 
-function getWhatChanged(asset, signalHistory) {
+function getWhatChanged(asset, signalHistory, snapshot) {
   const current = asset?.symbol;
-  const previous = signalHistory?.[1];
+  const previous = snapshot?.symbol || signalHistory?.[1]?.symbol ? (snapshot?.symbol ? snapshot : signalHistory?.[1]) : null;
 
   if (!previous?.symbol || !current) {
     return 'This is the first stored snapshot, so there is no prior leader to compare yet.';
@@ -75,19 +75,19 @@ function getWhatChanged(asset, signalHistory) {
   return `Leadership rotated from ${previous.symbol} to ${current}, suggesting the market is rewarding a different setup tonight.`;
 }
 
-function getSinceLastVisit(asset, signalHistory, state) {
-  const previous = signalHistory?.[1];
+function getSinceLastVisit(asset, state) {
+  const snapshot = state?.lastTopSignalSnapshot;
+  const lastViewed = state?.lastViewedAt ? formatRelative(state.lastViewedAt) : 'this session';
   const current = asset?.symbol;
   const currentScore = Number(asset?.signalScore ?? asset?.conviction ?? 0);
-  const previousScore = Number(previous?.signalScore ?? 0);
-  const lastViewed = state?.lastViewedAt ? formatRelative(state.lastViewedAt) : 'this session';
+  const previousScore = Number(snapshot?.signalScore ?? 0);
 
-  if (!previous?.symbol || !current) {
+  if (!snapshot?.symbol || !current) {
     return `Since your last visit · first snapshot on this device · viewed ${lastViewed}`;
   }
 
-  if (previous.symbol !== current) {
-    return `Since your last visit · leadership rotated ${previous.symbol} → ${current} · viewed ${lastViewed}`;
+  if (snapshot.symbol !== current) {
+    return `Since your last visit · leadership rotated ${snapshot.symbol} → ${current} · viewed ${lastViewed}`;
   }
 
   if (Number.isFinite(currentScore) && Number.isFinite(previousScore) && Math.abs(currentScore - previousScore) >= 3) {
@@ -96,6 +96,30 @@ function getSinceLastVisit(asset, signalHistory, state) {
   }
 
   return `Since your last visit · ${current} remains in front with a steady read · viewed ${lastViewed}`;
+}
+
+function getSignalAlerts(asset, regimeSummary, state) {
+  const alerts = [];
+  const snapshot = state?.lastTopSignalSnapshot;
+  const currentScore = Number(asset?.signalScore ?? asset?.conviction ?? 0);
+  const previousScore = Number(snapshot?.signalScore ?? 0);
+  const currentRegime = regimeSummary?.regime || asset?.marketRegime || null;
+  const previousRegime = snapshot?.regime || null;
+
+  if (snapshot?.symbol && snapshot.symbol !== asset?.symbol) {
+    alerts.push(`🔔 ${asset.symbol} replaced ${snapshot.symbol} as the top signal`);
+  }
+
+  if (snapshot?.symbol === asset?.symbol && Number.isFinite(currentScore) && Number.isFinite(previousScore) && Math.abs(currentScore - previousScore) >= 4) {
+    const delta = currentScore - previousScore;
+    alerts.push(`🔔 Conviction ${delta > 0 ? 'increased' : 'softened'} by ${Math.abs(delta)} pts`);
+  }
+
+  if (previousRegime && currentRegime && previousRegime !== currentRegime) {
+    alerts.push(`🔔 Regime shifted to ${toSentence(currentRegime)}`);
+  }
+
+  return alerts.slice(0, 2);
 }
 
 function getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers) {
@@ -188,9 +212,10 @@ export default function TonightBrief({
 
   const tonightRead = getTonightRead(asset, decisionLayer, regimeSummary, validationSummary);
   const whyItMatters = getWhyItMatters(asset, regimeSummary, topDrivers);
-  const whatChanged = getWhatChanged(asset, signalHistory);
+  const whatChanged = getWhatChanged(asset, signalHistory, state?.lastTopSignalSnapshot);
   const watchTrigger = getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers);
-  const sinceLastVisit = getSinceLastVisit(asset, signalHistory, state);
+  const sinceLastVisit = getSinceLastVisit(asset, state);
+  const signalAlerts = getSignalAlerts(asset, regimeSummary, state);
   const pulseEnabled = Boolean(state?.livePulseEnabled);
 
   return (
@@ -208,6 +233,14 @@ export default function TonightBrief({
         <span className="signal-dot brief-signal-dot" aria-hidden="true" />
         <span>{sinceLastVisit}</span>
       </div>
+
+      {signalAlerts.length ? (
+        <div className="signal-alerts">
+          {signalAlerts.map((alert) => (
+            <div className="signal-alert-chip" key={alert}>{alert}</div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="compact-brief-main">
         <div className={`value brief-value ${pulseEnabled ? 'live-signal-value' : ''}`}>

@@ -260,7 +260,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.24.1 · price return across brief, signal, and board · source: {marketSource}
+          Build v11.25 · signal awareness layer + persisted last visit + alerts · source: {marketSource}
         </div>
       </div>
 

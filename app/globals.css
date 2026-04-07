@@ -1777,3 +1777,30 @@ button, input, select { font: inherit; }
     justify-content: flex-start;
   }
 }
+
+
+/* v11.25 signal awareness */
+.signal-alerts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.signal-alert-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(107, 197, 255, 0.18);
+  background: rgba(107, 197, 255, 0.06);
+  color: rgba(233, 246, 255, 0.96);
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+@media (max-width: 900px) {
+  .signal-alerts {
+    flex-direction: column;
+  }
+}

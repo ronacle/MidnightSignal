@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import TonightBrief from '@/components/signals/TonightBrief';
 import TopSignalCard from '@/components/signals/TopSignalCard';
+
+const VISIT_STORAGE_KEY = 'midnight-signal-last-visit';
+const SNAPSHOT_STORAGE_KEY = 'midnight-signal-last-top-signal';
 
 export default function LeadSignalPanel({
   asset,
@@ -19,7 +22,56 @@ export default function LeadSignalPanel({
   decisionLayer = null,
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [sessionState, setSessionState] = useState(state || {});
+  const [persistedSnapshot, setPersistedSnapshot] = useState(null);
   const breakdownRef = useRef(null);
+
+  const awarenessState = useMemo(() => {
+    return {
+      ...(sessionState || {}),
+      lastTopSignalSnapshot: persistedSnapshot,
+    };
+  }, [sessionState, persistedSnapshot]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const storedVisit = window.localStorage.getItem(VISIT_STORAGE_KEY);
+      const storedSnapshot = window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
+
+      setSessionState((current) => ({
+        ...(current || {}),
+        ...(state || {}),
+        lastViewedAt: storedVisit || current?.lastViewedAt || null,
+      }));
+
+      if (storedSnapshot) {
+        setPersistedSnapshot(JSON.parse(storedSnapshot));
+      }
+    } catch {
+      setSessionState((current) => ({ ...(current || {}), ...(state || {}) }));
+    }
+  }, [state]);
+
+  useEffect(() => {
+    if (!asset || typeof window === 'undefined') return;
+
+    const snapshot = {
+      symbol: asset.symbol,
+      signalScore: Number(asset.signalScore ?? asset.conviction ?? 0),
+      sentiment: asset.sentiment,
+      regime: regimeSummary?.regime || asset.marketRegime || null,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      window.localStorage.setItem(VISIT_STORAGE_KEY, new Date().toISOString());
+      window.localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot));
+    } catch {
+      // no-op
+    }
+  }, [asset, regimeSummary]);
 
   useEffect(() => {
     if (!expanded || !breakdownRef.current || typeof window === 'undefined') return;
@@ -42,7 +94,7 @@ export default function LeadSignalPanel({
         validationSummary={validationSummary}
         regimeSummary={regimeSummary}
         decisionLayer={decisionLayer}
-        state={state}
+        state={awarenessState}
       />
 
       <div className="lead-signal-actions">
