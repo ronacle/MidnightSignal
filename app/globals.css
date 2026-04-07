@@ -1253,3 +1253,68 @@ button, input, select { font: inherit; }
     grid-template-columns: 1fr;
   }
 }
+
+
+/* v11.21.5 alert polish + subtle motion */
+@keyframes midnight-soft-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(120, 170, 255, 0.18); transform: translateY(0); }
+  50% { box-shadow: 0 0 0 8px rgba(120, 170, 255, 0.0); transform: translateY(-1px); }
+  100% { box-shadow: 0 0 0 0 rgba(120, 170, 255, 0.0); transform: translateY(0); }
+}
+
+@keyframes signal-dot-ping {
+  0% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.18); }
+  100% { opacity: 0.45; transform: scale(1); }
+}
+
+.top-signal-motion {
+  position: relative;
+}
+
+.top-signal-motion .signal-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
+  vertical-align: middle;
+  animation: signal-dot-ping 2.2s ease-in-out infinite;
+}
+
+.alert-center-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.alert-unread {
+  border-color: rgba(120, 170, 255, 0.35);
+  background: rgba(255,255,255,0.05);
+}
+
+.alert-pulse {
+  animation: midnight-soft-pulse 2.4s ease-in-out infinite;
+}
+
+.alert-indicator {
+  position: relative;
+}
+
+.alert-indicator .ghost-button {
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.alert-indicator .ghost-button:hover {
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-signal-motion .signal-dot,
+  .alert-pulse {
+    animation: none !important;
+  }
+}
