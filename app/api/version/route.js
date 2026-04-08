@@ -5,6 +5,6 @@ export async function GET() {
     ok: true,
     app: 'midnight-signal',
     version: VERSION,
-    build: 'mobile-pass-production-cleanup',
+    build: 'cardano-midnight-news-hooks',
   });
 }
