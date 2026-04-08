@@ -26,20 +26,20 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
 
   return (
-    <div className="panel stack">
+    <div className="panel stack premium-board-shell">
       <div className="row space-between">
         <div>
           <h2 className="section-title">Top 20</h2>
           <div className="muted small">{planTier === 'pro' ? 'Pro view active: board scan + full breakdown access.' : "Free view active: board scan, Tonight's Brief, watchlist, and alert setup remain available."}</div>
         </div>
-        <span className="badge">Ranked signal scan</span>
+        <span className="badge glow-badge">Ranked signal scan</span>
       </div>
       <div className="top20-grid">
         {assets.map((asset) => (
           <button
             key={asset.symbol}
             type="button"
-            className={`top20-card ${state.selectedAsset === asset.symbol ? 'active' : ''}`}
+            className={`top20-card premium-top20-card ${state.selectedAsset === asset.symbol ? 'active' : ''}`}
             onClick={() => {
               setState((prev) => ({ ...prev, selectedAsset: asset.symbol }));
               onAssetOpen?.(asset);
@@ -65,7 +65,7 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
               <span className="badge">#{asset.rank ?? '—'}</span>
               <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
             </div>
-            <div className="muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
+            <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
           </button>
         ))}
       </div>

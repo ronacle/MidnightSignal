@@ -189,7 +189,7 @@ export default function LeadSignalPanel({
               <div className="pro-teaser-blur" />
               <div className="pro-teaser-content">
                 <div className="eyebrow">Available now vs Pro</div>
-                <div className="value">You already have Tonight’s Brief, board scan, watchlist, and alerts</div>
+                <div className="value">You already have Tonight’s Brief, board scan, watchlist, and alerts in the same midnight visual flow</div>
                 <div className="muted">Pro adds the deeper validation layer, forward tracking, and expanded regime context when you want more than the quick read.</div>
                 <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>See Pro plan</button>
               </div>
@@ -243,7 +243,7 @@ export default function LeadSignalPanel({
         {planTier !== 'pro' ? (
           <div className="upgrade-strip-inline">
             <div className="upgrade-strip-copy">
-              <strong>Free gives you the quick read. Pro opens the deeper lab.</strong>
+              <strong>Free gives you the quick read. Pro opens the deeper midnight lab.</strong>
               <span>Upgrade only if you want validation scaffolding, forward tracking, and richer decision support.</span>
             </div>
             <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>

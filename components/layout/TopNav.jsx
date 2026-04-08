@@ -1,5 +1,7 @@
 'use client';
 
+import BeaconLogo from '@/components/BeaconLogo';
+
 export default function TopNav({ state, user, status, onJump, onOpenControls, onOpenLearning }) {
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
   const links = [
@@ -9,10 +11,15 @@ export default function TopNav({ state, user, status, onJump, onOpenControls, on
   ];
 
   return (
-    <div className="menu-bar card">
-      <div className="menu-brand">
-        <span className="menu-dot" />
-        <span>Midnight Signal</span>
+    <div className="menu-bar card premium-nav-shell">
+      <div className="menu-brand premium-menu-brand">
+        <span className="nav-logo-wrap" aria-hidden="true">
+          <BeaconLogo size={30} />
+        </span>
+        <div className="menu-brand-copy">
+          <span>Midnight Signal</span>
+          <small>Beacon market briefing</small>
+        </div>
       </div>
 
       <div className="menu-links">
