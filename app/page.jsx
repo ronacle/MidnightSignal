@@ -317,6 +317,8 @@ export default function HomePage() {
   const [priorityAlerts, setPriorityAlerts] = useState([]);
   const [contextItems, setContextItems] = useState([]);
   const [contextMeta, setContextMeta] = useState({ live: false, sourceTypes: { article: 0, x: 0, note: 0 }, updatedAt: null });
+  const [waitlistEmail, setWaitlistEmail] = useState('');
+  const [waitlistStatus, setWaitlistStatus] = useState('');
   const entitlementRefreshRef = useRef(false);
 
   useEffect(() => {
@@ -864,6 +866,27 @@ const sinceLastVisitSummary = useMemo(() => {
     }));
   }
 
+  async function handleEarlyAccessSignup(event) {
+    event?.preventDefault?.();
+    const email = String(waitlistEmail || '').trim();
+    if (!email) {
+      setWaitlistStatus("Enter an email to get tonight's signal by email.");
+      return;
+    }
+
+    try {
+      const result = await signInWithEmail(email);
+      if (result?.error) {
+        setWaitlistStatus(result.error.message || 'Could not start email sign-in.');
+        return;
+      }
+      setWaitlistStatus('Check your inbox for the magic link — early access is now tied to your email.');
+      setWaitlistEmail('');
+    } catch (error) {
+      setWaitlistStatus(error?.message || 'Could not start email sign-in.');
+    }
+  }
+
   function jumpTo(id) {
     if (typeof document === 'undefined') return;
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -946,6 +969,93 @@ const sinceLastVisitSummary = useMemo(() => {
           onDismissAll={() => setState((previous) => ({ ...previous, recentAlertEvents: [] }))}
         />
 
+        <section className="landing-command card" aria-label="Midnight Signal landing message">
+          <div className="landing-command-copy">
+            <div className="eyebrow">What&apos;s the signal tonight?</div>
+            <h2 className="section-title">Transforming market noise into market wisdom</h2>
+            <p className="muted small">Midnight Signal helps non-experts read posture, confidence, and catalysts fast. Free gets the nightly read. Pro unlocks the deeper board, retention loop, and alert engine.</p>
+            <div className="landing-command-actions">
+              <button type="button" className="primary-button" onClick={() => jumpTo('market-scan')}>Enter Tonight&apos;s Signal 🌙</button>
+              <button type="button" className="ghost-button" onClick={() => setControlOpen(true)}>Get Early Access</button>
+            </div>
+          </div>
+          <div className="landing-command-panel">
+            <div className="landing-mini-card">
+              <div className="landing-mini-label">Tonight&apos;s preview</div>
+              <div className="landing-mini-symbol">{topSignal?.symbol || '--'} <span>{Math.round(topSignal?.conviction || 0)}%</span></div>
+              <div className="landing-mini-copy">{decisionLayer?.statusLabel || topSignal?.signalLabel || 'Top signal ready'} • {signalContext?.marketContext || 'Context loading'}</div>
+            </div>
+            <div className="landing-mini-grid">
+              <div className="landing-mini-stat"><span>Context</span><strong>{signalContext?.catalystTitle || 'Catalyst watch armed'}</strong></div>
+              <div className="landing-mini-stat"><span>Alerts</span><strong>{alertSummary.badge}</strong></div>
+              <div className="landing-mini-stat"><span>Board</span><strong>{state.planTier === 'pro' ? 'Full board unlocked' : 'Preview + upgrade path'}</strong></div>
+            </div>
+          </div>
+        </section>
+
+        <section className="product-preview-grid" aria-label="Product preview and plans">
+          <div className="product-preview card">
+            <div className="preview-head">
+              <div>
+                <div className="eyebrow">Product preview</div>
+                <h3 className="section-title">See the product before you commit</h3>
+              </div>
+              <span className="badge preview-badge">Live nightly flow</span>
+            </div>
+            <div className="preview-stack">
+              <div className="preview-panel">
+                <div className="preview-panel-label">Tonight&apos;s Top Signal</div>
+                <div className="preview-panel-title">{topSignal?.symbol || '--'} • {topSignal?.signalLabel || 'Mixed posture'}</div>
+                <div className="preview-meter-row">
+                  <div className="preview-meter"><span style={{ width: `${Math.max(12, Math.min(100, Math.round(topSignal?.conviction || 0)))}%` }} /></div>
+                  <div className="muted small">Confidence {Math.round(topSignal?.conviction || 0)}%</div>
+                </div>
+              </div>
+              <div className="preview-three-up">
+                <div className="preview-subcard">
+                  <div className="preview-sub-label">Why now</div>
+                  <div className="preview-sub-copy">{signalContext?.whyThisIsHappening?.[0] || 'Momentum, trend, and volatility are fused into one plain-English read.'}</div>
+                </div>
+                <div className="preview-subcard">
+                  <div className="preview-sub-label">Catalyst</div>
+                  <div className="preview-sub-copy">{signalContext?.catalystSummary || 'Possible catalyst matching now sits next to the signal instead of in a noisy feed.'}</div>
+                </div>
+                <div className="preview-subcard">
+                  <div className="preview-sub-label">What changes next</div>
+                  <div className="preview-sub-copy">{visitIntelligence?.takeaway || 'Return visits highlight what changed, what improved, and what needs caution.'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="plan-ladder card">
+            <div className="eyebrow">Free vs Pro</div>
+            <h3 className="section-title">A clean value ladder</h3>
+            <div className="plan-columns">
+              <div className="plan-card">
+                <div className="plan-title">Free</div>
+                <div className="plan-price">Useful nightly read</div>
+                <ul className="plan-list">
+                  <li>Tonight&apos;s Top Signal</li>
+                  <li>Board preview</li>
+                  <li>Basic context and catalyst hints</li>
+                  <li>Clean educational read</li>
+                </ul>
+              </div>
+              <div className="plan-card plan-card--pro">
+                <div className="plan-title">Pro</div>
+                <div className="plan-price">Full Midnight Signal depth</div>
+                <ul className="plan-list">
+                  <li>Full signal board</li>
+                  <li>Watchlist persistence</li>
+                  <li>Email alerts and deeper revisit flow</li>
+                  <li>Full catalyst and context fusion</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="conversion-strip card" aria-label="Why Midnight Signal">
           <div className="conversion-intro">
             <div className="eyebrow">Why Midnight Signal</div>
@@ -966,6 +1076,40 @@ const sinceLastVisitSummary = useMemo(() => {
               <p className="muted small">Free covers the read, scan, and watchlist flow. Pro adds validation, forward tracking, and deeper breakdowns.</p>
             </div>
           </div>
+        </section>
+
+        <section className="brand-story-grid" aria-label="Brand trust and email capture">
+          <div className="brand-story card">
+            <div className="eyebrow">From data to wisdom</div>
+            <h3 className="section-title">A signal journey people can actually follow</h3>
+            <div className="wisdom-path">
+              {['Data', 'Information', 'Knowledge', 'Understanding', 'Wisdom'].map((item) => (
+                <span key={item} className="wisdom-step">{item}</span>
+              ))}
+            </div>
+            <p className="muted small">That&apos;s the Midnight Signal promise: don&apos;t just dump numbers on the screen — help people move from noise to an understandable posture, then to a smarter next step.</p>
+            <div className="trust-note">Educational tool only. Midnight Signal is built for guidance, learning, and market orientation — not financial advice.</div>
+          </div>
+
+          <form className="email-capture card" onSubmit={handleEarlyAccessSignup}>
+            <div className="eyebrow">Get tonight&apos;s signal by email</div>
+            <h3 className="section-title">Start with a lightweight early-access entry</h3>
+            <p className="muted small">Use your email to unlock the magic-link flow, save your profile, and start the nightly habit loop.</p>
+            <label className="capture-label" htmlFor="early-access-email">Email</label>
+            <input
+              id="early-access-email"
+              type="email"
+              className="capture-input"
+              placeholder="you@example.com"
+              value={waitlistEmail}
+              onChange={(event) => setWaitlistEmail(event.target.value)}
+            />
+            <div className="capture-actions">
+              <button type="submit" className="primary-button">Get Early Access</button>
+              <button type="button" className="ghost-button" onClick={() => jumpTo('since-last-visit')}>See the retention loop</button>
+            </div>
+            <div className="capture-status muted small">{waitlistStatus || 'We use your email for magic-link access and account-based signal memory.'}</div>
+          </form>
         </section>
 
 
@@ -1093,7 +1237,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.65 · Stripe launch polish · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
+          Build v11.67 · Landing + conversion engine · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 
