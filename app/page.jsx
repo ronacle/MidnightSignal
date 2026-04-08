@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-
-const STRIPE_FAST_LAUNCH = true;
 import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
 import Top20Grid from '@/components/signals/Top20Grid';
@@ -14,9 +12,22 @@ import { MARKET_FIXTURES } from '@/lib/default-state';
 import { useAccountSync } from '@/hooks/useAccountSync';
 import { rankAssets, buildSignalSnapshot, detectMarketRegime } from '@/lib/signal-engine';
 import { appendSignalSnapshot, buildValidationSummary, readSignalHistory } from '@/lib/signal-history';
-import { buildForwardScorecard, readForwardValidation, updateForwardCheckpoints, upsertForwardSignal, writeForwardValidation } from '@/lib/signal-forward-validation';
-import { buildAdaptiveSummary, deriveAdaptiveWeights, readAdaptiveWeights, writeAdaptiveWeights } from '@/lib/adaptive-weights';
+import {
+  buildForwardScorecard,
+  readForwardValidation,
+  updateForwardCheckpoints,
+  upsertForwardSignal,
+  writeForwardValidation,
+} from '@/lib/signal-forward-validation';
+import {
+  buildAdaptiveSummary,
+  deriveAdaptiveWeights,
+  readAdaptiveWeights,
+  writeAdaptiveWeights,
+} from '@/lib/adaptive-weights';
 import { buildDecisionLayer } from '@/lib/decision-layer';
+
+const STRIPE_FAST_LAUNCH = true;
 
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
@@ -66,7 +77,7 @@ export default function HomePage() {
     signInWithEmail,
     signOut,
     refreshFromCloud,
-    supabaseReady
+    supabaseReady,
   } = useAccountSync();
 
   const [controlOpen, setControlOpen] = useState(false);
@@ -74,6 +85,7 @@ export default function HomePage() {
   const [detailAsset, setDetailAsset] = useState(null);
   const [learningAsset, setLearningAsset] = useState(null);
   const [alertAsset, setAlertAsset] = useState(null);
+  const [upgradeNotice, setUpgradeNotice] = useState('');
   const [liveItems, setLiveItems] = useState([]);
   const [marketSource, setMarketSource] = useState('fallback');
   const [marketUpdatedAt, setMarketUpdatedAt] = useState(null);
@@ -125,13 +137,13 @@ export default function HomePage() {
     };
   }, []);
 
-/*    useEffect(() => {
+  useEffect(() => {
     if (typeof window === 'undefined') return;
 
     try {
       const url = new URL(window.location.href);
       const upgraded = url.searchParams.get('upgraded');
-      const canceled = url.searchParams.get('checkout');
+      const checkout = url.searchParams.get('checkout');
 
       if (upgraded === '1') {
         window.localStorage.setItem('midnight-signal-plan', 'pro');
@@ -139,7 +151,7 @@ export default function HomePage() {
         setUpgradeNotice('Pro unlocked — deeper signal layers active.');
         url.searchParams.delete('upgraded');
         window.history.replaceState({}, '', url.toString());
-      } else if (canceled === 'canceled') {
+      } else if (checkout === 'canceled') {
         setUpgradeNotice('Checkout canceled — Basic access remains active.');
         url.searchParams.delete('checkout');
         window.history.replaceState({}, '', url.toString());
@@ -149,15 +161,9 @@ export default function HomePage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    setSinceHidden(window.localStorage.getItem('since-dismissed') === 'true');
-    setSinceReady(true);
-  }, []); */
-
   const rankedAssets = useMemo(
     () => rankAssets(buildMarketUniverse(liveItems), adaptiveWeights),
-    [liveItems]
+    [liveItems, adaptiveWeights]
   );
 
   const topSignal = useMemo(
@@ -208,6 +214,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!topSignal || !marketReady) return;
+
     setForwardValidation((previous) => {
       const seeded = upsertForwardSignal(previous, topSignal, regimeSummary?.regime, marketSource);
       const updated = updateForwardCheckpoints(seeded, liveItems);
@@ -226,7 +233,7 @@ export default function HomePage() {
       ...previous,
       watchlist: previous.watchlist.includes(symbol)
         ? previous.watchlist.filter((item) => item !== symbol)
-        : [...previous.watchlist, symbol]
+        : [...previous.watchlist, symbol],
     }));
   }
 
@@ -243,8 +250,14 @@ export default function HomePage() {
           user={user}
           status={status}
           onJump={jumpTo}
-          onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
-          onOpenLearning={() => { setLearningAsset(null); setLearningOpen(true); }}
+          onOpenControls={() => {
+            setAlertAsset(null);
+            setControlOpen(true);
+          }}
+          onOpenLearning={() => {
+            setLearningAsset(null);
+            setLearningOpen(true);
+          }}
         />
 
         <HeroSection
@@ -254,7 +267,10 @@ export default function HomePage() {
           lastSyncedAt={lastSyncedAt}
           watchlistCount={state.watchlist.length}
           syncing={syncing}
-          onOpenControls={() => { setAlertAsset(null); setControlOpen(true); }}
+          onOpenControls={() => {
+            setAlertAsset(null);
+            setControlOpen(true);
+          }}
         />
 
         <section className="top-grid lead-flow-grid">
@@ -271,6 +287,7 @@ export default function HomePage() {
             forwardScorecard={forwardScorecard}
             adaptiveSummary={adaptiveSummary}
             decisionLayer={decisionLayer}
+            stripeFastLaunch={STRIPE_FAST_LAUNCH}
           />
         </section>
 
@@ -280,9 +297,17 @@ export default function HomePage() {
               <div className="eyebrow">Next up</div>
               <h2 className="section-title">Tonight&apos;s Board</h2>
             </div>
-            <div className="muted small">Scan the field, open a name, and save favorites from the board.</div>
+            <div className="muted small">
+              Scan the field, open a name, and save favorites from the board.
+            </div>
           </div>
-          <Top20Grid state={state} setState={setState} onAssetOpen={setDetailAsset} assets={rankedAssets} />
+
+          <Top20Grid
+            state={state}
+            setState={setState}
+            onAssetOpen={setDetailAsset}
+            assets={rankedAssets}
+          />
         </section>
 
         {upgradeNotice ? (
@@ -319,12 +344,14 @@ export default function HomePage() {
         alertAsset={alertAsset}
         onConsumeAlertAsset={() => setAlertAsset(null)}
       />
+
       <LearningDrawer
         open={learningOpen}
         onClose={() => setLearningOpen(false)}
         state={state}
         focusAsset={learningAsset}
       />
+
       <AssetDetailSheet
         asset={detailAsset || selected}
         open={Boolean(detailAsset)}
