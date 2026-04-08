@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import AuthPanel from '@/components/AuthPanel';
 import DisclaimerCard from '@/components/DisclaimerCard';
 import SettingsPanel from '@/components/SettingsPanel';
@@ -13,6 +14,50 @@ function PlaceholderPanel({ title, text }) {
         <span className="badge">Panel</span>
       </div>
       <div className="muted small">{text}</div>
+    </div>
+  );
+}
+
+
+const PLAN_STORAGE_KEY = 'midnight-signal-plan';
+
+function BillingPanel() {
+  const [planTier, setPlanTier] = React.useState('basic');
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncPlan = () => {
+      try {
+        setPlanTier(window.localStorage.getItem(PLAN_STORAGE_KEY) || 'basic');
+      } catch {
+        setPlanTier('basic');
+      }
+    };
+
+    syncPlan();
+    window.addEventListener('storage', syncPlan);
+    window.addEventListener('focus', syncPlan);
+    return () => {
+      window.removeEventListener('storage', syncPlan);
+      window.removeEventListener('focus', syncPlan);
+    };
+  }, []);
+
+  return (
+    <div className="panel stack compact-panel billing-panel">
+      <div className="row space-between">
+        <h3 className="section-title">Membership</h3>
+        <span className={`badge ${planTier === 'pro' ? 'plan-nav-badge tier-pro' : 'plan-nav-badge tier-basic'}`}>{planTier === 'pro' ? 'Pro Active' : 'Free Plan'}</span>
+      </div>
+
+      <div className="muted small">
+        {planTier === 'pro'
+          ? 'Your Pro access is active on this browser. Deeper signal breakdowns and advanced context are unlocked.'
+          : 'You are on the free plan. Upgrade from the Top Signal panel to unlock deeper validation, forward tracking, and expanded signal context.'}
+      </div>
+
+      <div className="billing-note">Secure checkout via Stripe · Cancel anytime · Educational tool, not financial advice.</div>
     </div>
   );
 }
@@ -112,6 +157,7 @@ export default function ControlDrawer({ open, onClose, state, setState, user, st
             supabaseReady={supabaseReady}
           />
           <SettingsPanel state={state} setState={setState} />
+          <BillingPanel />
           <AlertManagerPanel state={state} setState={setState} alertAsset={alertAsset} onConsumeAlertAsset={onConsumeAlertAsset} />
           <LiveUpdateControls state={state} setState={setState} />
           <DisclaimerCard state={state} setState={setState} />

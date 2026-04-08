@@ -324,7 +324,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.30 · Stripe fast launch + local Pro unlock + checkout redirects · source: {marketSource}
+          Build v11.31 · paywall foundation + plan visibility + checkout redirects · source: {marketSource}
         </div>
       </div>
 
