@@ -951,7 +951,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.57 · Signal + news/X context layer · source: {marketSource}
+          Build v11.57.1 · Signal + news/X context layer · source: {marketSource}
         </div>
       </div>
 
