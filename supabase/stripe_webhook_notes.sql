@@ -1,4 +1,4 @@
--- Midnight Signal v11.46 notes
+-- Midnight Signal v11.47 notes
 -- No schema change is required for webhook sync because entitlement status is stored
 -- inside public.user_state.state JSON. The webhook route uses the Supabase service role
 -- to find matching rows by stored Stripe identifiers and update state.entitlement.

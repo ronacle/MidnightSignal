@@ -19,23 +19,153 @@ function PlaceholderPanel({ title, text }) {
 }
 
 
-function BillingPanel({ state }) {
+function BillingPanel({ state, setState, user, onRefresh }) {
+  const [busy, setBusy] = React.useState('');
+  const [feedback, setFeedback] = React.useState('');
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
+  const entitlement = state?.entitlement || {};
+  const verified = Boolean(entitlement?.verified);
+  const statusLabel = entitlement?.status ? String(entitlement.status).replace(/_/g, ' ') : 'inactive';
+  const customerId = entitlement?.customerId || null;
+  const subscriptionId = entitlement?.subscriptionId || null;
+  const periodEndLabel = entitlement?.currentPeriodEnd ? new Date(entitlement.currentPeriodEnd).toLocaleString() : '—';
+  const checkedAtLabel = entitlement?.checkedAt ? new Date(entitlement.checkedAt).toLocaleString() : 'Not checked yet';
+
+  async function handleManageSubscription() {
+    if (!customerId) {
+      setFeedback('No Stripe customer is linked yet on this account.');
+      return;
+    }
+    setBusy('portal');
+    setFeedback('');
+    try {
+      const res = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, returnPath: '/?billing_return=portal' }),
+      });
+      const data = await res.json();
+      if (data?.ok && data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setFeedback(data?.error || 'Unable to open Stripe billing portal.');
+    } catch {
+      setFeedback('Unable to open Stripe billing portal.');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function handleRefreshEntitlement() {
+    if (!entitlement?.subscriptionId && !entitlement?.checkoutSessionId && !entitlement?.customerId) {
+      setFeedback('There is no Stripe entitlement on this account to refresh yet.');
+      return;
+    }
+    setBusy('refresh');
+    setFeedback('');
+    try {
+      const res = await fetch('/api/stripe/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entitlement }),
+      });
+      const data = await res.json();
+      if (data?.ok && data?.entitlement) {
+        setState((previous) => ({ ...previous, entitlement: data.entitlement, planTier: data.entitlement?.verified ? 'pro' : 'basic' }));
+        setFeedback('Billing status refreshed from Stripe.');
+        onRefresh?.();
+        return;
+      }
+      setFeedback(data?.error || 'Unable to refresh billing status.');
+    } catch {
+      setFeedback('Unable to refresh billing status.');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function handleCancelAtPeriodEnd() {
+    if (!subscriptionId) {
+      setFeedback('No active Stripe subscription is linked yet on this account.');
+      return;
+    }
+    const confirmed = window.confirm('Cancel Midnight Signal Pro at the end of the current billing period?');
+    if (!confirmed) return;
+    setBusy('cancel');
+    setFeedback('');
+    try {
+      const res = await fetch('/api/stripe/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscriptionId,
+          customerId: entitlement?.customerId || null,
+          checkoutSessionId: entitlement?.checkoutSessionId || null,
+          priceId: entitlement?.priceId || null,
+        }),
+      });
+      const data = await res.json();
+      if (data?.ok && data?.entitlement) {
+        setState((previous) => ({
+          ...previous,
+          entitlement: {
+            ...data.entitlement,
+            status: data.cancelAtPeriodEnd ? 'canceled' : data.entitlement?.status || 'inactive',
+            verified: data.cancelAtPeriodEnd ? true : Boolean(data.entitlement?.verified),
+          },
+          stripeWebhookStatus: data.cancelAtPeriodEnd ? 'Cancel scheduled at period end' : 'Subscription updated',
+          stripeWebhookUpdatedAt: new Date().toISOString(),
+        }));
+        setFeedback(data.cancelAtPeriodEnd ? 'Cancellation scheduled. Pro stays active until the current period ends.' : 'Subscription updated.');
+        onRefresh?.();
+        return;
+      }
+      setFeedback(data?.error || 'Unable to change subscription status.');
+    } catch {
+      setFeedback('Unable to change subscription status.');
+    } finally {
+      setBusy('');
+    }
+  }
 
   return (
     <div className="panel stack compact-panel billing-panel">
       <div className="row space-between">
-        <h3 className="section-title">Membership</h3>
+        <h3 className="section-title">Billing & account center</h3>
         <span className={`badge ${planTier === 'pro' ? 'plan-nav-badge tier-pro' : 'plan-nav-badge tier-basic'}`}>{planTier === 'pro' ? 'Pro Active' : 'Free Plan'}</span>
       </div>
 
       <div className="muted small">
         {planTier === 'pro'
-          ? 'Your Pro access is verified from Stripe on this browser. Deeper signal breakdowns and advanced context are unlocked.'
+          ? 'Your Pro access is verified from Stripe on this account. Use the account center below to refresh billing truth, manage payment details, or schedule cancellation.'
           : 'You are on the free plan. Upgrade from the Top Signal panel to unlock deeper validation, forward tracking, expanded signal context, and synced Pro access after Stripe verification.'}
       </div>
 
-      <div className="billing-note">Secure checkout via Stripe · Pro unlocks only after verified entitlement · Educational tool, not financial advice.</div>
+      <div className="list-item stack">
+        <div><strong>Billing status:</strong> {verified ? 'Verified' : 'Not verified'} · {statusLabel}</div>
+        <div className="muted small"><strong>Signed-in account:</strong> {user?.email || 'Not signed in'}</div>
+        <div className="muted small"><strong>Current period end:</strong> {periodEndLabel}</div>
+        <div className="muted small"><strong>Last Stripe check:</strong> {checkedAtLabel}</div>
+        <div className="muted small"><strong>Stripe customer:</strong> {customerId || 'Not linked yet'}</div>
+        <div className="muted small"><strong>Subscription:</strong> {subscriptionId || 'Not linked yet'}</div>
+      </div>
+
+      <div className="row wrap-gap">
+        <button className="button" type="button" onClick={handleRefreshEntitlement} disabled={busy === 'refresh'}>
+          {busy === 'refresh' ? 'Refreshing…' : 'Refresh billing status'}
+        </button>
+        <button className="ghost-button" type="button" onClick={handleManageSubscription} disabled={!customerId || busy === 'portal'}>
+          {busy === 'portal' ? 'Opening…' : 'Manage subscription'}
+        </button>
+        <button className="ghost-button" type="button" onClick={handleCancelAtPeriodEnd} disabled={!subscriptionId || busy === 'cancel'}>
+          {busy === 'cancel' ? 'Scheduling…' : 'Cancel at period end'}
+        </button>
+      </div>
+
+      {feedback ? <div className="muted small">{feedback}</div> : null}
+
+      <div className="billing-note">Secure checkout via Stripe · verified entitlement controls Pro access · canceling at period end keeps Pro active until the paid window expires · educational tool, not financial advice.</div>
     </div>
   );
 }
@@ -135,9 +265,10 @@ export default function ControlDrawer({ open, onClose, state, setState, user, st
             supabaseReady={supabaseReady}
             planTier={state?.planTier || 'basic'}
             profileCount={(state?.savedProfiles || []).filter(Boolean).length}
+            entitlement={state?.entitlement || {}}
           />
           <SettingsPanel state={state} setState={setState} />
-          <BillingPanel state={state} />
+          <BillingPanel state={state} setState={setState} user={user} onRefresh={onRefresh} />
           <AlertManagerPanel state={state} setState={setState} alertAsset={alertAsset} onConsumeAlertAsset={onConsumeAlertAsset} />
           <LiveUpdateControls state={state} setState={setState} />
           <DisclaimerCard state={state} setState={setState} />

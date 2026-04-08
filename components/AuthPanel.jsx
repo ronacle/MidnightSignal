@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, planTier = 'basic', profileCount = 0 }) {
+export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, planTier = 'basic', profileCount = 0, entitlement = {} }) {
   const [email, setEmail] = useState('');
   const [feedback, setFeedback] = useState('');
 
@@ -33,6 +33,7 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
             <div className="muted small">Last synced: {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : 'Not yet synced'}</div>
             <div className="muted small">Cloud sync now carries your watchlist, saved profiles, alert memory, digest queue, and your verified billing entitlement state.</div>
             <div className="muted small">Saved profiles in cloud: {profileCount}</div>
+            <div className="muted small">Billing truth: {entitlement?.verified ? 'Verified Pro' : 'Free / unverified'}{entitlement?.status ? ` · ${String(entitlement.status).replace(/_/g, ' ')}` : ''}</div>
             <div className="row">
               <button className="button" onClick={onRefresh}>Pull latest cloud state</button>
               <button className="ghost-button" onClick={onSignOut}>Sign out</button>

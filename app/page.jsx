@@ -198,6 +198,7 @@ export default function HomePage() {
       const url = new URL(window.location.href);
       const checkout = url.searchParams.get('checkout');
       const billing = url.searchParams.get('billing');
+      const billingReturn = url.searchParams.get('billing_return');
 
       if (checkout === 'canceled') {
         setUpgradeNotice('Checkout canceled — Basic access remains active.');
@@ -206,6 +207,10 @@ export default function HomePage() {
       } else if (billing === 'unavailable') {
         setUpgradeNotice('Stripe checkout is not configured yet. Pro stays locked until billing is live.');
         url.searchParams.delete('billing');
+        window.history.replaceState({}, '', url.toString());
+      } else if (billingReturn === 'portal') {
+        setUpgradeNotice('Returned from Stripe billing portal. You can refresh billing status in Control Panel if anything changed.');
+        url.searchParams.delete('billing_return');
         window.history.replaceState({}, '', url.toString());
       }
     } catch {
@@ -671,7 +676,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.46 · Stripe webhook sync + subscription status refresh · source: {marketSource}
+          Build v11.47 · Billing account center + manage / cancel flow · source: {marketSource}
         </div>
       </div>
 
