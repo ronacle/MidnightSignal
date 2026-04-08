@@ -4,7 +4,6 @@ function clamp(value, min, max) {
 
 const ALERT_MEMORY_KEY = 'ms_alert_memory_v1';
 const DIGEST_MEMORY_KEY = 'ms_alert_digest_v1';
-const EMAIL_DELIVERY_MEMORY_KEY = 'ms_alert_email_delivery_v1';
 
 
 function sanitizeAlertMemory(memory) {
@@ -67,22 +66,6 @@ export function writeDigestMemory(memory) {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(DIGEST_MEMORY_KEY, JSON.stringify(sanitizeDigestMemory(memory)));
-  } catch {}
-}
-
-export function readEmailDeliveryMemory() {
-  if (typeof window === 'undefined') return sanitizeEmailDeliveryMemory();
-  try {
-    return sanitizeEmailDeliveryMemory(JSON.parse(window.localStorage.getItem(EMAIL_DELIVERY_MEMORY_KEY) || '{"sentLog":{},"recent":[]}'));
-  } catch {
-    return sanitizeEmailDeliveryMemory();
-  }
-}
-
-export function writeEmailDeliveryMemory(memory) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(EMAIL_DELIVERY_MEMORY_KEY, JSON.stringify(sanitizeEmailDeliveryMemory(memory)));
   } catch {}
 }
 
@@ -327,67 +310,4 @@ export function buildSystemAlerts({ previousTopSignal, topSignal, previousRegime
   });
 
   return events;
-}
-
-function buildDeliveryFingerprint(alert) {
-  const confidence = alert?.confidence != null ? Math.round(Number(alert.confidence || 0)) : 'na';
-  return [
-    alert?.symbol || 'MARKET',
-    alert?.source || 'system',
-    alert?.title || '',
-    alert?.body || alert?.text || '',
-    alert?.posture || '',
-    confidence,
-  ].join('|');
-}
-
-export function selectDeliverableAlerts(events = [], options = {}) {
-  const scope = options.scope === 'all' ? 'all' : 'watchlist';
-  const memory = sanitizeEmailDeliveryMemory(options.memory || {});
-  const sentLog = { ...memory.sentLog };
-  const now = Date.now();
-  const cooldownMs = clamp(Number(options.cooldownMinutes || 180), 15, 1440) * 60 * 1000;
-  const deliverable = [];
-
-  (Array.isArray(events) ? events : []).forEach((event) => {
-    if (!event) return;
-    if (scope === 'watchlist' && !event.isWatchlist) return;
-    if (event.source === 'system' && Number(event.priority || 0) < 3) return;
-
-    const fingerprint = buildDeliveryFingerprint(event);
-    const previousAt = sentLog[fingerprint];
-    if (previousAt && now - new Date(previousAt).getTime() < cooldownMs) return;
-
-    sentLog[fingerprint] = new Date(now).toISOString();
-    deliverable.push({
-      ...event,
-      emailFingerprint: fingerprint,
-      emailEligible: true,
-    });
-  });
-
-  return {
-    alerts: deliverable.slice(0, 6),
-    memory: sanitizeEmailDeliveryMemory({ ...memory, sentLog }),
-  };
-}
-
-export function recordEmailDelivery(memory = {}, alerts = [], meta = {}) {
-  const safeMemory = sanitizeEmailDeliveryMemory(memory);
-  const sentAt = meta.sentAt || new Date().toISOString();
-  const channel = meta.mode === 'mock' ? 'mock' : 'email';
-  const entries = (Array.isArray(alerts) ? alerts : []).filter(Boolean).map((alert) => ({
-    id: `${alert.id || alert.emailFingerprint || alert.symbol || 'alert'}:${sentAt}`,
-    symbol: alert.symbol || 'Market',
-    title: alert.title || 'Signal alert sent',
-    body: alert.body || alert.text || 'A Midnight Signal alert was delivered.',
-    posture: alert.posture || alert.signalLabel || 'Signal',
-    confidence: alert.confidence != null ? Math.round(Number(alert.confidence || 0)) : null,
-    sentAt,
-    channel,
-  }));
-  return sanitizeEmailDeliveryMemory({
-    sentLog: safeMemory.sentLog,
-    recent: [...entries, ...safeMemory.recent].slice(0, 12),
-  });
 }

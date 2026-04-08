@@ -34,7 +34,6 @@ export default function AlertCenterPanel({ alerts = [], newCount = 0, lastVisitL
                   <span className="badge">{getLevelLabel(alert)}</span>
                   {alert?.symbol ? <span className="badge">{alert.symbol}</span> : null}
                   {alert?.confidence != null ? <span className="badge">{alert.confidence}%</span> : null}
-                  {alert?.emailedAt ? <span className="badge">Email sent</span> : null}
                   {alert?.triggeredAt ? <span className="muted small">{formatTime(alert.triggeredAt)}</span> : null}
                 </div>
                 <div className="alert-center-title">{alert.title}</div>

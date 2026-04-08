@@ -25,7 +25,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={118} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.62</div>
+            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.63</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.

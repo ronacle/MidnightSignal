@@ -37,13 +37,9 @@ import {
   buildMeaningfulChangeAlerts,
   evaluateConfiguredAlerts,
   readAlertMemory,
-  readDigestMemory,
-  readEmailDeliveryMemory,
-  recordEmailDelivery,
-  selectDeliverableAlerts,
   writeAlertMemory,
+  readDigestMemory,
   writeDigestMemory,
-  writeEmailDeliveryMemory,
   queueDigestEvents,
   consumeQueuedDigestEvents,
 } from '@/lib/alert-engine';
@@ -685,26 +681,14 @@ const sinceLastVisitSummary = useMemo(() => {
             } catch {}
           }
 
-          if (state?.alertDeliveryEnabled && state?.alertDeliveryEmail) {
+          if (configured.events.length && state?.alertDeliveryEnabled && state?.alertDeliveryEmail) {
             try {
               const digestMode = state.alertDigestMode || 'instant';
-              const emailMemory = state?.alertEmailDeliveryMemory || readEmailDeliveryMemory();
-              const deliverable = selectDeliverableAlerts(
-                [...configured.events, ...meaningfulAlerts, ...systemAlerts],
-                {
-                  scope: state?.alertDeliveryScope || 'watchlist',
-                  memory: emailMemory,
-                  cooldownMinutes: digestMode === 'digest'
-                    ? Number(state?.alertDigestIntervalMinutes || 240)
-                    : Math.max(Number(state?.alertCooldownMinutes || 30), 180),
-                }
-              );
-
-              let payloadAlerts = deliverable.alerts;
-              let shouldSend = Boolean(payloadAlerts.length);
+              let payloadAlerts = configured.events;
+              let shouldSend = Boolean(configured.events.length);
 
               if (digestMode === 'digest') {
-                const queuedDigestMemory = queueDigestEvents(payloadAlerts);
+                const queuedDigestMemory = queueDigestEvents(configured.events);
                 setState((previous) => ({ ...previous, alertDigestMemory: queuedDigestMemory }));
                 const digest = consumeQueuedDigestEvents(Number(state?.alertDigestIntervalMinutes || 240));
                 writeDigestMemory(digest.memory);
@@ -724,22 +708,9 @@ const sinceLastVisitSummary = useMemo(() => {
                   }),
                 });
                 const data = await response.json().catch(() => ({}));
-                const sentAt = data?.sentAt || new Date().toISOString();
-                const nextEmailMemory = data?.ok
-                  ? recordEmailDelivery(deliverable.memory, payloadAlerts, { sentAt, mode: data?.mode || 'live' })
-                  : deliverable.memory;
-                writeEmailDeliveryMemory(nextEmailMemory);
-                if (data?.ok) {
-                  const sentIds = new Set(payloadAlerts.map((item) => item.id));
-                  setPriorityAlerts((previous) => previous.map((item) => (
-                    sentIds.has(item.id) ? { ...item, emailedAt: sentAt } : item
-                  )));
-                }
                 setState((previous) => ({
                   ...previous,
-                  alertEmailDeliveryMemory: nextEmailMemory,
-                  recentEmailDeliveries: nextEmailMemory.recent || [],
-                  alertLastDeliveryAt: sentAt,
+                  alertLastDeliveryAt: data?.sentAt || new Date().toISOString(),
                   alertLastDeliveryStatus: data?.ok
                     ? data?.mode === 'mock'
                       ? 'Delivery route ready in mock mode'
@@ -747,12 +718,6 @@ const sinceLastVisitSummary = useMemo(() => {
                         ? 'Digest sent'
                         : 'Instant alert sent'
                     : data?.message || 'Delivery failed',
-                }));
-              } else {
-                writeEmailDeliveryMemory(deliverable.memory);
-                setState((previous) => ({
-                  ...previous,
-                  alertEmailDeliveryMemory: deliverable.memory,
                 }));
               }
             } catch (error) {
@@ -1092,7 +1057,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.63 · Real email alerts · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
+          Build v11.62 · Alerts + retention · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 

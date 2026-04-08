@@ -7,6 +7,11 @@ function escapeHtml(value = "") {
     .replaceAll("'", "&#39;");
 }
 
+function buildDriverLine(alert) {
+  const drivers = [alert?.whyNow, alert?.watchNext].filter(Boolean);
+  return drivers.length ? drivers.join(" • ") : "";
+}
+
 function buildEmailHtml(alerts = [], digestMode = "instant") {
   const safeAlerts = alerts.length ? alerts : [{ symbol: 'MIDNIGHT', posture: 'Test alert', confidence: 100, text: 'Your email delivery path is working.' }];
   const items = safeAlerts
@@ -15,7 +20,8 @@ function buildEmailHtml(alerts = [], digestMode = "instant") {
         <div style="padding:14px 16px;border-radius:14px;border:1px solid rgba(148,163,184,.18);background:#111827;margin-bottom:12px;">
           <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;">${escapeHtml(alert.type || alert.source || "signal")}</div>
           <div style="font-size:18px;font-weight:800;color:#f8fafc;margin-bottom:8px;">${escapeHtml(alert.symbol || "Asset")} • ${escapeHtml(alert.posture || "Signal")} • ${escapeHtml(String(alert.confidence || "--"))}%</div>
-          <div style="color:#cbd5e1;line-height:1.6;">${escapeHtml(alert.text || alert.body || "A new signal update was detected.")}</div>
+          <div style="color:#cbd5e1;line-height:1.6;margin-bottom:8px;">${escapeHtml(alert.text || alert.body || "A new signal update was detected.")}</div>
+          ${buildDriverLine(alert) ? `<div style="color:#93c5fd;font-size:13px;line-height:1.5;">${escapeHtml(buildDriverLine(alert))}</div>` : ""}
         </div>`
     )
     .join("");
@@ -35,7 +41,10 @@ function buildEmailHtml(alerts = [], digestMode = "instant") {
 function buildEmailText(alerts = [], digestMode = "instant") {
   const header = digestMode === "digest" ? "Midnight Signal digest" : "Midnight Signal alert";
   const safeAlerts = alerts.length ? alerts : [{ symbol: 'MIDNIGHT', posture: 'Test alert', confidence: 100, text: 'Your email delivery path is working.' }];
-  const lines = safeAlerts.map((alert) => `- ${alert.symbol || "Asset"} | ${alert.posture || "Signal"} | ${alert.confidence || "--"}% | ${alert.text || alert.body || "A new signal update was detected."}`);
+  const lines = safeAlerts.map((alert) => {
+  const extras = [alert?.whyNow, alert?.watchNext].filter(Boolean).join(' | ');
+  return `- ${alert.symbol || "Asset"} | ${alert.posture || "Signal"} | ${alert.confidence || "--"}% | ${alert.text || alert.body || "A new signal update was detected."}${extras ? ` | ${extras}` : ''}`;
+});
   return [header, "", ...lines].join("\n");}
 
 export async function POST(request) {
