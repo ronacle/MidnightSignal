@@ -37,8 +37,11 @@ export default function TopSignal({
   const currentAdaptive = adaptiveSummary.find((entry) => entry.regime === (regimeSummary?.regime || asset?.marketRegime));
   const topSignalMotion = Boolean(state?.livePulseEnabled);
 
+  const conviction = asset.signalScore ?? asset.conviction ?? 0;
+  const convictionTone = conviction >= 70 ? 'top-signal-strong' : conviction < 45 ? 'top-signal-cautious' : '';
+
   return (
-    <div className={`panel stack ${topSignalMotion ? 'top-signal-motion' : ''} ${embedded ? 'embedded-top-signal' : ''}`}>
+    <div className={`panel stack ${topSignalMotion ? 'top-signal-motion' : ''} ${embedded ? 'embedded-top-signal' : ''} ${convictionTone}`}>
       <div className="row space-between">
         <h2 className="section-title">{title} <span className="signal-dot" aria-hidden="true" /></h2>
         <span className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</span>

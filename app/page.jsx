@@ -503,22 +503,6 @@ export default function HomePage() {
         />
 
 
-        <section className="since-panel card" id="since-last-visit">
-          <div className="since-panel-head">
-            <div>
-              <div className="eyebrow">Return signal</div>
-              <h2 className="section-title">Since your last visit</h2>
-            </div>
-            <span className="badge since-badge">{lastVisitLabel}</span>
-          </div>
-
-          <div className="since-chip-row">
-            {sinceLastVisitSummary.map((item) => (
-              <div key={item} className="since-chip">{item}</div>
-            ))}
-          </div>
-        </section>
-
         <section className="top-grid lead-flow-grid">
           <LeadSignalPanel
             asset={topSignal}
@@ -535,6 +519,22 @@ export default function HomePage() {
             decisionLayer={decisionLayer}
             stripeFastLaunch={STRIPE_FAST_LAUNCH}
           />
+        </section>
+
+        <section className="since-panel card" id="since-last-visit">
+          <div className="since-panel-head">
+            <div>
+              <div className="eyebrow">Return signal</div>
+              <h2 className="section-title">Since your last visit</h2>
+            </div>
+            <span className="badge since-badge">{lastVisitLabel}</span>
+          </div>
+
+          <div className="since-chip-row">
+            {sinceLastVisitSummary.map((item) => (
+              <div key={item} className="since-chip">{item}</div>
+            ))}
+          </div>
         </section>
 
         <section className="market-grid market-grid-single" id="market-scan">
@@ -570,7 +570,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.38 · watchlist intelligence + priority alerts · source: {marketSource}
+          Build v11.39 · signal feel + stability pass · source: {marketSource}
         </div>
       </div>
 

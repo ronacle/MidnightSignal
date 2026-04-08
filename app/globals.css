@@ -2486,3 +2486,39 @@ button, input, select { font: inherit; }
     justify-content: flex-start;
   }
 }
+
+/* v11.39 signal feel + stability pass */
+.signal-flash-shell {
+  animation: midnight-signal-flash 560ms ease-out;
+}
+
+@keyframes midnight-signal-flash {
+  0% { transform: translateY(0); filter: brightness(1); }
+  30% { transform: translateY(-1px); filter: brightness(1.08); }
+  100% { transform: translateY(0); filter: brightness(1); }
+}
+
+.top-signal-strong {
+  box-shadow: 0 16px 36px rgba(16, 24, 40, 0.28), 0 0 0 1px rgba(107, 197, 255, 0.18);
+}
+
+.top-signal-strong .value,
+.top-signal-strong .signal-price,
+.top-signal-strong .section-title {
+  text-shadow: 0 0 12px rgba(107, 197, 255, 0.16);
+}
+
+.top-signal-cautious {
+  box-shadow: 0 16px 36px rgba(16, 24, 40, 0.28), 0 0 0 1px rgba(255, 107, 107, 0.12);
+}
+
+.top-signal-cautious .signal-change.is-down,
+.top-signal-cautious .sentiment.bearish {
+  filter: saturate(1.05);
+}
+
+.lead-flow-grid,
+.lead-signal-panel,
+.market-grid-single {
+  scroll-margin-top: 84px;
+}

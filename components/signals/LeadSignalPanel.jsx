@@ -9,31 +9,20 @@ const SNAPSHOT_STORAGE_KEY = 'midnight-signal-last-top-signal';
 const USER_BIAS_STORAGE_KEY = 'midnight-signal-user-bias';
 const PLAN_STORAGE_KEY = 'midnight-signal-plan';
 
+function ProOverlay({ onUpgrade }) {
+  return (
+    <div className="pro-overlay">
+      <div className="pro-card">
+        <div className="pro-title">See what the signal is actually doing next</div>
+        <div className="pro-desc">Track validation, confidence shifts, and forward performance.</div>
+        <button className="pro-cta" onClick={onUpgrade}>Upgrade to Pro</button>
+      </div>
+    </div>
+  );
+}
+
 function UpgradeModal({ open, onClose, onUnlockLocal }) {
   if (!open) return null;
-
-  const checkoutLink = '/api/stripe/checkout';
-
-  
-  function ProOverlay({ onUpgrade }) {
-    return (
-      <div className="pro-overlay">
-        <div className="pro-card">
-          <div className="pro-title">See what the signal is actually doing next</div>
-          <div className="pro-desc">Track validation, confidence shifts, and forward performance.</div>
-          <button className="pro-cta" onClick={onUpgrade}>Upgrade to Pro</button>
-        </div>
-      </div>
-    );
-  }
-
-  async function handleUpgrade() {
-    try {
-      const res = await fetch('/api/checkout', { method: 'POST' });
-      const data = await res.json();
-      if (data?.url) window.location.href = data.url;
-    } catch {}
-  }
 
   return (
     <div className="upgrade-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title">
@@ -62,7 +51,7 @@ function UpgradeModal({ open, onClose, onUnlockLocal }) {
         </div>
 
         <div className="upgrade-modal-actions">
-          <a className="primary-button upgrade-link-button" href={checkoutLink}>
+          <a className="primary-button upgrade-link-button" href="/api/stripe/checkout">
             Unlock Pro
           </a>
           <button type="button" className="ghost-button" onClick={onUnlockLocal}>
@@ -89,15 +78,6 @@ export default function LeadSignalPanel({
   adaptiveSummary = [],
   decisionLayer = null,
 }) {
-
-  const [isPro, setIsPro] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const plan = window.localStorage.getItem('midnight-signal-plan');
-    setIsPro(plan === 'pro');
-  }, []);
-
   const [expanded, setExpanded] = useState(false);
   const [sessionState, setSessionState] = useState(state || {});
   const [persistedSnapshot, setPersistedSnapshot] = useState(null);
@@ -130,17 +110,9 @@ export default function LeadSignalPanel({
         lastViewedAt: storedVisit || current?.lastViewedAt || null,
       }));
 
-      if (storedSnapshot) {
-        setPersistedSnapshot(JSON.parse(storedSnapshot));
-      }
-
-      if (storedBias) {
-        setUserBias(JSON.parse(storedBias));
-      }
-
-      if (storedPlan) {
-        setPlanTier(storedPlan);
-      }
+      if (storedSnapshot) setPersistedSnapshot(JSON.parse(storedSnapshot));
+      if (storedBias) setUserBias(JSON.parse(storedBias));
+      if (storedPlan) setPlanTier(storedPlan);
     } catch {
       setSessionState((current) => ({ ...(current || {}), ...(state || {}) }));
     }
@@ -173,31 +145,20 @@ export default function LeadSignalPanel({
       breakdownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 140);
 
-    
-  function ProOverlay({ onUpgrade }) {
-    return (
-      <div className="pro-overlay">
-        <div className="pro-card">
-          <div className="pro-title">See what the signal is actually doing next</div>
-          <div className="pro-desc">Track validation, confidence shifts, and forward performance.</div>
-          <button className="pro-cta" onClick={onUpgrade}>Upgrade to Pro</button>
-        </div>
-      </div>
-    );
-  }
+    return () => window.clearTimeout(timer);
+  }, [expanded]);
 
   async function handleUpgrade() {
     try {
       const res = await fetch('/api/checkout', { method: 'POST' });
       const data = await res.json();
       if (data?.url) window.location.href = data.url;
-    } catch {}
+    } catch {
+      setUpgradeOpen(true);
+    }
   }
 
-  return () => window.clearTimeout(timer);
-  }, [expanded]);
-
-  const handleLocalUnlock = () => {
+  function handleLocalUnlock() {
     setPlanTier('pro');
     setUpgradeOpen(false);
 
@@ -209,38 +170,17 @@ export default function LeadSignalPanel({
         // no-op
       }
     }
-  };
+  }
 
-  const handleExpand = () => {
+  function handleExpand() {
     if (planTier !== 'pro') {
       setUpgradeOpen(true);
       return;
     }
     setExpanded((value) => !value);
-  };
+  }
 
   if (!asset) return null;
-
-  
-  function ProOverlay({ onUpgrade }) {
-    return (
-      <div className="pro-overlay">
-        <div className="pro-card">
-          <div className="pro-title">See what the signal is actually doing next</div>
-          <div className="pro-desc">Track validation, confidence shifts, and forward performance.</div>
-          <button className="pro-cta" onClick={onUpgrade}>Upgrade to Pro</button>
-        </div>
-      </div>
-    );
-  }
-
-  async function handleUpgrade() {
-    try {
-      const res = await fetch('/api/checkout', { method: 'POST' });
-      const data = await res.json();
-      if (data?.url) window.location.href = data.url;
-    } catch {}
-  }
 
   return (
     <>
@@ -343,19 +283,17 @@ export default function LeadSignalPanel({
           </div>
         ) : null}
 
-      
-      {!isPro && (
-        <div className="pro-gated-block">
-          <div className="pro-blur">
-            <div className="pro-placeholder">
-              Validation • Forward Tracking • Decision Layer
+        {planTier !== 'pro' ? (
+          <div className="pro-gated-block">
+            <div className="pro-blur">
+              <div className="pro-placeholder">
+                Validation • Forward Tracking • Decision Layer
+              </div>
             </div>
+            <ProOverlay onUpgrade={handleUpgrade} />
           </div>
-          <ProOverlay onUpgrade={handleUpgrade} />
-        </div>
-      )}
-
-</section>
+        ) : null}
+      </section>
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} onUnlockLocal={handleLocalUnlock} />
     </>
