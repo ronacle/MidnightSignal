@@ -2339,3 +2339,17 @@ button, input, select { font: inherit; }
     grid-template-columns: 1fr;
   }
 }
+
+
+/* v11.34 pro overlay */
+.pro-gated-block { position: relative; margin-top: 12px; }
+.pro-blur { filter: blur(6px); opacity: .55; pointer-events: none; }
+.pro-placeholder { height: 80px; border-radius: 12px; background: rgba(255,255,255,.04); display:flex; align-items:center; justify-content:center; font-size:12px; letter-spacing:.3px; }
+
+.pro-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+.pro-card { background: rgba(12,16,28,.9); border:1px solid rgba(255,255,255,.08); backdrop-filter: blur(12px); border-radius:16px; padding:16px 18px; max-width:320px; text-align:center; box-shadow: 0 10px 30px rgba(79,124,255,.15); }
+.pro-title { font-weight:600; margin-bottom:6px; }
+.pro-desc { font-size:13px; opacity:.75; margin-bottom:10px; }
+.pro-cta { background:#4f7cff; color:#fff; border:none; padding:8px 14px; border-radius:10px; cursor:pointer; }
+
+.signal-glow { box-shadow: 0 0 0 1px rgba(79,124,255,.2), 0 10px 30px rgba(79,124,255,.2); }

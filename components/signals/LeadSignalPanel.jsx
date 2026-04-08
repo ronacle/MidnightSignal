@@ -14,6 +14,27 @@ function UpgradeModal({ open, onClose, onUnlockLocal }) {
 
   const checkoutLink = '/api/stripe/checkout';
 
+  
+  function ProOverlay({ onUpgrade }) {
+    return (
+      <div className="pro-overlay">
+        <div className="pro-card">
+          <div className="pro-title">See what the signal is actually doing next</div>
+          <div className="pro-desc">Track validation, confidence shifts, and forward performance.</div>
+          <button className="pro-cta" onClick={onUpgrade}>Upgrade to Pro</button>
+        </div>
+      </div>
+    );
+  }
+
+  async function handleUpgrade() {
+    try {
+      const res = await fetch('/api/checkout', { method: 'POST' });
+      const data = await res.json();
+      if (data?.url) window.location.href = data.url;
+    } catch {}
+  }
+
   return (
     <div className="upgrade-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title">
       <div className="upgrade-modal-card">
@@ -68,6 +89,15 @@ export default function LeadSignalPanel({
   adaptiveSummary = [],
   decisionLayer = null,
 }) {
+
+  const [isPro, setIsPro] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const plan = window.localStorage.getItem('midnight-signal-plan');
+    setIsPro(plan === 'pro');
+  }, []);
+
   const [expanded, setExpanded] = useState(false);
   const [sessionState, setSessionState] = useState(state || {});
   const [persistedSnapshot, setPersistedSnapshot] = useState(null);
@@ -143,7 +173,28 @@ export default function LeadSignalPanel({
       breakdownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 140);
 
-    return () => window.clearTimeout(timer);
+    
+  function ProOverlay({ onUpgrade }) {
+    return (
+      <div className="pro-overlay">
+        <div className="pro-card">
+          <div className="pro-title">See what the signal is actually doing next</div>
+          <div className="pro-desc">Track validation, confidence shifts, and forward performance.</div>
+          <button className="pro-cta" onClick={onUpgrade}>Upgrade to Pro</button>
+        </div>
+      </div>
+    );
+  }
+
+  async function handleUpgrade() {
+    try {
+      const res = await fetch('/api/checkout', { method: 'POST' });
+      const data = await res.json();
+      if (data?.url) window.location.href = data.url;
+    } catch {}
+  }
+
+  return () => window.clearTimeout(timer);
   }, [expanded]);
 
   const handleLocalUnlock = () => {
@@ -169,6 +220,27 @@ export default function LeadSignalPanel({
   };
 
   if (!asset) return null;
+
+  
+  function ProOverlay({ onUpgrade }) {
+    return (
+      <div className="pro-overlay">
+        <div className="pro-card">
+          <div className="pro-title">See what the signal is actually doing next</div>
+          <div className="pro-desc">Track validation, confidence shifts, and forward performance.</div>
+          <button className="pro-cta" onClick={onUpgrade}>Upgrade to Pro</button>
+        </div>
+      </div>
+    );
+  }
+
+  async function handleUpgrade() {
+    try {
+      const res = await fetch('/api/checkout', { method: 'POST' });
+      const data = await res.json();
+      if (data?.url) window.location.href = data.url;
+    } catch {}
+  }
 
   return (
     <>
@@ -271,7 +343,19 @@ export default function LeadSignalPanel({
           </div>
         ) : null}
 
-      </section>
+      
+      {!isPro && (
+        <div className="pro-gated-block">
+          <div className="pro-blur">
+            <div className="pro-placeholder">
+              Validation • Forward Tracking • Decision Layer
+            </div>
+          </div>
+          <ProOverlay onUpgrade={handleUpgrade} />
+        </div>
+      )}
+
+</section>
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} onUnlockLocal={handleLocalUnlock} />
     </>
