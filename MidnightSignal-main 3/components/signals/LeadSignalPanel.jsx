@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useState, useEffect,   useMemo, useRef, useState } from 'react';
 import TonightBrief from '@/components/signals/TonightBrief';
 import TopSignalCard from '@/components/signals/TopSignalCard';
 
@@ -13,6 +13,53 @@ function UpgradeModal({ open, onClose, onUnlockLocal }) {
   if (!open) return null;
 
   const checkoutLink = '/api/stripe/checkout';
+
+  
+  function LockedSection({ children }) {
+    if (isPro) return children;
+    return (
+      <div style={{ position: 'relative' }}>
+        <div style={{ filter: 'blur(6px)', opacity: 0.5, pointerEvents: 'none' }}>
+          {children}
+        </div>
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'rgba(15,20,35,0.9)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14,
+            padding: 16,
+            textAlign: 'center'
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>
+              Unlock Full Signal Context
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
+              See validation history, forward tracking, and deeper conviction layers.
+            </div>
+            <button
+              onClick={() => window.location.href='/api/checkout'}
+              style={{
+                background:'#4f7cff',
+                color:'#fff',
+                border:'none',
+                padding:'8px 12px',
+                borderRadius:8,
+                cursor:'pointer'
+              }}
+            >
+              Upgrade to Pro
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="upgrade-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title">
@@ -68,6 +115,14 @@ export default function LeadSignalPanel({
   adaptiveSummary = [],
   decisionLayer = null,
 }) {
+  const [isPro, setIsPro] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const plan = window.localStorage.getItem('midnight-signal-plan');
+    setIsPro(plan === 'pro');
+  }, []);
+
   const [expanded, setExpanded] = useState(false);
   const [sessionState, setSessionState] = useState(state || {});
   const [persistedSnapshot, setPersistedSnapshot] = useState(null);
@@ -143,7 +198,54 @@ export default function LeadSignalPanel({
       breakdownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 140);
 
-    return () => window.clearTimeout(timer);
+    
+  function LockedSection({ children }) {
+    if (isPro) return children;
+    return (
+      <div style={{ position: 'relative' }}>
+        <div style={{ filter: 'blur(6px)', opacity: 0.5, pointerEvents: 'none' }}>
+          {children}
+        </div>
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'rgba(15,20,35,0.9)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14,
+            padding: 16,
+            textAlign: 'center'
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>
+              Unlock Full Signal Context
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
+              See validation history, forward tracking, and deeper conviction layers.
+            </div>
+            <button
+              onClick={() => window.location.href='/api/checkout'}
+              style={{
+                background:'#4f7cff',
+                color:'#fff',
+                border:'none',
+                padding:'8px 12px',
+                borderRadius:8,
+                cursor:'pointer'
+              }}
+            >
+              Upgrade to Pro
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return () => window.clearTimeout(timer);
   }, [expanded]);
 
   const handleLocalUnlock = () => {
@@ -169,6 +271,53 @@ export default function LeadSignalPanel({
   };
 
   if (!asset) return null;
+
+  
+  function LockedSection({ children }) {
+    if (isPro) return children;
+    return (
+      <div style={{ position: 'relative' }}>
+        <div style={{ filter: 'blur(6px)', opacity: 0.5, pointerEvents: 'none' }}>
+          {children}
+        </div>
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'rgba(15,20,35,0.9)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14,
+            padding: 16,
+            textAlign: 'center'
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>
+              Unlock Full Signal Context
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
+              See validation history, forward tracking, and deeper conviction layers.
+            </div>
+            <button
+              onClick={() => window.location.href='/api/checkout'}
+              style={{
+                background:'#4f7cff',
+                color:'#fff',
+                border:'none',
+                padding:'8px 12px',
+                borderRadius:8,
+                cursor:'pointer'
+              }}
+            >
+              Upgrade to Pro
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
