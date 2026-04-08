@@ -22,7 +22,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={108} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow">Midnight Signal · v11.49</div>
+            <div className="eyebrow">Midnight Signal · v11.50</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
@@ -30,15 +30,37 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             </p>
             <div className="hero-support-copy">
               <p>Start with Tonight’s Top Signal, open the why, then scan the Top 20 for broader posture.</p>
-              <p>Dashboard now reads your plan more clearly, so Free vs Pro tools feel intentional instead of scattered.</p>
+              <p>Live market context, explainable signals, alerts, and plan-aware tooling now land more clearly for new users.</p>
             </div>
           </div>
         </div>
 
         <div className="hero-pill-row">
-          <span className="badge glow-badge">Plan-aware dashboard</span>
-          <span className="badge">Cleaner locked states</span>
+          <span className="badge glow-badge">Live market context</span>
+          <span className="badge">Explainable signals</span>
           <span className="badge">Stripe-verified Pro</span>
+          <span className="badge">Not financial advice</span>
+        </div>
+
+        <div className="hero-conversion-row">
+          <div className="hero-conversion-card">
+            <div className="eyebrow">Start here</div>
+            <div className="hero-conversion-title">Read tonight’s signal in under a minute</div>
+            <p className="muted small">Use the free flow first: Top Signal → Why it appears → Board scan → Watchlist.</p>
+            <div className="row">
+              <button className="button" onClick={onOpenControls} type="button">Open control panel</button>
+              <span className="badge">{setupLabel}</span>
+            </div>
+          </div>
+
+          <div className="hero-conversion-card trust-card">
+            <div className="eyebrow">Why trust the flow</div>
+            <ul className="hero-trust-list">
+              <li>Built to explain the signal, not just flash it.</li>
+              <li>Free mode is useful before any upgrade pressure.</li>
+              <li>Cloud sync is optional — you can stay local.</li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -62,7 +84,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           <div className="eyebrow">Sync state</div>
           <div className="value">{syncLabel}</div>
           <div className="muted small">{syncDetail}</div>
-          <button className="ghost-button sync-inline-action" onClick={onOpenControls}>
+          <button className="ghost-button sync-inline-action" onClick={onOpenControls} type="button">
             {isLocalOnly ? 'Open setup' : 'Manage account'}
           </button>
         </div>
@@ -79,7 +101,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
               ? 'Full breakdowns, validation, and forward tracking are unlocked.'
               : "You can already use Tonight's Brief, board scan, watchlist, and alerts. Pro adds deeper validation and follow-through tools."}
           </div>
-          <button className="ghost-button sync-inline-action" onClick={onOpenControls}>{planTier === 'pro' ? 'Manage billing' : 'See plan details'}</button>
+          <button className="ghost-button sync-inline-action" onClick={onOpenControls} type="button">{planTier === 'pro' ? 'Manage billing' : 'See plan details'}</button>
         </div>
       </div>
     </section>

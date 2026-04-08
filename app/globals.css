@@ -2606,3 +2606,62 @@ button, input, select { font: inherit; }
   border: 1px solid var(--line);
   background: rgba(255,255,255,0.03);
 }
+
+
+.hero-conversion-row {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 12px;
+}
+
+.hero-conversion-card,
+.conversion-card,
+.conversion-strip {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.hero-conversion-card,
+.conversion-card {
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.hero-conversion-title,
+.conversion-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 6px 0 8px;
+}
+
+.hero-trust-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  display: grid;
+  gap: 8px;
+}
+
+.conversion-strip {
+  border-radius: 24px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.conversion-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.conversion-intro .section-title {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 860px) {
+  .hero-conversion-row,
+  .conversion-grid {
+    grid-template-columns: 1fr;
+  }
+}

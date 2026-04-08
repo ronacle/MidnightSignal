@@ -602,11 +602,34 @@ export default function HomePage() {
           lastSyncedAt={lastSyncedAt}
           watchlistCount={state.watchlist.length}
           syncing={syncing}
+          state={state}
           onOpenControls={() => {
             setAlertAsset(null);
             setControlOpen(true);
           }}
         />
+
+        <section className="conversion-strip card" aria-label="Why Midnight Signal">
+          <div className="conversion-intro">
+            <div className="eyebrow">Why Midnight Signal</div>
+            <h2 className="section-title">A clearer path from market noise to market wisdom</h2>
+            <p className="muted small">Midnight Signal is designed to teach what the signal means, show why it appears, and let users stay useful on Free before deciding whether Pro depth is worth it.</p>
+          </div>
+          <div className="conversion-grid">
+            <div className="conversion-card">
+              <div className="conversion-card-title">Learn first</div>
+              <p className="muted small">Tonight’s Top Signal and the board are built to explain posture in plain language, not just throw numbers around.</p>
+            </div>
+            <div className="conversion-card">
+              <div className="conversion-card-title">Trust the setup</div>
+              <p className="muted small">Disclaimer-first onboarding, optional cloud sync, and verified billing flow keep the experience more trustworthy.</p>
+            </div>
+            <div className="conversion-card">
+              <div className="conversion-card-title">Upgrade only if it fits</div>
+              <p className="muted small">Free covers the read, scan, and watchlist flow. Pro adds validation, forward tracking, and deeper breakdowns.</p>
+            </div>
+          </div>
+        </section>
 
 
         <section className="top-grid lead-flow-grid">
@@ -676,7 +699,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.49 · Plan-aware dashboard polish + locked/unlocked cleanup · source: {marketSource}
+          Build v11.50 · Landing-to-app conversion pass + trust/SEO polish · source: {marketSource}
         </div>
       </div>
 
