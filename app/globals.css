@@ -2353,3 +2353,16 @@ button, input, select { font: inherit; }
 .pro-cta { background:#4f7cff; color:#fff; border:none; padding:8px 14px; border-radius:10px; cursor:pointer; }
 
 .signal-glow { box-shadow: 0 0 0 1px rgba(79,124,255,.2), 0 10px 30px rgba(79,124,255,.2); }
+
+/* v11.35 retention */
+.since-line {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:8px 12px;
+  border-radius:10px;
+  background:rgba(255,255,255,0.03);
+  font-size:12px;
+  opacity:.75;
+  margin-bottom:10px;
+}
