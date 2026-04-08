@@ -3,6 +3,6 @@ export async function GET() {
     ok: true,
     app: "midnight-signal",
     version: "11.51",
-    build: "brand-consistency-premium-visual-polish",
+    build: "live-feed-wiring-pass",
   });
 }

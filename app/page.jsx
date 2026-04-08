@@ -257,6 +257,8 @@ export default function HomePage() {
   const [lastVisitAt, setLastVisitAt] = useState(null);
   const [previousSessionSnapshot, setPreviousSessionSnapshot] = useState(null);
   const [priorityAlerts, setPriorityAlerts] = useState([]);
+  const [contextItems, setContextItems] = useState([]);
+  const [contextMeta, setContextMeta] = useState({ live: false, sourceTypes: { article: 0, x: 0, note: 0 }, updatedAt: null });
   const entitlementRefreshRef = useRef(false);
 
   useEffect(() => {
@@ -356,6 +358,50 @@ export default function HomePage() {
       // no-op
     }
   }, []);
+
+
+useEffect(() => {
+  if (typeof window === 'undefined' || !topSignal?.symbol) return;
+
+  let cancelled = false;
+
+  async function loadContextFeed() {
+    try {
+      const params = new URLSearchParams({
+        symbol: topSignal.symbol,
+        watchlist: Array.isArray(state?.watchlist) ? state.watchlist.join(',') : '',
+      });
+      const response = await fetch(`/api/context/ingest?${params.toString()}`, { cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (cancelled) return;
+
+      if (data?.ok) {
+        setContextItems(Array.isArray(data.items) ? data.items : []);
+        setContextMeta({
+          live: Boolean(data?.meta?.live),
+          sourceTypes: data?.meta?.sourceTypes || { article: 0, x: 0, note: 0 },
+          updatedAt: data?.updatedAt || null,
+        });
+      } else {
+        setContextItems([]);
+        setContextMeta({ live: false, sourceTypes: { article: 0, x: 0, note: 0 }, updatedAt: null });
+      }
+    } catch {
+      if (!cancelled) {
+        setContextItems([]);
+        setContextMeta({ live: false, sourceTypes: { article: 0, x: 0, note: 0 }, updatedAt: null });
+      }
+    }
+  }
+
+  loadContextFeed();
+  const timer = window.setInterval(loadContextFeed, 90000);
+
+  return () => {
+    cancelled = true;
+    window.clearInterval(timer);
+  };
+}, [topSignal?.symbol, state?.watchlist]);
 
   useEffect(() => {
     if (entitlementRefreshRef.current) return;
@@ -710,7 +756,7 @@ const sinceLastVisitSummary = useMemo(() => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  const signalContext = useMemo(() => buildSignalContext(topSignal, rankedAssets, state.watchlist, regimeSummary), [topSignal, rankedAssets, state.watchlist, regimeSummary]);
+  const signalContext = useMemo(() => buildSignalContext(topSignal, rankedAssets, state.watchlist, regimeSummary, { items: contextItems, meta: contextMeta }), [topSignal, rankedAssets, state.watchlist, regimeSummary, contextItems, contextMeta]);
 
   return (
     <main className="page">
@@ -905,7 +951,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.55 · Signal + news/X context layer · source: {marketSource}
+          Build v11.56 · Signal + news/X context layer · source: {marketSource}
         </div>
       </div>
 
