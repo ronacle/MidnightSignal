@@ -39,6 +39,142 @@ import {
   consumeQueuedDigestEvents,
 } from '@/lib/alert-engine';
 
+
+const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v1';
+
+function normalizeSignalLabel(label = '') {
+  return String(label || '')
+    .replace(/\s+/g, ' ')
+    .trim() || 'Mixed posture';
+}
+
+function createSessionSnapshot({ topSignal, rankedAssets = [], watchlist = [], regimeSummary, marketUpdatedAt }) {
+  const watchSymbols = Array.isArray(watchlist) ? watchlist.map((item) => String(item).toUpperCase()) : [];
+  const watchAssets = rankedAssets.filter((item) => watchSymbols.includes(item.symbol));
+
+  return {
+    capturedAt: marketUpdatedAt || new Date().toISOString(),
+    topSignal: topSignal ? {
+      symbol: topSignal.symbol,
+      conviction: Number(topSignal.conviction ?? topSignal.signalScore ?? 0),
+      signalLabel: normalizeSignalLabel(topSignal.signalLabel),
+      sentiment: topSignal.sentiment || 'neutral',
+      change24h: Number(topSignal.change24h || 0),
+    } : null,
+    regime: regimeSummary?.regime || 'Mixed',
+    watchlist: watchAssets.map((asset) => ({
+      symbol: asset.symbol,
+      conviction: Number(asset.conviction ?? asset.signalScore ?? 0),
+      signalLabel: normalizeSignalLabel(asset.signalLabel),
+      sentiment: asset.sentiment || 'neutral',
+      change24h: Number(asset.change24h || 0),
+    })),
+  };
+}
+
+function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
+  if (!previousSnapshot || !currentSnapshot?.topSignal) {
+    return {
+      highlights: ['No prior session snapshot yet — tonight starts your first tracked rhythm.'],
+      improved: [],
+      weakened: [],
+      takeaway: 'Check the top signal, scan your watchlist, and your next visit will compare against tonight.',
+      changedCount: 0,
+    };
+  }
+
+  const highlights = [];
+  const improved = [];
+  const weakened = [];
+
+  const previousTop = previousSnapshot.topSignal || null;
+  const currentTop = currentSnapshot.topSignal || null;
+
+  if (previousTop?.symbol && currentTop?.symbol && previousTop.symbol !== currentTop.symbol) {
+    highlights.push(`Top signal changed from ${previousTop.symbol} to ${currentTop.symbol}.`);
+  }
+
+  if (typeof previousTop?.conviction === 'number' && typeof currentTop?.conviction === 'number') {
+    const diff = Math.round(currentTop.conviction - previousTop.conviction);
+    if (Math.abs(diff) >= 3) {
+      const verb = diff > 0 ? 'improved' : 'cooled';
+      highlights.push(`${currentTop.symbol} conviction ${verb} from ${previousTop.conviction}% to ${currentTop.conviction}%.`);
+    }
+  }
+
+  if (previousTop?.signalLabel && currentTop?.signalLabel && previousTop.signalLabel !== currentTop.signalLabel) {
+    highlights.push(`${currentTop.symbol} shifted from ${previousTop.signalLabel} to ${currentTop.signalLabel}.`);
+  }
+
+  if (previousSnapshot.regime && currentSnapshot.regime && previousSnapshot.regime !== currentSnapshot.regime) {
+    highlights.push(`Market tone moved from ${previousSnapshot.regime} to ${currentSnapshot.regime}.`);
+  }
+
+  const previousWatchMap = new Map((previousSnapshot.watchlist || []).map((asset) => [asset.symbol, asset]));
+  const currentWatchlist = currentSnapshot.watchlist || [];
+  const deltas = currentWatchlist
+    .map((asset) => {
+      const previous = previousWatchMap.get(asset.symbol);
+      const delta = previous ? Math.round(asset.conviction - previous.conviction) : 0;
+      return { asset, previous, delta };
+    })
+    .filter((entry) => entry.previous);
+
+  deltas
+    .filter((entry) => entry.delta >= 4)
+    .sort((a, b) => b.delta - a.delta)
+    .slice(0, 2)
+    .forEach((entry) => {
+      improved.push(`${entry.asset.symbol} strengthened from ${entry.previous.conviction}% to ${entry.asset.conviction}%.`);
+    });
+
+  deltas
+    .filter((entry) => entry.delta <= -4)
+    .sort((a, b) => a.delta - b.delta)
+    .slice(0, 2)
+    .forEach((entry) => {
+      weakened.push(`${entry.asset.symbol} softened from ${entry.previous.conviction}% to ${entry.asset.conviction}%.`);
+    });
+
+  deltas
+    .filter((entry) => entry.previous?.signalLabel && entry.previous.signalLabel !== entry.asset.signalLabel)
+    .slice(0, 2)
+    .forEach((entry) => {
+      const line = `${entry.asset.symbol} moved from ${entry.previous.signalLabel} to ${entry.asset.signalLabel}.`;
+      if (!highlights.includes(line) && !improved.includes(line) && !weakened.includes(line)) {
+        highlights.push(line);
+      }
+    });
+
+  const strongestImprover = deltas
+    .filter((entry) => entry.delta > 0)
+    .sort((a, b) => b.delta - a.delta)[0];
+  const biggestDrop = deltas
+    .filter((entry) => entry.delta < 0)
+    .sort((a, b) => a.delta - b.delta)[0];
+
+  let takeaway = `Focus first on ${currentTop.symbol}: ${currentTop.signalLabel}.`;
+  if (strongestImprover && biggestDrop) {
+    takeaway = `${strongestImprover.asset.symbol} improved most since your last visit, while ${biggestDrop.asset.symbol} weakened and deserves caution tonight.`;
+  } else if (strongestImprover) {
+    takeaway = `${strongestImprover.asset.symbol} improved most since your last visit, so it deserves the first look tonight.`;
+  } else if (biggestDrop) {
+    takeaway = `${biggestDrop.asset.symbol} weakened most since your last visit, so treat rallies there with more caution tonight.`;
+  } else if (previousTop?.symbol !== currentTop?.symbol) {
+    takeaway = `Leadership changed from ${previousTop?.symbol || 'the prior leader'} to ${currentTop.symbol}, so re-anchor tonight around the new top signal.`;
+  }
+
+  const uniqueHighlights = Array.from(new Set(highlights)).slice(0, 3);
+
+  return {
+    highlights: uniqueHighlights.length ? uniqueHighlights : [`Top signal remains ${currentTop.symbol} at ${currentTop.conviction}%.`],
+    improved,
+    weakened,
+    takeaway,
+    changedCount: uniqueHighlights.length + improved.length + weakened.length,
+  };
+}
+
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
   { symbol: 'AVAX', name: 'Avalanche', conviction: 44, sentiment: 'bearish', story: 'Weak follow-through is keeping conviction lower.' },
@@ -117,6 +253,7 @@ export default function HomePage() {
   const [forwardValidation, setForwardValidation] = useState([]);
   const [adaptiveWeights, setAdaptiveWeights] = useState({});
   const [lastVisitAt, setLastVisitAt] = useState(null);
+  const [previousSessionSnapshot, setPreviousSessionSnapshot] = useState(null);
   const [priorityAlerts, setPriorityAlerts] = useState([]);
   const entitlementRefreshRef = useRef(false);
 
@@ -302,32 +439,53 @@ export default function HomePage() {
       .slice(0, 2);
   }, [rankedAssets, state?.watchlist]);
 
-  const sinceLastVisitSummary = useMemo(() => {
-    const previous = previousSignalEntry;
-    const bits = [];
 
-    if (previous?.symbol && previous.symbol !== topSignal?.symbol) {
-      bits.push(`Top signal flipped from ${previous.symbol} to ${topSignal.symbol}`);
-    } else if (typeof previous?.conviction === 'number' && typeof topSignal?.conviction === 'number') {
-      const delta = Math.round(topSignal.conviction - previous.conviction);
-      if (delta > 0) bits.push(`${topSignal.symbol} conviction is up ${delta} pts`);
-      else if (delta < 0) bits.push(`${topSignal.symbol} conviction cooled ${Math.abs(delta)} pts`);
-    }
+const currentSessionSnapshot = useMemo(
+  () => createSessionSnapshot({
+    topSignal,
+    rankedAssets,
+    watchlist: state?.watchlist || [],
+    regimeSummary,
+    marketUpdatedAt,
+  }),
+  [topSignal, rankedAssets, state?.watchlist, regimeSummary, marketUpdatedAt]
+);
 
-    if (watchlistHighlights[0]) {
-      const mover = watchlistHighlights[0];
-      const direction = (mover.change24h || 0) >= 0 ? 'up' : 'down';
-      bits.push(`Watchlist: ${mover.symbol} ${direction} ${Math.abs(mover.change24h || 0).toFixed(1)}%`);
-    }
+const visitIntelligence = useMemo(
+  () => buildVisitIntelligence(previousSessionSnapshot, currentSessionSnapshot),
+  [previousSessionSnapshot, currentSessionSnapshot]
+);
 
-    if (regimeSummary?.regime) {
-      bits.push(`Market tone: ${String(regimeSummary.regime).replace(/-/g, ' ')}`);
-    }
 
-    if (!bits.length) bits.push(`Top signal remains ${topSignal?.symbol || 'the same'} with ${topSignal?.conviction ?? '--'}% conviction`);
+const sinceLastVisitSummary = useMemo(() => {
+  const fallbackBits = [];
+  const previous = previousSignalEntry;
 
-    return bits.slice(0, 3);
-  }, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary]);
+  if (previous?.symbol && previous.symbol !== topSignal?.symbol) {
+    fallbackBits.push(`Top signal flipped from ${previous.symbol} to ${topSignal.symbol}`);
+  } else if (typeof previous?.conviction === 'number' && typeof topSignal?.conviction === 'number') {
+    const delta = Math.round(topSignal.conviction - previous.conviction);
+    if (delta > 0) fallbackBits.push(`${topSignal.symbol} conviction is up ${delta} pts`);
+    else if (delta < 0) fallbackBits.push(`${topSignal.symbol} conviction cooled ${Math.abs(delta)} pts`);
+  }
+
+  if (watchlistHighlights[0]) {
+    const mover = watchlistHighlights[0];
+    const direction = (mover.change24h || 0) >= 0 ? 'up' : 'down';
+    fallbackBits.push(`Watchlist: ${mover.symbol} ${direction} ${Math.abs(mover.change24h || 0).toFixed(1)}%`);
+  }
+
+  if (regimeSummary?.regime) {
+    fallbackBits.push(`Market tone: ${String(regimeSummary.regime).replace(/-/g, ' ')}`);
+  }
+
+  return visitIntelligence.highlights?.length
+    ? visitIntelligence.highlights
+    : fallbackBits.length
+      ? fallbackBits.slice(0, 3)
+      : [`Top signal remains ${topSignal?.symbol || 'the same'} with ${topSignal?.conviction ?? '--'}% conviction`];
+}, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary, visitIntelligence]);
+
 
   const lastVisitLabel = useMemo(() => {
     if (!lastVisitAt) return 'First visit on this device';
@@ -501,13 +659,18 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!marketReady || typeof window === 'undefined') return;
+    if (!marketReady || typeof window === 'undefined' || !currentSessionSnapshot) return;
     try {
-      window.localStorage.setItem('midnight-signal-last-visit-at', new Date().toISOString());
+      const stamp = new Date().toISOString();
+      window.localStorage.setItem('midnight-signal-last-visit-at', stamp);
+      window.localStorage.setItem(SESSION_SNAPSHOT_KEY, JSON.stringify({
+        ...currentSessionSnapshot,
+        capturedAt: stamp,
+      }));
     } catch {
       // no-op
     }
-  }, [marketReady, topSignal?.symbol, topSignal?.conviction]);
+  }, [marketReady, currentSessionSnapshot, topSignal?.symbol, topSignal?.conviction]);
 
 
   function dismissPriorityAlert(alertId) {
@@ -663,6 +826,40 @@ export default function HomePage() {
             {sinceLastVisitSummary.map((item) => (
               <div key={item} className="since-chip">{item}</div>
             ))}
+          </div>
+
+          <div className="since-intel-grid">
+            <div className="since-intel-card">
+              <div className="since-intel-label">What changed</div>
+              <div className="since-intel-list">
+                {visitIntelligence.highlights.map((item) => (
+                  <div key={item} className="since-intel-item">{item}</div>
+                ))}
+              </div>
+            </div>
+
+            <div className="since-intel-card">
+              <div className="since-intel-label">What improved</div>
+              <div className="since-intel-list">
+                {visitIntelligence.improved.length ? visitIntelligence.improved.map((item) => (
+                  <div key={item} className="since-intel-item">{item}</div>
+                )) : <div className="since-intel-item muted">No major strengthening moves yet.</div>}
+              </div>
+            </div>
+
+            <div className="since-intel-card">
+              <div className="since-intel-label">What weakened</div>
+              <div className="since-intel-list">
+                {visitIntelligence.weakened.length ? visitIntelligence.weakened.map((item) => (
+                  <div key={item} className="since-intel-item">{item}</div>
+                )) : <div className="since-intel-item muted">No major weakening moves yet.</div>}
+              </div>
+            </div>
+          </div>
+
+          <div className="since-takeaway">
+            <div className="since-intel-label">Tonight&apos;s takeaway</div>
+            <div className="since-takeaway-copy">{visitIntelligence.takeaway}</div>
           </div>
         </section>
 
