@@ -3053,7 +3053,7 @@ html {
 }
 
 
-/* v11.54.1 session intelligence */
+/* v11.55 session intelligence */
 .since-intel-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3096,6 +3096,89 @@ html {
 
 @media (max-width: 960px) {
   .since-intel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* v11.55 signal + news/X context layer */
+.signal-context-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.signal-context-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.signal-context-hero {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(107,197,255,0.14);
+  background: linear-gradient(180deg, rgba(107,197,255,0.08), rgba(255,255,255,0.03));
+}
+
+.signal-context-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.signal-context-setup {
+  margin: 10px 0 0;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.signal-context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.signal-context-card {
+  padding: 14px 15px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.035);
+}
+
+.signal-context-label {
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.signal-context-list {
+  display: grid;
+  gap: 10px;
+}
+
+.signal-context-item {
+  padding: 10px 11px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.signal-context-item-title {
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.signal-context-foot {
+  padding-top: 2px;
+}
+
+@media (max-width: 900px) {
+  .signal-context-grid {
     grid-template-columns: 1fr;
   }
 }

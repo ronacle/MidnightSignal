@@ -5,6 +5,7 @@ import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
 import Top20Grid from '@/components/signals/Top20Grid';
 import LeadSignalPanel from '@/components/signals/LeadSignalPanel';
+import SignalContextPanel from '@/components/signals/SignalContextPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
@@ -13,6 +14,7 @@ import { useAccountSync } from '@/hooks/useAccountSync';
 import { shouldRefreshEntitlement } from '@/lib/entitlements';
 import { rankAssets, buildSignalSnapshot, detectMarketRegime } from '@/lib/signal-engine';
 import { appendSignalSnapshot, buildValidationSummary, readSignalHistory } from '@/lib/signal-history';
+import { buildSignalContext } from '@/lib/news-context';
 import {
   buildForwardScorecard,
   readForwardValidation,
@@ -708,6 +710,8 @@ const sinceLastVisitSummary = useMemo(() => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  const signalContext = useMemo(() => buildSignalContext(topSignal, rankedAssets, state.watchlist, regimeSummary), [topSignal, rankedAssets, state.watchlist, regimeSummary]);
+
   return (
     <main className="page">
       <div className="shell">
@@ -813,6 +817,11 @@ const sinceLastVisitSummary = useMemo(() => {
           />
         </section>
 
+        <SignalContextPanel
+          context={signalContext}
+          asset={topSignal}
+        />
+
         <section className="since-panel card" id="since-last-visit">
           <div className="since-panel-head">
             <div>
@@ -896,7 +905,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.50 · Landing-to-app conversion pass + trust/SEO polish · source: {marketSource}
+          Build v11.55 · Signal + news/X context layer · source: {marketSource}
         </div>
       </div>
 
