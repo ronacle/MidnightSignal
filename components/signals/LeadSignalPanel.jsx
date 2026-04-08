@@ -21,7 +21,7 @@ function ProOverlay({ onUpgrade }) {
   );
 }
 
-function UpgradeModal({ open, onClose, onUnlockLocal }) {
+function UpgradeModal({ open, onClose }) {
   if (!open) return null;
 
   return (
@@ -47,16 +47,13 @@ function UpgradeModal({ open, onClose, onUnlockLocal }) {
         </div>
 
         <div className="upgrade-modal-note">
-          Secure checkout via Stripe. Midnight Signal is an educational tool, not financial advice. A local unlock fallback remains available for immediate validation.
+          Secure checkout via Stripe. Pro now unlocks only after a verified Stripe entitlement check. Midnight Signal is an educational tool, not financial advice.
         </div>
 
         <div className="upgrade-modal-actions">
           <a className="primary-button upgrade-link-button" href="/api/stripe/checkout">
             Unlock Pro
           </a>
-          <button type="button" className="ghost-button" onClick={onUnlockLocal}>
-            Local unlock fallback
-          </button>
           <button type="button" className="ghost-button" onClick={onClose}>Maybe later</button>
         </div>
       </div>
@@ -168,20 +165,6 @@ export default function LeadSignalPanel({
     }
   }
 
-  function handleLocalUnlock() {
-    setPlanTier('pro');
-    setUpgradeOpen(false);
-    setState?.((previous) => ({ ...previous, planTier: 'pro' }));
-
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem(PLAN_STORAGE_KEY, 'pro');
-        window.localStorage.setItem('midnight-signal-upgrade-success', new Date().toISOString());
-      } catch {
-        // no-op
-      }
-    }
-  }
 
   function handleExpand() {
     if (planTier !== 'pro') {
@@ -306,7 +289,7 @@ export default function LeadSignalPanel({
         ) : null}
       </section>
 
-      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} onUnlockLocal={handleLocalUnlock} />
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </>
   );
 }

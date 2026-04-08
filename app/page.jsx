@@ -38,8 +38,6 @@ import {
   consumeQueuedDigestEvents,
 } from '@/lib/alert-engine';
 
-const STRIPE_FAST_LAUNCH = true;
-
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
   { symbol: 'AVAX', name: 'Avalanche', conviction: 44, sentiment: 'bearish', story: 'Weak follow-through is keeping conviction lower.' },
@@ -196,19 +194,16 @@ export default function HomePage() {
 
     try {
       const url = new URL(window.location.href);
-      const upgraded = url.searchParams.get('upgraded');
       const checkout = url.searchParams.get('checkout');
+      const billing = url.searchParams.get('billing');
 
-      if (upgraded === '1') {
-        window.localStorage.setItem('midnight-signal-plan', 'pro');
-        window.localStorage.setItem('midnight-signal-upgrade-success', new Date().toISOString());
-        setState((previous) => ({ ...previous, planTier: 'pro' }));
-        setUpgradeNotice('Pro unlocked — deeper signal layers active.');
-        url.searchParams.delete('upgraded');
-        window.history.replaceState({}, '', url.toString());
-      } else if (checkout === 'canceled') {
+      if (checkout === 'canceled') {
         setUpgradeNotice('Checkout canceled — Basic access remains active.');
         url.searchParams.delete('checkout');
+        window.history.replaceState({}, '', url.toString());
+      } else if (billing === 'unavailable') {
+        setUpgradeNotice('Stripe checkout is not configured yet. Pro stays locked until billing is live.');
+        url.searchParams.delete('billing');
         window.history.replaceState({}, '', url.toString());
       }
     } catch {
@@ -644,7 +639,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.44 · saved profiles + plan gating cleanup · source: {marketSource}
+          Build v11.45 · Stripe truth pass + verified entitlement gating · source: {marketSource}
         </div>
       </div>
 

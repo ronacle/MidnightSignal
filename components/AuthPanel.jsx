@@ -31,7 +31,7 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
           <div className="list-item stack">
             <div><strong>Signed in as:</strong> {user.email}</div>
             <div className="muted small">Last synced: {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : 'Not yet synced'}</div>
-            <div className="muted small">Cloud sync now carries your watchlist, saved profiles, alert memory, digest queue, and {planTier === 'pro' ? 'Pro access state' : 'membership state'}.</div>
+            <div className="muted small">Cloud sync now carries your watchlist, saved profiles, alert memory, digest queue, and your verified billing entitlement state.</div>
             <div className="muted small">Saved profiles in cloud: {profileCount}</div>
             <div className="row">
               <button className="button" onClick={onRefresh}>Pull latest cloud state</button>
@@ -42,7 +42,7 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
       ) : (
         <form className="stack" onSubmit={handleSubmit}>
           <div className="muted small">
-            Sign in with the same email on multiple devices to sync settings, watchlist, selected asset, onboarding state, saved profiles, alert rules, trigger memory, digest queue, and membership state.
+            Sign in with the same email on multiple devices to sync settings, watchlist, selected asset, onboarding state, saved profiles, alert rules, trigger memory, digest queue, and verified entitlement state.
           </div>
           <input
             className="input"

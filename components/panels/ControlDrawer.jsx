@@ -31,11 +31,11 @@ function BillingPanel({ state }) {
 
       <div className="muted small">
         {planTier === 'pro'
-          ? 'Your Pro access is active on this browser. Deeper signal breakdowns and advanced context are unlocked.'
-          : 'You are on the free plan. Upgrade from the Top Signal panel to unlock deeper validation, forward tracking, expanded signal context, and synced Pro access across devices.'}
+          ? 'Your Pro access is verified from Stripe on this browser. Deeper signal breakdowns and advanced context are unlocked.'
+          : 'You are on the free plan. Upgrade from the Top Signal panel to unlock deeper validation, forward tracking, expanded signal context, and synced Pro access after Stripe verification.'}
       </div>
 
-      <div className="billing-note">Secure checkout via Stripe · Cancel anytime · Educational tool, not financial advice.</div>
+      <div className="billing-note">Secure checkout via Stripe · Pro unlocks only after verified entitlement · Educational tool, not financial advice.</div>
     </div>
   );
 }

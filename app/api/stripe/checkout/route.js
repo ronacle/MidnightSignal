@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   const origin = request.nextUrl.origin;
-  const successUrl = `${origin}/?upgraded=1`;
-  const cancelUrl = `${origin}/?checkout=canceled`;
+  const successUrl = `${origin}/success?session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = `${origin}/cancel?checkout=canceled`;
 
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const priceId = process.env.STRIPE_PRICE_ID;
 
   if (!secretKey || !priceId) {
-    return NextResponse.redirect(successUrl);
+    return NextResponse.redirect(`${origin}/?billing=unavailable`);
   }
 
   try {
@@ -24,14 +24,22 @@ export async function GET(request) {
       cancel_url: cancelUrl,
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
+      subscription_data: {
+        metadata: {
+          product: 'midnight-signal-pro',
+        },
+      },
+      metadata: {
+        product: 'midnight-signal-pro',
+      },
     });
 
     if (!session.url) {
-      return NextResponse.redirect(successUrl);
+      return NextResponse.redirect(`${origin}/?billing=unavailable`);
     }
 
     return NextResponse.redirect(session.url);
   } catch {
-    return NextResponse.redirect(successUrl);
+    return NextResponse.redirect(`${origin}/?billing=unavailable`);
   }
 }
