@@ -5,11 +5,11 @@ import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
 import Top20Grid from '@/components/signals/Top20Grid';
 import LeadSignalPanel from '@/components/signals/LeadSignalPanel';
-import WatchlistPanel from '@/components/WatchlistPanel';
 import SignalContextPanel from '@/components/signals/SignalContextPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
+import WatchlistPanel from '@/components/WatchlistPanel';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { useAccountSync } from '@/hooks/useAccountSync';
 import { shouldRefreshEntitlement } from '@/lib/entitlements';
@@ -44,21 +44,6 @@ import {
 
 
 const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v1';
-
-
-function formatSnapshotStamp(value) {
-  if (!value) return 'First tracked visit';
-  try {
-    return new Date(value).toLocaleString([], {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  } catch {
-    return 'Recent visit';
-  }
-}
 
 function normalizeSignalLabel(label = '') {
   return String(label || '')
@@ -504,8 +489,6 @@ useEffect(() => {
   }, [rankedAssets, state?.watchlist]);
 
 
-const previousSnapshotLabel = useMemo(() => formatSnapshotStamp(previousSessionSnapshot?.capturedAt || lastVisitAt), [previousSessionSnapshot?.capturedAt, lastVisitAt]);
-
 const currentSessionSnapshot = useMemo(
   () => createSessionSnapshot({
     topSignal,
@@ -719,11 +702,8 @@ const sinceLastVisitSummary = useMemo(() => {
     if (typeof window === 'undefined') return;
     try {
       setLastVisitAt(window.localStorage.getItem('midnight-signal-last-visit-at'));
-      const storedSnapshot = window.localStorage.getItem(SESSION_SNAPSHOT_KEY);
-      setPreviousSessionSnapshot(storedSnapshot ? JSON.parse(storedSnapshot) : null);
     } catch {
       setLastVisitAt(null);
-      setPreviousSessionSnapshot(null);
     }
   }, []);
 
@@ -894,14 +874,8 @@ const sinceLastVisitSummary = useMemo(() => {
             <div>
               <div className="eyebrow">Return signal</div>
               <h2 className="section-title">Since your last visit</h2>
-              <div className="muted small">Last tracked session: {previousSnapshotLabel}</div>
             </div>
-            <div className="since-badge-stack">
-              <span className="badge since-badge">{lastVisitLabel}</span>
-              {previousSessionSnapshot?.topSignal?.symbol && previousSessionSnapshot.topSignal.symbol !== topSignal?.symbol ? (
-                <span className="badge since-badge since-badge-fresh">New tonight</span>
-              ) : null}
-            </div>
+            <span className="badge since-badge">{lastVisitLabel}</span>
           </div>
 
           <div className="since-chip-row">
@@ -956,21 +930,19 @@ const sinceLastVisitSummary = useMemo(() => {
             </div>
           </div>
 
-          <div className="board-flow-stack">
-            <WatchlistPanel
-              state={state}
-              setState={setState}
-              onAssetOpen={setDetailAsset}
-              assets={rankedAssets}
-            />
+          <WatchlistPanel
+            state={state}
+            setState={setState}
+            onAssetOpen={setDetailAsset}
+            assets={rankedAssets}
+          />
 
-            <Top20Grid
-              state={state}
-              setState={setState}
-              onAssetOpen={setDetailAsset}
-              assets={rankedAssets}
-            />
-          </div>
+          <Top20Grid
+            state={state}
+            setState={setState}
+            onAssetOpen={setDetailAsset}
+            assets={rankedAssets}
+          />
         </section>
 
         {upgradeNotice ? (
@@ -987,7 +959,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.59 · Signal Intelligence · board momentum cues · source: {marketSource}
+          Build v11.60 · Live data tightening · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 

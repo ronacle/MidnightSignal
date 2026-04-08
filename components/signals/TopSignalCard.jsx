@@ -23,20 +23,17 @@ export default function TopSignalCard({
     if (!asset) return 'empty';
     return `${asset.symbol}:${asset.signalScore ?? asset.conviction ?? 0}:${asset.sentiment ?? 'neutral'}`;
   }, [asset]);
-
   const [flash, setFlash] = useState(false);
-  const conviction = Number(asset?.signalScore ?? asset?.conviction ?? 0);
-  const pulseTone = conviction >= 70 ? 'pulse-strong' : conviction < 45 ? 'pulse-cautious' : 'pulse-steady';
 
   useEffect(() => {
-    if (!asset || typeof window === 'undefined') return;
+    if (!asset) return;
     setFlash(true);
-    const timer = window.setTimeout(() => setFlash(false), 650);
+    const timer = window.setTimeout(() => setFlash(false), 550);
     return () => window.clearTimeout(timer);
   }, [motionKey, asset]);
 
   return (
-    <div className={`top-signal-shell ${pulseTone} ${flash ? 'signal-flash-shell' : ''}`}>
+    <div className={flash ? 'signal-flash-shell' : ''}>
       <TopSignal
         asset={asset}
         state={state}

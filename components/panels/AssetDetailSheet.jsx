@@ -1,6 +1,6 @@
 'use client';
 
-import { getConvictionTier } from '@/lib/utils';
+import { getConvictionTier, formatCompactNumber, formatPct, formatPrice } from '@/lib/utils';
 
 function breakdownRows(asset, timeframe) {
   const conviction = asset?.conviction ?? 50;
@@ -27,6 +27,15 @@ function breakdownRows(asset, timeframe) {
   ];
 }
 
+function formatRelative(value) {
+  if (!value) return 'Awaiting live refresh';
+  const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000));
+  if (seconds < 10) return 'just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
+  return `${minutes}m ago`;
+}
+
 export default function AssetDetailSheet({ asset, open, onClose, timeframe, onToggleWatchlist, inWatchlist, onOpenLearning, onSetAlert }) {
   if (!asset) return null;
 
@@ -49,6 +58,7 @@ export default function AssetDetailSheet({ asset, open, onClose, timeframe, onTo
           <div className="sheet-badges">
             <span className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</span>
             <span className="badge">Conviction {asset.conviction}%</span>
+            <span className="badge">Confidence {asset.confidenceScore ?? asset.conviction}%</span>
           </div>
         </div>
 
@@ -59,6 +69,12 @@ export default function AssetDetailSheet({ asset, open, onClose, timeframe, onTo
               <span className="badge">{getConvictionTier(asset.conviction)}</span>
             </div>
             <div className="notice">This signal is best read as a posture cue, not a trade instruction.</div>
+            <div className="row wrap">
+              <span className="badge">{formatPrice(asset.price)}</span>
+              <span className="badge">{formatPct(asset.change24h || 0)} 24h</span>
+              <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
+              <span className="badge">Updated {formatRelative(asset.lastUpdated)}</span>
+            </div>
             <div className="stack">
               {breakdown.map((item) => (
                 <div key={item.label} className="list-item stack">
@@ -69,6 +85,31 @@ export default function AssetDetailSheet({ asset, open, onClose, timeframe, onTo
                   <div className="muted small">{item.note}</div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="panel stack compact-panel">
+            <h4 className="section-title">What changed now</h4>
+            <div className="list-item stack">
+              <div className="row space-between">
+                <strong>Posture</strong>
+                <span className="badge">{asset.timeframeAgreement || 'Mixed agreement'}</span>
+              </div>
+              <div className="muted small">{asset.postureSummary || 'Balanced posture with mixed signal quality.'}</div>
+            </div>
+            <div className="list-item stack">
+              <div className="row space-between">
+                <strong>Momentum</strong>
+                <span className="badge">{asset.momentumState || 'Stable'}</span>
+              </div>
+              <div className="muted small">{asset.signalDrivers?.[1] || 'Momentum is neither clearly accelerating nor clearly fading yet.'}</div>
+            </div>
+            <div className="list-item stack">
+              <div className="row space-between">
+                <strong>Watch next</strong>
+                <span className="badge">{asset.volatilityState || 'Balanced'}</span>
+              </div>
+              <div className="muted small">{asset.watchNext || 'Wait for the next refresh to confirm the posture.'}</div>
             </div>
           </div>
 
