@@ -36,9 +36,7 @@ function buildEmailText(alerts = [], digestMode = "instant") {
   const header = digestMode === "digest" ? "Midnight Signal digest" : "Midnight Signal alert";
   const safeAlerts = alerts.length ? alerts : [{ symbol: 'MIDNIGHT', posture: 'Test alert', confidence: 100, text: 'Your email delivery path is working.' }];
   const lines = safeAlerts.map((alert) => `- ${alert.symbol || "Asset"} | ${alert.posture || "Signal"} | ${alert.confidence || "--"}% | ${alert.text || alert.body || "A new signal update was detected."}`);
-  return [header, "", ...lines].join("
-");
-}
+  return [header, "", ...lines].join("\n");}
 
 export async function POST(request) {
   try {
