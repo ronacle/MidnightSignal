@@ -5,6 +5,6 @@ export async function GET() {
     ok: true,
     app: 'midnight-signal',
     version: VERSION,
-    build: 'auth-account-polish',
+    build: 'catalyst-context-fusion',
   });
 }

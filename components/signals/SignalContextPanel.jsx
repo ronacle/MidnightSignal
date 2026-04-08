@@ -6,10 +6,13 @@ function formatSourceType(value = '') {
   return 'Note';
 }
 
-export default function SignalContextPanel({ context, asset }) {
+export default function SignalContextPanel({ context, asset, planTier = 'basic' }) {
   if (!context || !asset) return null;
 
   const sourceTypes = context?.meta?.sourceTypes || {};
+  const catalystFeed = Array.isArray(context?.catalystFeed) ? context.catalystFeed : [];
+  const premiumLocked = planTier !== 'pro';
+  const visibleCatalysts = premiumLocked ? catalystFeed.slice(0, 2) : catalystFeed;
 
   return (
     <section className="signal-context-panel card" id="signal-context">
@@ -75,6 +78,66 @@ export default function SignalContextPanel({ context, asset }) {
           </div>
         </div>
       </div>
+
+      <div className="signal-context-grid" style={{ marginTop: 16 }}>
+        <div className="signal-context-card">
+          <div className="signal-context-label">Catalyst match</div>
+          <div className="signal-context-item">
+            <div className="signal-context-item-title">{context.catalystMatch?.label || 'No clear catalyst detected'}</div>
+            <div className="muted small">{context.catalystMatch?.detail}</div>
+            <div className="muted small" style={{ marginTop: 8 }}>Strength: {context.catalystMatch?.strength || 'Signal-led'}</div>
+          </div>
+        </div>
+
+        <div className="signal-context-card">
+          <div className="signal-context-label">Catalyst feed</div>
+          <div className="signal-context-list">
+            {visibleCatalysts.length ? visibleCatalysts.map((item) => (
+              <div key={item.id} className="signal-context-item catalyst-feed-item">
+                <div className="row wrap-gap" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div className="signal-context-item-title">{item.title}</div>
+                  <span className="badge">{item.catalystType || 'Market'}</span>
+                </div>
+                <div className="muted small">{item.body}</div>
+                <div className="muted small" style={{ marginTop: 8 }}>
+                  {formatSourceType(item.sourceType)} · {item.source} · {item.matchLabel}
+                </div>
+              </div>
+            )) : (
+              <div className="signal-context-item">
+                <div className="signal-context-item-title">No catalyst items yet</div>
+                <div className="muted small">As news, RSS, or X items arrive, this feed will rank the strongest possible drivers for tonight&apos;s setup.</div>
+              </div>
+            )}
+            {premiumLocked && catalystFeed.length > visibleCatalysts.length ? (
+              <div className="signal-context-item catalyst-feed-locked">
+                <div className="signal-context-item-title">Pro unlock: full catalyst feed</div>
+                <div className="muted small">Free shows the strongest catalysts. Pro reveals the full feed, deeper matching, and broader context fusion.</div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="signal-context-grid" style={{ marginTop: 16 }}>
+        <div className="signal-context-card">
+          <div className="signal-context-label">Bridge status</div>
+          <div className="signal-context-item">
+            <div className="signal-context-item-title">{context.catalystBridge?.source || 'Context bridge ready'}</div>
+            <div className="muted small">{context.catalystBridge?.detail}</div>
+          </div>
+        </div>
+
+        <div className="signal-context-card">
+          <div className="signal-context-label">Catalyst mix</div>
+          <div className="since-chip-row" style={{ marginBottom: 0 }}>
+            {Object.entries(context.catalystBridge?.counts || {}).length ? Object.entries(context.catalystBridge.counts).map(([key, value]) => (
+              <div key={key} className="since-chip">{key}: {value}</div>
+            )) : <div className="since-chip">Awaiting tagged catalyst items</div>}
+          </div>
+        </div>
+      </div>
+
 
       <div className="signal-context-grid" style={{ marginTop: 16 }}>
         <div className="signal-context-card">

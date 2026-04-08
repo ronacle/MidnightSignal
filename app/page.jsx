@@ -990,6 +990,7 @@ const sinceLastVisitSummary = useMemo(() => {
         <SignalContextPanel
           context={signalContext}
           asset={topSignal}
+          planTier={state.planTier}
         />
 
         <section className="since-panel card" id="since-last-visit">
