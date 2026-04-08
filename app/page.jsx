@@ -93,6 +93,7 @@ export default function HomePage() {
   const [signalHistory, setSignalHistory] = useState([]);
   const [forwardValidation, setForwardValidation] = useState([]);
   const [adaptiveWeights, setAdaptiveWeights] = useState({});
+  const [lastVisitAt, setLastVisitAt] = useState(null);
 
   useEffect(() => {
     setSignalHistory(readSignalHistory());
@@ -206,6 +207,52 @@ export default function HomePage() {
     [signalHistory]
   );
 
+  const watchlistHighlights = useMemo(() => {
+    const watchSymbols = Array.isArray(state?.watchlist) ? state.watchlist : [];
+    return rankedAssets
+      .filter((item) => watchSymbols.includes(item.symbol))
+      .sort((a, b) => Math.abs(b.change24h || 0) - Math.abs(a.change24h || 0))
+      .slice(0, 2);
+  }, [rankedAssets, state?.watchlist]);
+
+  const sinceLastVisitSummary = useMemo(() => {
+    const previous = previousSignalEntry;
+    const bits = [];
+
+    if (previous?.symbol && previous.symbol !== topSignal?.symbol) {
+      bits.push(`Top signal flipped from ${previous.symbol} to ${topSignal.symbol}`);
+    } else if (typeof previous?.conviction === 'number' && typeof topSignal?.conviction === 'number') {
+      const delta = Math.round(topSignal.conviction - previous.conviction);
+      if (delta > 0) bits.push(`${topSignal.symbol} conviction is up ${delta} pts`);
+      else if (delta < 0) bits.push(`${topSignal.symbol} conviction cooled ${Math.abs(delta)} pts`);
+    }
+
+    if (watchlistHighlights[0]) {
+      const mover = watchlistHighlights[0];
+      const direction = (mover.change24h || 0) >= 0 ? 'up' : 'down';
+      bits.push(`Watchlist: ${mover.symbol} ${direction} ${Math.abs(mover.change24h || 0).toFixed(1)}%`);
+    }
+
+    if (regimeSummary?.regime) {
+      bits.push(`Market tone: ${String(regimeSummary.regime).replace(/-/g, ' ')}`);
+    }
+
+    if (!bits.length) bits.push(`Top signal remains ${topSignal?.symbol || 'the same'} with ${topSignal?.conviction ?? '--'}% conviction`);
+
+    return bits.slice(0, 3);
+  }, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary]);
+
+  const lastVisitLabel = useMemo(() => {
+    if (!lastVisitAt) return 'First visit on this device';
+    const diffMs = Date.now() - new Date(lastVisitAt).getTime();
+    if (!Number.isFinite(diffMs) || diffMs < 0) return 'Welcome back';
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (diffHours < 1) return 'Back within the hour';
+    if (diffHours < 24) return `Back after ${diffHours}h`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `Back after ${diffDays}d`;
+  }, [lastVisitAt]);
+
   useEffect(() => {
     if (!topSignal || !marketReady) return;
     const next = appendSignalSnapshot(buildSignalSnapshot(topSignal, marketSource));
@@ -227,6 +274,25 @@ export default function HomePage() {
       return updated;
     });
   }, [topSignal, regimeSummary, marketSource, marketReady, liveItems]);
+
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      setLastVisitAt(window.localStorage.getItem('midnight-signal-last-visit-at'));
+    } catch {
+      setLastVisitAt(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!marketReady || typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem('midnight-signal-last-visit-at', new Date().toISOString());
+    } catch {
+      // no-op
+    }
+  }, [marketReady, topSignal?.symbol, topSignal?.conviction]);
 
   function toggleWatchlist(symbol) {
     setState((previous) => ({
@@ -272,6 +338,23 @@ export default function HomePage() {
             setControlOpen(true);
           }}
         />
+
+
+        <section className="since-panel card" id="since-last-visit">
+          <div className="since-panel-head">
+            <div>
+              <div className="eyebrow">Return signal</div>
+              <h2 className="section-title">Since your last visit</h2>
+            </div>
+            <span className="badge since-badge">{lastVisitLabel}</span>
+          </div>
+
+          <div className="since-chip-row">
+            {sinceLastVisitSummary.map((item) => (
+              <div key={item} className="since-chip">{item}</div>
+            ))}
+          </div>
+        </section>
 
         <section className="top-grid lead-flow-grid">
           <LeadSignalPanel
@@ -324,7 +407,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.33 · conversion refinement + pro preview stack + checkout polish · source: {marketSource}
+          Build v11.36 · behavioral retention + return summary · source: {marketSource}
         </div>
       </div>
 

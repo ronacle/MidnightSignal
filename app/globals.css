@@ -2366,3 +2366,46 @@ button, input, select { font: inherit; }
   opacity:.75;
   margin-bottom:10px;
 }
+
+
+/* v11.36 behavioral retention */
+.since-panel {
+  padding: 16px 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.since-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.since-badge {
+  color: var(--text);
+  background: rgba(107, 197, 255, 0.08);
+}
+
+.since-chip-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.since-chip {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 720px) {
+  .since-chip-row {
+    display: grid;
+  }
+}
