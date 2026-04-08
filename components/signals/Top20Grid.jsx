@@ -23,10 +23,15 @@ const FALLBACK_ASSETS = [
 ].slice(0, 20);
 
 export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS }) {
+  const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
+
   return (
     <div className="panel stack">
       <div className="row space-between">
-        <h2 className="section-title">Top 20</h2>
+        <div>
+          <h2 className="section-title">Top 20</h2>
+          <div className="muted small">{planTier === 'pro' ? 'Pro view active: board scan + full breakdown access.' : "Free view active: board scan, Tonight's Brief, watchlist, and alert setup remain available."}</div>
+        </div>
         <span className="badge">Ranked signal scan</span>
       </div>
       <div className="top20-grid">
@@ -60,6 +65,7 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
               <span className="badge">#{asset.rank ?? '—'}</span>
               <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
             </div>
+            <div className="muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
           </button>
         ))}
       </div>

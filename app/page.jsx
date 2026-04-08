@@ -676,7 +676,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.47 · Billing account center + manage / cancel flow · source: {marketSource}
+          Build v11.49 · Plan-aware dashboard polish + locked/unlocked cleanup · source: {marketSource}
         </div>
       </div>
 

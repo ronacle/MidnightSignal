@@ -22,7 +22,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={108} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow">Midnight Signal · v11.48</div>
+            <div className="eyebrow">Midnight Signal · v11.49</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
@@ -30,14 +30,14 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             </p>
             <div className="hero-support-copy">
               <p>Start with Tonight’s Top Signal, open the why, then scan the Top 20 for broader posture.</p>
-              <p>Control Panel now gives you a cleaner flow for setup, sync, billing truth, and account management.</p>
+              <p>Dashboard now reads your plan more clearly, so Free vs Pro tools feel intentional instead of scattered.</p>
             </div>
           </div>
         </div>
 
         <div className="hero-pill-row">
-          <span className="badge glow-badge">Onboarding cleanup</span>
-          <span className="badge">Billing center polish</span>
+          <span className="badge glow-badge">Plan-aware dashboard</span>
+          <span className="badge">Cleaner locked states</span>
           <span className="badge">Stripe-verified Pro</span>
         </div>
       </div>
@@ -72,12 +72,14 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           <div className="muted small">Tracked assets</div>
         </div>
         <div className="mini onboarding-mini">
-          <div className="eyebrow">Getting started</div>
-          <div className="value">{setupLabel}</div>
+          <div className="eyebrow">Plan view</div>
+          <div className="value">{planTier === 'pro' ? 'Pro active' : 'Free plan'}</div>
           <div className="muted small">
-            {!user ? 'Sign in to sync across devices.' : !disclaimerAccepted ? 'Accept the Agreement of Understanding.' : planTier !== 'pro' ? 'Optional: upgrade for Pro tools.' : 'Your setup is complete.'}
+            {planTier === 'pro'
+              ? 'Full breakdowns, validation, and forward tracking are unlocked.'
+              : "You can already use Tonight's Brief, board scan, watchlist, and alerts. Pro adds deeper validation and follow-through tools."}
           </div>
-          <button className="ghost-button sync-inline-action" onClick={onOpenControls}>Continue</button>
+          <button className="ghost-button sync-inline-action" onClick={onOpenControls}>{planTier === 'pro' ? 'Manage billing' : 'See plan details'}</button>
         </div>
       </div>
     </section>

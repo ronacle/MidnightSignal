@@ -145,7 +145,7 @@ export default function TopSignal({
       ) : (
       <div className="factor-block factor-block-gated">
         <div className="eyebrow">Pro Insight</div>
-        <div className="muted small">Unlock Pro to view adaptive weights and deeper regime edge context.</div>
+        <div className="muted small">Free covers the live read above. Pro adds adaptive weights and deeper regime edge context.</div>
       </div>
       )}
 
@@ -244,7 +244,7 @@ export default function TopSignal({
       ) : (
         <div className="factor-block factor-block-gated">
           <div className="eyebrow">Pro Insight</div>
-          <div className="muted small">Unlock Pro to view deeper validation, performance tracking, and forward signal logs.</div>
+          <div className="muted small">Free covers the current setup. Pro adds validation, performance tracking, and forward signal logs.</div>
         </div>
       )}
 

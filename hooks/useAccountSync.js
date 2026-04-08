@@ -7,8 +7,8 @@ import { mergeState } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase-browser';
 import { readAlertMemory, readDigestMemory, writeAlertMemory, writeDigestMemory } from '@/lib/alert-engine';
 
-const STORAGE_KEY = 'midnight-signal-local-state-v11.48';
-const LEGACY_STORAGE_KEYS = ['midnight-signal-local-state-v11.47', 'midnight-signal-local-state-v11.46', 'midnight-signal-local-state-v11.45', 'midnight-signal-local-state-v11.44', 'midnight-signal-local-state-v11.43'];
+const STORAGE_KEY = 'midnight-signal-local-state-v11.49';
+const LEGACY_STORAGE_KEYS = ['midnight-signal-local-state-v11.48', 'midnight-signal-local-state-v11.47', 'midnight-signal-local-state-v11.46', 'midnight-signal-local-state-v11.45', 'midnight-signal-local-state-v11.44', 'midnight-signal-local-state-v11.43'];
 const POLL_INTERVAL_MS = 60000;
 
 function deriveDeviceLabel() {

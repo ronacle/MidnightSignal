@@ -139,7 +139,7 @@ function BillingPanel({ state, setState, user, onRefresh }) {
       <div className="muted small">
         {planTier === 'pro'
           ? 'Your Pro access is verified from Stripe on this account. Use the billing center below to refresh Stripe truth, manage payment details, or schedule cancellation.'
-          : 'You are on the free plan. Upgrade from the Top Signal panel to unlock deeper validation, forward tracking, expanded signal context, and synced Pro access after Stripe verification.'}
+          : 'You are on the free plan. Free keeps the board scan, watchlist, learning flow, and alerts available. Upgrade from Top Signal only if you want deeper validation, forward tracking, and synced Pro access after Stripe verification.'}
       </div>
 
       <div className="list-item stack">

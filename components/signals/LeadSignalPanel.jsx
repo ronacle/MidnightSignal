@@ -9,18 +9,6 @@ const SNAPSHOT_STORAGE_KEY = 'midnight-signal-last-top-signal';
 const USER_BIAS_STORAGE_KEY = 'midnight-signal-user-bias';
 const PLAN_STORAGE_KEY = 'midnight-signal-plan';
 
-function ProOverlay({ onUpgrade }) {
-  return (
-    <div className="pro-overlay">
-      <div className="pro-card">
-        <div className="pro-title">See what the signal is actually doing next</div>
-        <div className="pro-desc">Track validation, confidence shifts, and forward performance.</div>
-        <button className="pro-cta" onClick={onUpgrade}>Upgrade to Pro</button>
-      </div>
-    </div>
-  );
-}
-
 function UpgradeModal({ open, onClose }) {
   if (!open) return null;
 
@@ -151,19 +139,6 @@ export default function LeadSignalPanel({
     return () => window.clearTimeout(timer);
   }, [expanded]);
 
-  async function handleUpgrade() {
-    try {
-      const res = await fetch('/api/checkout', { method: 'POST' });
-      const data = await res.json();
-      if (data?.url) {
-        window.location.href = data.url;
-        return;
-      }
-      setUpgradeOpen(true);
-    } catch {
-      setUpgradeOpen(true);
-    }
-  }
 
 
   function handleExpand() {
@@ -213,28 +188,28 @@ export default function LeadSignalPanel({
             <div className="pro-teaser-card">
               <div className="pro-teaser-blur" />
               <div className="pro-teaser-content">
-                <div className="eyebrow">Pro Insight</div>
-                <div className="value">Unlock deeper validation, forward tracking, and regime edge</div>
-                <div className="muted">Go beyond the brief with expanded breakdowns, cleaner decision support, and stronger follow-through context.</div>
+                <div className="eyebrow">Available now vs Pro</div>
+                <div className="value">You already have Tonight’s Brief, board scan, watchlist, and alerts</div>
+                <div className="muted">Pro adds the deeper validation layer, forward tracking, and expanded regime context when you want more than the quick read.</div>
                 <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>See Pro plan</button>
               </div>
             </div>
 
             <div className="pro-preview-grid" aria-hidden="true">
               <div className="pro-preview-card">
-                <div className="eyebrow">Validation</div>
-                <div className="value">74% match rate</div>
-                <div className="muted">Historical follow-through preview</div>
+                <div className="eyebrow">Free now</div>
+                <div className="value">Brief + board</div>
+                <div className="muted">Fast read of the current setup</div>
               </div>
               <div className="pro-preview-card">
-                <div className="eyebrow">Forward edge</div>
-                <div className="value">+2 checkpoints</div>
-                <div className="muted">Track signal progress after the call</div>
+                <div className="eyebrow">Pro adds</div>
+                <div className="value">Validation edge</div>
+                <div className="muted">Historical follow-through and score context</div>
               </div>
               <div className="pro-preview-card">
-                <div className="eyebrow">Decision layer</div>
-                <div className="value">Bias + posture</div>
-                <div className="muted">See the deeper why behind the setup</div>
+                <div className="eyebrow">Pro adds</div>
+                <div className="value">Forward tracking</div>
+                <div className="muted">See how signals behave after the call</div>
               </div>
             </div>
           </div>
@@ -268,23 +243,12 @@ export default function LeadSignalPanel({
         {planTier !== 'pro' ? (
           <div className="upgrade-strip-inline">
             <div className="upgrade-strip-copy">
-              <strong>Unlock the full signal view.</strong>
-              <span>See deeper validation history, forward tracking, and expanded context.</span>
+              <strong>Free gives you the quick read. Pro opens the deeper lab.</strong>
+              <span>Upgrade only if you want validation scaffolding, forward tracking, and richer decision support.</span>
             </div>
             <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>
-              Upgrade
+              View Pro
             </button>
-          </div>
-        ) : null}
-
-        {planTier !== 'pro' ? (
-          <div className="pro-gated-block">
-            <div className="pro-blur">
-              <div className="pro-placeholder">
-                Validation • Forward Tracking • Decision Layer
-              </div>
-            </div>
-            <ProOverlay onUpgrade={handleUpgrade} />
           </div>
         ) : null}
       </section>
