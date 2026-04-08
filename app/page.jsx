@@ -260,7 +260,7 @@ export default function HomePage() {
         </section>
 
         <div className="footer-note">
-          Build v11.27 · feedback loop + performance panel + confidence state · source: {marketSource}
+          Build v11.28 · personalization layer + strategy-aware brief + adaptive tone · source: {marketSource}
         </div>
       </div>
 

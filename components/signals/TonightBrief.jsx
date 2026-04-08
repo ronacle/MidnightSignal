@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
 import { formatPct, formatPrice } from '@/lib/utils';
 
 function toSentence(value) {
@@ -31,6 +32,50 @@ function getSessionLabel() {
   return 'Evening scan';
 }
 
+function getUserProfile(state) {
+  const mode = String(state?.mode || 'Beginner');
+  const strategy = String(state?.strategy || 'swing').toLowerCase();
+  const preference = state?.uiPreference || 'brief-first';
+
+  return {
+    mode,
+    strategy,
+    isPro: mode.toLowerCase() === 'pro',
+    preference,
+  };
+}
+
+function getStrategyFlavor(strategy) {
+  if (strategy === 'scalp') {
+    return {
+      triggerFocus: 'immediate follow-through',
+      focusPriority: ['momentum', 'volatility', 'volume', 'trend'],
+      approach: 'Stay quick, stay selective, and only act on clean confirmation.',
+    };
+  }
+  if (strategy === 'position') {
+    return {
+      triggerFocus: 'structural confirmation',
+      focusPriority: ['trend', 'relative strength', 'volume', 'momentum'],
+      approach: 'Think in structure first and let the market earn longer holding time.',
+    };
+  }
+  return {
+    triggerFocus: 'balanced confirmation',
+    focusPriority: ['trend', 'volume', 'momentum', 'relative strength'],
+    approach: 'Balance confirmation with patience and avoid forcing early conviction.',
+  };
+}
+
+function sortDriversByStrategy(drivers, strategy) {
+  const order = getStrategyFlavor(strategy).focusPriority;
+  return [...drivers].sort((a, b) => {
+    const ai = order.indexOf(a);
+    const bi = order.indexOf(b);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+}
+
 function getConfidenceState(asset, validationSummary, state) {
   const snapshot = state?.lastTopSignalSnapshot;
   const currentScore = Number(asset?.signalScore ?? asset?.conviction ?? 0);
@@ -42,11 +87,24 @@ function getConfidenceState(asset, validationSummary, state) {
   return 'Stable';
 }
 
-function getTonightRead(asset, decisionLayer, regimeSummary, validationSummary) {
+function getTonightRead(asset, decisionLayer, regimeSummary, validationSummary, profile) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
   const regime = String(regimeSummary?.regime || '').toLowerCase();
   const validation = String(validationSummary?.scoreTrend || '').toLowerCase();
   const stance = String(decisionLayer?.stance || decisionLayer?.posture || '').toLowerCase();
+
+  if (profile.isPro) {
+    if (sentiment === 'bullish') {
+      if (validation.includes('strong') || stance.includes('aggressive')) return 'Bullish with support expanding.';
+      if (regime.includes('risk-on') || regime.includes('trend')) return 'Bullish lean, confirmation still matters.';
+      return 'Bullish bias, conviction still maturing.';
+    }
+    if (sentiment === 'bearish') {
+      if (validation.includes('strong') || stance.includes('defensive')) return 'Bearish pressure is in control.';
+      return 'Bearish lean, follow-through still needs proof.';
+    }
+    return 'Neutral read, edge still mixed.';
+  }
 
   if (sentiment === 'bullish') {
     if (validation.includes('strong') || stance.includes('aggressive')) {
@@ -68,29 +126,39 @@ function getTonightRead(asset, decisionLayer, regimeSummary, validationSummary) 
   return 'Neutral posture — the signal is informative, but the edge is still mixed tonight.';
 }
 
-function getWhyItMatters(asset, regimeSummary, topDrivers) {
+function getWhyItMatters(asset, regimeSummary, topDrivers, profile) {
   const symbol = asset?.symbol || 'This asset';
   const regime = regimeSummary?.regime ? toSentence(regimeSummary.regime) : 'a mixed regime';
   const driverText = topDrivers.length
     ? `${topDrivers.join(' and ')} are doing the heaviest lifting`
     : 'the current signal stack is doing the heavy lifting';
 
+  if (profile.isPro) {
+    return `${symbol} is on top because ${driverText}, with the broader tape still reflecting ${regime.toLowerCase()}.`;
+  }
+
   return `${symbol} is leading tonight because ${driverText}, while the broader backdrop still reflects ${regime.toLowerCase()}.`;
 }
 
-function getWhatChanged(asset, signalHistory, snapshot) {
+function getWhatChanged(asset, signalHistory, snapshot, profile) {
   const current = asset?.symbol;
   const previous = snapshot?.symbol ? snapshot : signalHistory?.[1];
 
   if (!previous?.symbol || !current) {
-    return 'This is the first stored snapshot, so there is no prior leader to compare yet.';
+    return profile.isPro
+      ? 'No prior lead snapshot yet.'
+      : 'This is the first stored snapshot, so there is no prior leader to compare yet.';
   }
 
   if (previous.symbol === current) {
-    return `${current} remains the lead signal, which points to continuity rather than rotation.`;
+    return profile.isPro
+      ? `${current} stayed in front.`
+      : `${current} remains the lead signal, which points to continuity rather than rotation.`;
   }
 
-  return `Leadership rotated from ${previous.symbol} to ${current}, suggesting the market is rewarding a different setup tonight.`;
+  return profile.isPro
+    ? `Lead rotated ${previous.symbol} → ${current}.`
+    : `Leadership rotated from ${previous.symbol} to ${current}, suggesting the market is rewarding a different setup tonight.`;
 }
 
 function getSinceLastVisit(asset, state) {
@@ -140,75 +208,99 @@ function getSignalAlerts(asset, regimeSummary, state) {
   return alerts.slice(0, 2);
 }
 
-function getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers) {
+function getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers, profile) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
   const validation = String(validationSummary?.scoreTrend || '').toLowerCase();
   const regime = String(regimeSummary?.regime || '').toLowerCase();
+  const strategyFlavor = getStrategyFlavor(profile.strategy);
+  const prioritizedDrivers = sortDriversByStrategy(topDrivers, profile.strategy);
 
   if (sentiment === 'bullish') {
-    if (topDrivers.includes('volume')) {
+    if (prioritizedDrivers.includes('volume')) {
       return {
-        label: 'Trigger',
-        text: 'Volume expands and holds on the next push higher.',
-        note: 'That would upgrade this from a promising read to stronger conviction.'
+        label: profile.isPro ? 'Trigger' : 'Trigger',
+        text: profile.strategy === 'scalp'
+          ? 'Volume hits immediately on the next push higher.'
+          : 'Volume expands and holds on the next push higher.',
+        note: profile.isPro
+          ? `That is your cleanest ${strategyFlavor.triggerFocus} cue.`
+          : 'That would upgrade this from a promising read to stronger conviction.'
       };
     }
-    if (topDrivers.includes('trend')) {
+    if (prioritizedDrivers.includes('trend')) {
       return {
         label: 'Trigger',
-        text: 'Trend structure keeps holding through the next continuation attempt.',
-        note: 'That would confirm the leader is still earning its spot.'
+        text: profile.strategy === 'position'
+          ? 'Structure keeps holding through the next higher-low test.'
+          : 'Trend structure keeps holding through the next continuation attempt.',
+        note: profile.isPro
+          ? 'That keeps the leader structurally valid.'
+          : 'That would confirm the leader is still earning its spot.'
       };
     }
     if (validation.includes('weak') || regime.includes('chop') || regime.includes('range')) {
       return {
         label: 'Trigger',
         text: 'Price breaks cleanly out of the current range with follow-through.',
-        note: 'That is the clearest sign this setup is escaping noisy conditions.'
+        note: profile.isPro
+          ? 'You need cleaner resolution before leaning harder.'
+          : 'That is the clearest sign this setup is escaping noisy conditions.'
       };
     }
     return {
       label: 'Trigger',
       text: 'The next push higher shows cleaner follow-through than the last one.',
-      note: 'That would turn a constructive read into a more decisive one.'
+      note: profile.isPro
+        ? 'That turns the bias into a more actionable read.'
+        : 'That would turn a constructive read into a more decisive one.'
     };
   }
 
   if (sentiment === 'bearish') {
-    if (topDrivers.includes('volatility')) {
+    if (prioritizedDrivers.includes('volatility')) {
       return {
         label: 'Trigger',
         text: 'Bounce attempts fail quickly and downside expansion returns.',
-        note: 'That would confirm sellers are still in control.'
+        note: profile.isPro
+          ? 'That keeps downside control intact.'
+          : 'That would confirm sellers are still in control.'
       };
     }
     return {
       label: 'Trigger',
       text: 'Support weakens and rebounds lose strength.',
-      note: 'That would keep the defensive posture intact.'
+      note: profile.isPro
+        ? 'That preserves the defensive posture.'
+        : 'That would keep the defensive posture intact.'
     };
   }
 
-  if (topDrivers.includes('momentum')) {
+  if (prioritizedDrivers.includes('momentum')) {
     return {
       label: 'Trigger',
       text: 'Momentum resolves with a cleaner directional push.',
-      note: 'The next move matters more than the current snapshot.'
+      note: profile.isPro
+        ? 'The next impulse matters more than the current print.'
+        : 'The next move matters more than the current snapshot.'
     };
   }
 
   return {
     label: 'Trigger',
     text: 'Price breaks clearly in either direction.',
-    note: 'That is the next clue that this neutral read is resolving.'
+    note: profile.isPro
+      ? 'That is the next usable clue.'
+      : 'That is the next clue that this neutral read is resolving.'
   };
 }
 
-function getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers) {
+function getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers, profile) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
   const validation = String(validationSummary?.scoreTrend || '').toLowerCase();
   const regime = String(regimeSummary?.regime || '').toLowerCase();
   const posture = decisionLayer?.posture || (sentiment === 'bullish' ? 'Constructive' : sentiment === 'bearish' ? 'Defensive' : 'Neutral');
+  const strategyFlavor = getStrategyFlavor(profile.strategy);
+  const prioritizedDrivers = sortDriversByStrategy(topDrivers, profile.strategy);
 
   let actionMode = 'Wait';
   if (sentiment === 'bullish' && (validation.includes('strong') || regime.includes('trend') || regime.includes('risk-on'))) {
@@ -221,28 +313,34 @@ function getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, 
 
   let approach = 'Stay patient and let the setup clarify before committing harder.';
   if (actionMode === 'Attack') {
-    approach = 'Lean into continuation only if strength stays confirmed instead of chasing a weak push.';
+    approach = profile.strategy === 'position'
+      ? 'Lean into strength only if structure keeps holding rather than reacting to every uptick.'
+      : 'Lean into continuation only if strength stays confirmed instead of chasing a weak push.';
   } else if (actionMode === 'Probe') {
-    approach = 'Treat this as an early setup and size cautiously until confirmation improves.';
+    approach = profile.strategy === 'scalp'
+      ? 'Treat this as a quick test and stay small until the tape confirms immediately.'
+      : 'Treat this as an early setup and size cautiously until confirmation improves.';
   } else if (actionMode === 'Defend') {
-    approach = 'Favor risk control and let weak bounces prove otherwise before getting aggressive.';
+    approach = profile.strategy === 'position'
+      ? 'Prioritize preservation and only re-engage when structure proves it deserves more trust.'
+      : 'Favor risk control and let weak bounces prove otherwise before getting aggressive.';
   }
 
-  let focus = 'Watch the next directional push.';
-  if (topDrivers.includes('volume')) {
-    focus = 'Volume support on the next move.';
-  } else if (topDrivers.includes('trend')) {
-    focus = 'Trend structure holding cleanly.';
-  } else if (topDrivers.includes('momentum')) {
+  let focus = strategyFlavor.approach;
+  if (prioritizedDrivers.includes('volume')) {
+    focus = profile.strategy === 'scalp' ? 'Fast volume confirmation.' : 'Volume support on the next move.';
+  } else if (prioritizedDrivers.includes('trend')) {
+    focus = profile.strategy === 'position' ? 'Structure holding across the higher-timeframe read.' : 'Trend structure holding cleanly.';
+  } else if (prioritizedDrivers.includes('momentum')) {
     focus = 'Momentum resolving with direction.';
-  } else if (topDrivers.includes('volatility')) {
+  } else if (prioritizedDrivers.includes('volatility')) {
     focus = 'Whether expansion is controlled or chaotic.';
   }
 
   return { posture, actionMode, approach, focus };
 }
 
-function getPerformanceInsight(forwardScorecard) {
+function getPerformanceInsight(forwardScorecard, state) {
   if (!forwardScorecard) {
     return 'Advanced performance insights coming soon.';
   }
@@ -260,6 +358,11 @@ function getPerformanceInsight(forwardScorecard) {
     return 'Recent conditions have been less reliable, so patience matters more than frequency.';
   }
 
+  const userBias = state?.userBias;
+  if (userBias?.preferredDriver) {
+    return `You tend to spend more time on ${userBias.preferredDriver} driven setups.`;
+  }
+
   return 'Performance insight will sharpen as more scored signals accumulate.';
 }
 
@@ -269,6 +372,16 @@ function getBestRegime(forwardScorecard) {
     .filter((row) => typeof row?.avgReturn === 'number')
     .sort((a, b) => b.avgReturn - a.avgReturn)[0];
   return best?.regime || '—';
+}
+
+function getUserBias(state, topDrivers, profile) {
+  const stored = state?.userBias || {};
+  const preferredDriver = stored.preferredDriver || topDrivers[0] || 'trend';
+  const tone = profile.isPro ? 'tight' : 'guided';
+  return {
+    preferredDriver,
+    tone,
+  };
 }
 
 export default function TonightBrief({
@@ -283,6 +396,8 @@ export default function TonightBrief({
 }) {
   if (!asset) return null;
 
+  const profile = getUserProfile(state);
+
   const factorPairs = [
     ['momentum', asset?.factors?.momentum],
     ['trend', asset?.factors?.trend],
@@ -291,30 +406,83 @@ export default function TonightBrief({
     ['volatility', asset?.factors?.volatility],
   ].filter(([, value]) => typeof value === 'number');
 
-  const topDrivers = factorPairs
+  const rawDrivers = factorPairs
     .sort((a, b) => b[1] - a[1])
     .slice(0, 2)
     .map(([label]) => label);
 
-  const tonightRead = getTonightRead(asset, decisionLayer, regimeSummary, validationSummary);
-  const whyItMatters = getWhyItMatters(asset, regimeSummary, topDrivers);
-  const whatChanged = getWhatChanged(asset, signalHistory, state?.lastTopSignalSnapshot);
-  const watchTrigger = getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers);
+  const topDrivers = sortDriversByStrategy(rawDrivers, profile.strategy);
+  const userBias = getUserBias(state, topDrivers, profile);
+
+  const tonightRead = getTonightRead(asset, decisionLayer, regimeSummary, validationSummary, profile);
+  const whyItMatters = getWhyItMatters(asset, regimeSummary, topDrivers, profile);
+  const whatChanged = getWhatChanged(asset, signalHistory, state?.lastTopSignalSnapshot, profile);
+  const watchTrigger = getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers, profile);
   const sinceLastVisit = getSinceLastVisit(asset, state);
   const signalAlerts = getSignalAlerts(asset, regimeSummary, state);
-  const tonightPlan = getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers);
+  const tonightPlan = getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers, profile);
   const confidenceState = getConfidenceState(asset, validationSummary, state);
-  const performanceInsight = getPerformanceInsight(forwardScorecard);
+  const performanceInsight = getPerformanceInsight(forwardScorecard, state);
   const pulseEnabled = Boolean(state?.livePulseEnabled);
   const sessionLabel = getSessionLabel();
 
+  const briefRows = useMemo(() => {
+    const rows = [
+      {
+        key: 'read',
+        label: "Tonight's Read",
+        content: tonightRead,
+      },
+      {
+        key: 'why',
+        label: 'Why It Matters',
+        content: whyItMatters,
+      },
+      {
+        key: 'changed',
+        label: 'What Changed',
+        content: whatChanged,
+      },
+      {
+        key: 'trigger',
+        label: watchTrigger.label,
+        trigger: true,
+        text: watchTrigger.text,
+        note: watchTrigger.note,
+      },
+    ];
+
+    if (profile.isPro) {
+      return [rows[0], rows[3], rows[1], rows[2]];
+    }
+
+    return rows;
+  }, [tonightRead, whyItMatters, whatChanged, watchTrigger, profile.isPro]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !asset?.symbol) return;
+
+    try {
+      const nextBias = {
+        preferredDriver: userBias.preferredDriver,
+        lastViewedSymbol: asset.symbol,
+        tone: userBias.tone,
+      };
+      window.localStorage.setItem('midnight-signal-user-bias', JSON.stringify(nextBias));
+    } catch {
+      // no-op
+    }
+  }, [asset?.symbol, userBias]);
+
   return (
-    <section className="panel compact-brief-panel" id="brief">
+    <section className={`panel compact-brief-panel ${profile.isPro ? 'is-pro-brief' : 'is-beginner-brief'}`} id="brief">
       <div className="compact-brief-header">
         <div>
           <div className="eyebrow compact-brief-kicker lead-brief-eyebrow">Tonight</div>
           <h2 className="section-title compact-brief-title lead-brief-title">Top Signal Brief</h2>
-          <div className="eyebrow compact-brief-subtitle">Human translation of the lead setup</div>
+          <div className="eyebrow compact-brief-subtitle">
+            {profile.isPro ? 'Compressed read of the lead setup' : 'Human translation of the lead setup'}
+          </div>
         </div>
         <span className="badge compact-brief-badge">{timeframe}</span>
       </div>
@@ -322,6 +490,8 @@ export default function TonightBrief({
       <div className="compact-brief-session">
         <span className="compact-brief-session-label">Session</span>
         <span className="compact-brief-session-value">{sessionLabel}</span>
+        <span className="compact-brief-session-divider">•</span>
+        <span className="compact-brief-session-value">{toSentence(profile.strategy)} style</span>
       </div>
 
       <div className="compact-brief-since">
@@ -367,10 +537,12 @@ export default function TonightBrief({
           <span className={`badge compact-brief-change-badge ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>
             24h {formatPct(asset.change24h || 0)}
           </span>
-          <span className={`badge compact-confidence-badge state-${confidenceState.toLowerCase()}`}>Confidence: {confidenceState}</span>
+          <span className={`badge compact-confidence-badge state-${confidenceState.toLowerCase()} ${(confidenceState === 'Rising' || confidenceState === 'Weakening') ? 'is-pulsing' : ''}`}>
+            Confidence: {confidenceState}
+          </span>
         </div>
         <p className="muted compact-brief-story">
-          {asset.story}
+          {profile.isPro ? asset.story : asset.story}
         </p>
       </div>
 
@@ -398,31 +570,29 @@ export default function TonightBrief({
           </div>
         </div>
         <div className="compact-performance-insight">{performanceInsight}</div>
+        <div className="compact-user-bias">
+          <span className="compact-user-bias-label">Your bias</span>
+          <span className="compact-user-bias-text">
+            {profile.isPro ? 'You prefer a tighter read' : 'You respond best to guided context'} · focus tends toward {userBias.preferredDriver}
+          </span>
+        </div>
       </div>
 
       <div className="compact-brief-rows">
-        <div className="compact-brief-row">
-          <span className="compact-brief-label">Tonight&apos;s Read</span>
-          <span className="compact-brief-text">{tonightRead}</span>
-        </div>
-
-        <div className="compact-brief-row">
-          <span className="compact-brief-label">Why It Matters</span>
-          <span className="compact-brief-text">{whyItMatters}</span>
-        </div>
-
-        <div className="compact-brief-row">
-          <span className="compact-brief-label">What Changed</span>
-          <span className="compact-brief-text">{whatChanged}</span>
-        </div>
-
-        <div className="compact-brief-row compact-brief-watch-row">
-          <span className="compact-brief-label compact-brief-watch-label">{watchTrigger.label}</span>
-          <span className="compact-brief-text compact-brief-watch-text">
-            <strong>{watchTrigger.text}</strong>
-            <span className="compact-brief-watch-note">{watchTrigger.note}</span>
-          </span>
-        </div>
+        {briefRows.map((row) => row.trigger ? (
+          <div className="compact-brief-row compact-brief-watch-row" key={row.key}>
+            <span className="compact-brief-label compact-brief-watch-label">{row.label}</span>
+            <span className="compact-brief-text compact-brief-watch-text">
+              <strong>{row.text}</strong>
+              <span className="compact-brief-watch-note">{row.note}</span>
+            </span>
+          </div>
+        ) : (
+          <div className="compact-brief-row" key={row.key}>
+            <span className="compact-brief-label">{row.label}</span>
+            <span className="compact-brief-text">{row.content}</span>
+          </div>
+        ))}
       </div>
     </section>
   );

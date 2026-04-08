@@ -6,6 +6,7 @@ import TopSignalCard from '@/components/signals/TopSignalCard';
 
 const VISIT_STORAGE_KEY = 'midnight-signal-last-visit';
 const SNAPSHOT_STORAGE_KEY = 'midnight-signal-last-top-signal';
+const USER_BIAS_STORAGE_KEY = 'midnight-signal-user-bias';
 
 export default function LeadSignalPanel({
   asset,
@@ -24,12 +25,14 @@ export default function LeadSignalPanel({
   const [expanded, setExpanded] = useState(false);
   const [sessionState, setSessionState] = useState(state || {});
   const [persistedSnapshot, setPersistedSnapshot] = useState(null);
+  const [userBias, setUserBias] = useState(null);
   const breakdownRef = useRef(null);
 
   const awarenessState = useMemo(() => {
     return {
       ...(sessionState || {}),
       lastTopSignalSnapshot: persistedSnapshot,
+      userBias,
     };
   }, [sessionState, persistedSnapshot]);
 
@@ -39,6 +42,7 @@ export default function LeadSignalPanel({
     try {
       const storedVisit = window.localStorage.getItem(VISIT_STORAGE_KEY);
       const storedSnapshot = window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
+      const storedBias = window.localStorage.getItem(USER_BIAS_STORAGE_KEY);
 
       setSessionState((current) => ({
         ...(current || {}),
@@ -48,6 +52,10 @@ export default function LeadSignalPanel({
 
       if (storedSnapshot) {
         setPersistedSnapshot(JSON.parse(storedSnapshot));
+      }
+
+      if (storedBias) {
+        setUserBias(JSON.parse(storedBias));
       }
     } catch {
       setSessionState((current) => ({ ...(current || {}), ...(state || {}) }));
