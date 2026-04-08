@@ -142,7 +142,7 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
             symbol: 'TEST',
             posture: 'Delivery path check',
             confidence: 100,
-            text: 'This is a Midnight Signal test email from v11.44.'
+            text: 'This is a Midnight Signal test email from v11.46.'
           }]
         })
       });

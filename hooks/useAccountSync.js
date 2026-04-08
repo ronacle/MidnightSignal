@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_STATE } from '@/lib/default-state';
+import { derivePlanTier, normalizeEntitlement } from '@/lib/entitlements';
 import { mergeState } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase-browser';
 import { readAlertMemory, readDigestMemory, writeAlertMemory, writeDigestMemory } from '@/lib/alert-engine';
 
-const STORAGE_KEY = 'midnight-signal-local-state-v11.45';
-const LEGACY_STORAGE_KEYS = ['midnight-signal-local-state-v11.44', 'midnight-signal-local-state-v11.43'];
+const STORAGE_KEY = 'midnight-signal-local-state-v11.46';
+const LEGACY_STORAGE_KEYS = ['midnight-signal-local-state-v11.45', 'midnight-signal-local-state-v11.44', 'midnight-signal-local-state-v11.43'];
 const POLL_INTERVAL_MS = 60000;
 
 function deriveDeviceLabel() {
@@ -59,8 +60,11 @@ export function useAccountSync() {
 
   const persistLocal = useCallback((next) => {
     if (typeof window === 'undefined') return;
+    const normalizedEntitlement = normalizeEntitlement(next?.entitlement || DEFAULT_STATE.entitlement);
     const enriched = mergeState(DEFAULT_STATE, {
       ...next,
+      entitlement: normalizedEntitlement,
+      planTier: derivePlanTier(normalizedEntitlement, next?.planTier || DEFAULT_STATE.planTier),
       alertMemory: next?.alertMemory || readAlertMemory(),
       alertDigestMemory: next?.alertDigestMemory || readDigestMemory(),
       deviceLabel: next?.deviceLabel || deriveDeviceLabel(),
@@ -83,10 +87,13 @@ export function useAccountSync() {
 
     try {
       const timestamp = new Date().toISOString();
+      const normalizedEntitlement = normalizeEntitlement(draftState?.entitlement || DEFAULT_STATE.entitlement);
       const payload = {
         user_id: currentUser.id,
         state: mergeState(DEFAULT_STATE, {
           ...draftState,
+          entitlement: normalizedEntitlement,
+          planTier: derivePlanTier(normalizedEntitlement, draftState?.planTier || DEFAULT_STATE.planTier),
           deviceLabel: draftState?.deviceLabel || deriveDeviceLabel(),
           alertMemory: draftState?.alertMemory || readAlertMemory(),
           alertDigestMemory: draftState?.alertDigestMemory || readDigestMemory(),
@@ -151,7 +158,11 @@ export function useAccountSync() {
         return localState;
       }
 
-      const remoteState = mergeState(DEFAULT_STATE, data.state || {});
+      const remoteEntitlement = normalizeEntitlement(data?.state?.entitlement || DEFAULT_STATE.entitlement);
+      const remoteState = mergeState(DEFAULT_STATE, data.state || {}, {
+        entitlement: remoteEntitlement,
+        planTier: derivePlanTier(remoteEntitlement, data?.state?.planTier || DEFAULT_STATE.planTier),
+      });
       writeAlertMemory(remoteState.alertMemory || {});
       writeDigestMemory(remoteState.alertDigestMemory || {});
       const remoteStamp = new Date(remoteState.updatedAt || data.updated_at || 0).getTime();
@@ -185,8 +196,11 @@ export function useAccountSync() {
     setState((previous) => {
       const resolved = typeof updater === 'function' ? updater(previous) : updater;
       const now = new Date().toISOString();
+      const normalizedEntitlement = normalizeEntitlement(resolved?.entitlement || previous?.entitlement || DEFAULT_STATE.entitlement);
       const next = mergeState(DEFAULT_STATE, {
         ...resolved,
+        entitlement: normalizedEntitlement,
+        planTier: derivePlanTier(normalizedEntitlement, resolved?.planTier || previous?.planTier || DEFAULT_STATE.planTier),
         deviceLabel: resolved?.deviceLabel || previous?.deviceLabel || deriveDeviceLabel(),
         alertMemory: resolved?.alertMemory || previous?.alertMemory || readAlertMemory(),
         alertDigestMemory: resolved?.alertDigestMemory || previous?.alertDigestMemory || readDigestMemory(),

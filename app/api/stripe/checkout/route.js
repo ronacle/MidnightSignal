@@ -32,6 +32,7 @@ export async function GET(request) {
       metadata: {
         product: 'midnight-signal-pro',
       },
+      customer_creation: 'always',
     });
 
     if (!session.url) {

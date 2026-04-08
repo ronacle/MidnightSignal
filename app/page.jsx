@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
 import Top20Grid from '@/components/signals/Top20Grid';
@@ -10,6 +10,7 @@ import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { useAccountSync } from '@/hooks/useAccountSync';
+import { shouldRefreshEntitlement } from '@/lib/entitlements';
 import { rankAssets, buildSignalSnapshot, detectMarketRegime } from '@/lib/signal-engine';
 import { appendSignalSnapshot, buildValidationSummary, readSignalHistory } from '@/lib/signal-history';
 import {
@@ -117,6 +118,7 @@ export default function HomePage() {
   const [adaptiveWeights, setAdaptiveWeights] = useState({});
   const [lastVisitAt, setLastVisitAt] = useState(null);
   const [priorityAlerts, setPriorityAlerts] = useState([]);
+  const entitlementRefreshRef = useRef(false);
 
   useEffect(() => {
     setSignalHistory(readSignalHistory());
@@ -210,6 +212,37 @@ export default function HomePage() {
       // no-op
     }
   }, []);
+
+  useEffect(() => {
+    if (entitlementRefreshRef.current) return;
+    if (!state?.entitlement || !shouldRefreshEntitlement(state.entitlement)) return;
+
+    entitlementRefreshRef.current = true;
+
+    async function refreshEntitlement() {
+      try {
+        const response = await fetch('/api/stripe/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entitlement: state.entitlement }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (data?.ok && data?.entitlement) {
+          setState((previous) => ({
+            ...previous,
+            entitlement: data.entitlement,
+            planTier: data.entitlement?.verified ? 'pro' : 'basic',
+          }));
+        }
+      } catch {
+        // no-op
+      } finally {
+        entitlementRefreshRef.current = false;
+      }
+    }
+
+    void refreshEntitlement();
+  }, [setState, state?.entitlement]);
 
   const rankedAssets = useMemo(
     () => rankAssets(buildMarketUniverse(liveItems), adaptiveWeights),
@@ -638,7 +671,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.45 · Stripe truth pass + verified entitlement gating · source: {marketSource}
+          Build v11.46 · Stripe webhook sync + subscription status refresh · source: {marketSource}
         </div>
       </div>
 
