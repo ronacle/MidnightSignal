@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+
+const STRIPE_FAST_LAUNCH = true;
 import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
 import Top20Grid from '@/components/signals/Top20Grid';
@@ -124,6 +126,30 @@ export default function HomePage() {
   }, []);
 
 /*    useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const url = new URL(window.location.href);
+      const upgraded = url.searchParams.get('upgraded');
+      const canceled = url.searchParams.get('checkout');
+
+      if (upgraded === '1') {
+        window.localStorage.setItem('midnight-signal-plan', 'pro');
+        window.localStorage.setItem('midnight-signal-upgrade-success', new Date().toISOString());
+        setUpgradeNotice('Pro unlocked — deeper signal layers active.');
+        url.searchParams.delete('upgraded');
+        window.history.replaceState({}, '', url.toString());
+      } else if (canceled === 'canceled') {
+        setUpgradeNotice('Checkout canceled — Basic access remains active.');
+        url.searchParams.delete('checkout');
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch {
+      // no-op
+    }
+  }, []);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     setSinceHidden(window.localStorage.getItem('since-dismissed') === 'true');
     setSinceReady(true);
@@ -259,8 +285,21 @@ export default function HomePage() {
           <Top20Grid state={state} setState={setState} onAssetOpen={setDetailAsset} assets={rankedAssets} />
         </section>
 
+        {upgradeNotice ? (
+          <div className="upgrade-notice-banner">
+            <span>{upgradeNotice}</span>
+            <button
+              type="button"
+              className="ghost-button small"
+              onClick={() => setUpgradeNotice('')}
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
+
         <div className="footer-note">
-          Build v11.29 · monetization layer + soft gating + upgrade modal · source: {marketSource}
+          Build v11.30 · Stripe fast launch + local Pro unlock + checkout redirects · source: {marketSource}
         </div>
       </div>
 

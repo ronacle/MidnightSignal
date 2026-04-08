@@ -2191,3 +2191,40 @@ button, input, select { font: inherit; }
     padding: 18px;
   }
 }
+
+
+/* v11.30 stripe fast launch */
+.upgrade-modal-note {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(107,197,255,0.12);
+  background: rgba(107,197,255,0.04);
+  color: rgba(233,246,255,0.88);
+  line-height: 1.4;
+}
+
+.upgrade-link-button {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upgrade-notice-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(107,197,255,0.18);
+  background: linear-gradient(180deg, rgba(107,197,255,0.08), rgba(255,255,255,0.03));
+}
+
+@media (max-width: 900px) {
+  .upgrade-notice-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -9,8 +9,10 @@ const SNAPSHOT_STORAGE_KEY = 'midnight-signal-last-top-signal';
 const USER_BIAS_STORAGE_KEY = 'midnight-signal-user-bias';
 const PLAN_STORAGE_KEY = 'midnight-signal-plan';
 
-function UpgradeModal({ open, onClose }) {
+function UpgradeModal({ open, onClose, onUnlockLocal }) {
   if (!open) return null;
+
+  const checkoutLink = '/api/stripe/checkout';
 
   return (
     <div className="upgrade-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title">
@@ -34,8 +36,17 @@ function UpgradeModal({ open, onClose }) {
           <div className="upgrade-modal-item">Advanced alerts and automation-oriented features coming soon</div>
         </div>
 
+        <div className="upgrade-modal-note">
+          Stripe fast launch is enabled. If Stripe keys are connected, checkout will open. A local unlock fallback is included for immediate validation.
+        </div>
+
         <div className="upgrade-modal-actions">
-          <button type="button" className="primary-button">Unlock Pro</button>
+          <a className="primary-button upgrade-link-button" href={checkoutLink}>
+            Unlock Pro
+          </a>
+          <button type="button" className="ghost-button" onClick={onUnlockLocal}>
+            Local unlock fallback
+          </button>
           <button type="button" className="ghost-button" onClick={onClose}>Maybe later</button>
         </div>
       </div>
@@ -135,6 +146,20 @@ export default function LeadSignalPanel({
     return () => window.clearTimeout(timer);
   }, [expanded]);
 
+  const handleLocalUnlock = () => {
+    setPlanTier('pro');
+    setUpgradeOpen(false);
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(PLAN_STORAGE_KEY, 'pro');
+        window.localStorage.setItem('midnight-signal-upgrade-success', new Date().toISOString());
+      } catch {
+        // no-op
+      }
+    }
+  };
+
   const handleExpand = () => {
     if (planTier !== 'pro') {
       setUpgradeOpen(true);
@@ -215,7 +240,7 @@ export default function LeadSignalPanel({
         </div>
       </section>
 
-      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} onUnlockLocal={handleLocalUnlock} />
     </>
   );
 }
