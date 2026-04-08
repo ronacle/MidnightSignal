@@ -32,6 +32,8 @@ import {
   evaluateConfiguredAlerts,
   readAlertMemory,
   writeAlertMemory,
+  readDigestMemory,
+  writeDigestMemory,
   queueDigestEvents,
   consumeQueuedDigestEvents,
 } from '@/lib/alert-engine';
@@ -123,6 +125,33 @@ export default function HomePage() {
     setForwardValidation(readForwardValidation());
     setAdaptiveWeights(readAdaptiveWeights());
   }, []);
+
+  useEffect(() => {
+    const localAlertMemory = readAlertMemory();
+    const localDigestMemory = readDigestMemory();
+    const cloudAlertMemory = state?.alertMemory || { assetMap: {}, triggerLog: {} };
+    const cloudDigestMemory = state?.alertDigestMemory || { queued: [], lastSentAt: null };
+
+    const localAlertStamp = Object.values(localAlertMemory?.triggerLog || {}).sort().slice(-1)[0] || null;
+    const cloudAlertStamp = Object.values(cloudAlertMemory?.triggerLog || {}).sort().slice(-1)[0] || null;
+    const localDigestStamp = localDigestMemory?.lastSentAt || null;
+    const cloudDigestStamp = cloudDigestMemory?.lastSentAt || null;
+
+    const preferCloudAlerts = cloudAlertStamp && (!localAlertStamp || new Date(cloudAlertStamp).getTime() >= new Date(localAlertStamp).getTime());
+    const preferCloudDigest = cloudDigestStamp && (!localDigestStamp || new Date(cloudDigestStamp).getTime() >= new Date(localDigestStamp).getTime());
+
+    if (preferCloudAlerts) {
+      writeAlertMemory(cloudAlertMemory);
+    } else if (user && JSON.stringify(localAlertMemory) !== JSON.stringify(cloudAlertMemory)) {
+      setState((previous) => ({ ...previous, alertMemory: localAlertMemory }));
+    }
+
+    if (preferCloudDigest) {
+      writeDigestMemory(cloudDigestMemory);
+    } else if (user && JSON.stringify(localDigestMemory) !== JSON.stringify(cloudDigestMemory)) {
+      setState((previous) => ({ ...previous, alertDigestMemory: localDigestMemory }));
+    }
+  }, [setState, state?.alertDigestMemory, state?.alertMemory, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -285,7 +314,7 @@ export default function HomePage() {
 
     async function runAlertEngine() {
       try {
-        const memory = readAlertMemory();
+        const memory = state?.alertMemory || readAlertMemory();
         const previousMap = memory?.assetMap || {};
         const currentMap = buildAssetSnapshotMap(rankedAssets);
         const previousRegime = window.localStorage.getItem('midnight-signal-last-regime');
@@ -341,8 +370,11 @@ export default function HomePage() {
               let shouldSend = Boolean(configured.events.length);
 
               if (digestMode === 'digest') {
-                queueDigestEvents(configured.events);
+                const queuedDigestMemory = queueDigestEvents(configured.events);
+                setState((previous) => ({ ...previous, alertDigestMemory: queuedDigestMemory }));
                 const digest = consumeQueuedDigestEvents(Number(state?.alertDigestIntervalMinutes || 240));
+                writeDigestMemory(digest.memory);
+                setState((previous) => ({ ...previous, alertDigestMemory: digest.memory }));
                 shouldSend = digest.shouldSend;
                 payloadAlerts = digest.alerts;
               }
@@ -379,7 +411,11 @@ export default function HomePage() {
           }
         }
 
-        writeAlertMemory({ assetMap: currentMap, triggerLog: configured.triggerLog });
+        const nextAlertMemory = { assetMap: currentMap, triggerLog: configured.triggerLog };
+        writeAlertMemory(nextAlertMemory);
+        if (JSON.stringify(state?.alertMemory || {}) !== JSON.stringify(nextAlertMemory)) {
+          setState((previous) => ({ ...previous, alertMemory: nextAlertMemory }));
+        }
         window.localStorage.setItem(
           'midnight-signal-last-top-signal',
           JSON.stringify({ symbol: topSignal.symbol, conviction: topSignal.conviction })
@@ -606,7 +642,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.42 · email alert hardening + digest polish · source: {marketSource}
+          Build v11.43 · auth + saved cloud alert state hardening · source: {marketSource}
         </div>
       </div>
 

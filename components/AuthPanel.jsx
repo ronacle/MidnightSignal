@@ -31,6 +31,7 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
           <div className="list-item stack">
             <div><strong>Signed in as:</strong> {user.email}</div>
             <div className="muted small">Last synced: {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : 'Not yet synced'}</div>
+            <div className="muted small">Cloud alert memory, digest queue, watchlist, and settings now follow your account.</div>
             <div className="row">
               <button className="button" onClick={onRefresh}>Pull latest cloud state</button>
               <button className="ghost-button" onClick={onSignOut}>Sign out</button>
@@ -40,7 +41,7 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
       ) : (
         <form className="stack" onSubmit={handleSubmit}>
           <div className="muted small">
-            Sign in with the same email on multiple devices to sync settings, watchlist, selected asset, and onboarding state.
+            Sign in with the same email on multiple devices to sync settings, watchlist, selected asset, onboarding state, alert rules, trigger memory, and digest queue.
           </div>
           <input
             className="input"

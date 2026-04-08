@@ -4,18 +4,38 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_STATE } from '@/lib/default-state';
 import { mergeState } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase-browser';
+import { readAlertMemory, readDigestMemory, writeAlertMemory, writeDigestMemory } from '@/lib/alert-engine';
 
-const STORAGE_KEY = 'midnight-signal-local-state-v11.8';
+const STORAGE_KEY = 'midnight-signal-local-state-v11.43';
 const POLL_INTERVAL_MS = 60000;
+
+function deriveDeviceLabel() {
+  if (typeof navigator === 'undefined') return DEFAULT_STATE.deviceLabel;
+  const platform = navigator.platform || navigator.userAgent || '';
+  if (/android/i.test(platform)) return 'Android device';
+  if (/iphone|ipad|ios/i.test(platform)) return 'iPhone or iPad';
+  if (/mac/i.test(platform)) return 'Mac';
+  if (/win/i.test(platform)) return 'Windows PC';
+  return DEFAULT_STATE.deviceLabel;
+}
 
 function readLocalState() {
   if (typeof window === 'undefined') return DEFAULT_STATE;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_STATE;
-    return mergeState(DEFAULT_STATE, JSON.parse(raw));
+    const parsed = raw ? JSON.parse(raw) : {};
+    return mergeState(DEFAULT_STATE, {
+      ...parsed,
+      deviceLabel: parsed?.deviceLabel || deriveDeviceLabel(),
+      alertMemory: readAlertMemory(),
+      alertDigestMemory: readDigestMemory(),
+    });
   } catch {
-    return DEFAULT_STATE;
+    return mergeState(DEFAULT_STATE, {
+      deviceLabel: deriveDeviceLabel(),
+      alertMemory: readAlertMemory(),
+      alertDigestMemory: readDigestMemory(),
+    });
   }
 }
 
@@ -38,7 +58,15 @@ export function useAccountSync() {
 
   const persistLocal = useCallback((next) => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    const enriched = mergeState(DEFAULT_STATE, {
+      ...next,
+      alertMemory: next?.alertMemory || readAlertMemory(),
+      alertDigestMemory: next?.alertDigestMemory || readDigestMemory(),
+      deviceLabel: next?.deviceLabel || deriveDeviceLabel(),
+    });
+    writeAlertMemory(enriched.alertMemory);
+    writeDigestMemory(enriched.alertDigestMemory);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched));
   }, []);
 
   const pushRemote = useCallback(async (draftState, currentUser) => {
@@ -55,10 +83,13 @@ export function useAccountSync() {
       const timestamp = new Date().toISOString();
       const payload = {
         user_id: currentUser.id,
-        state: {
+        state: mergeState(DEFAULT_STATE, {
           ...draftState,
-          updatedAt: timestamp
-        },
+          deviceLabel: draftState?.deviceLabel || deriveDeviceLabel(),
+          alertMemory: draftState?.alertMemory || readAlertMemory(),
+          alertDigestMemory: draftState?.alertDigestMemory || readDigestMemory(),
+          updatedAt: timestamp,
+        }),
         updated_at: timestamp
       };
 
@@ -119,6 +150,8 @@ export function useAccountSync() {
       }
 
       const remoteState = mergeState(DEFAULT_STATE, data.state || {});
+      writeAlertMemory(remoteState.alertMemory || {});
+      writeDigestMemory(remoteState.alertDigestMemory || {});
       const remoteStamp = new Date(remoteState.updatedAt || data.updated_at || 0).getTime();
       const localStamp = new Date(localState.updatedAt || 0).getTime();
 
@@ -150,11 +183,14 @@ export function useAccountSync() {
     setState((previous) => {
       const resolved = typeof updater === 'function' ? updater(previous) : updater;
       const now = new Date().toISOString();
-      const next = {
+      const next = mergeState(DEFAULT_STATE, {
         ...resolved,
+        deviceLabel: resolved?.deviceLabel || previous?.deviceLabel || deriveDeviceLabel(),
+        alertMemory: resolved?.alertMemory || previous?.alertMemory || readAlertMemory(),
+        alertDigestMemory: resolved?.alertDigestMemory || previous?.alertDigestMemory || readDigestMemory(),
         updatedAt: now,
         lastViewedAt: now
-      };
+      });
       stateRef.current = next;
       persistLocal(next);
       if (typeof window !== 'undefined' && userRef.current) {
@@ -185,6 +221,8 @@ export function useAccountSync() {
     await supabase.auth.signOut();
     setUser(null);
     userRef.current = null;
+    const local = readLocalState();
+    persistLocal(local);
     setStatus('Saved locally');
     setSyncing(false);
   }, [supabase]);
@@ -202,8 +240,9 @@ export function useAccountSync() {
     const local = readLocalState();
     stateRef.current = local;
     setState(local);
+    persistLocal(local);
     hydrated.current = true;
-  }, []);
+  }, [persistLocal]);
 
   useEffect(() => {
     userRef.current = user;
