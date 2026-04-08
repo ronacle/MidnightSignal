@@ -63,9 +63,8 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
               <span className="badge">{asset.signalScore ?? asset.conviction}%</span>
               <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
               <span className="badge">#{asset.rank ?? '—'}</span>
-              <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
             </div>
-            <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
+            <div className="top20-bottom-note muted small">{planTier === 'pro' ? `Vol ${formatCompactNumber(asset.volumeNum)} · tap for full breakdown.` : 'Tap for quick asset detail. Full validation stays in Pro.'}</div>
           </button>
         ))}
       </div>

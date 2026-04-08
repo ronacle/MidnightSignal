@@ -25,15 +25,14 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={118} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.52</div>
+            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.53</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
-              Learn the setup, understand the why, and move with calmer market awareness.
+              Start with the lead signal, read the why, then scan the board with a calmer, cleaner dashboard flow.
             </p>
             <div className="hero-support-copy">
-              <p>Start with Tonight’s Top Signal, open the why, then scan the Top 20 for broader posture.</p>
-              <p>The brand system now matches the beacon identity more closely: darker glass, cleaner hierarchy, softer glows, and a stronger premium feel.</p>
+              <p>Tonight’s Top Signal gives you the headline first. The board underneath is tuned to scan faster with less visual noise.</p>
             </div>
           </div>
         </div>
@@ -53,7 +52,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           <div className="hero-conversion-card premium-callout-card">
             <div className="eyebrow">Start here</div>
             <div className="hero-conversion-title">Read tonight’s signal in under a minute</div>
-            <p className="muted small">Use the free flow first: Top Signal → Why it appears → Board scan → Watchlist.</p>
+            <p className="muted small">Free flow: Top Signal → why it appears → board scan → watchlist.</p>
             <div className="row">
               <button className="button" onClick={onOpenControls} type="button">Open control panel</button>
               <span className="badge">{setupLabel}</span>
@@ -65,7 +64,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <ul className="hero-trust-list premium-trust-list">
               <li>Built to explain the signal, not just flash it.</li>
               <li>Free mode stays useful before any upgrade pressure.</li>
-              <li>The beacon visual language now carries from hero to board to breakdown.</li>
+              <li>Clearer spacing and softer secondary data keep the main read easier to follow.</li>
             </ul>
           </div>
         </div>
