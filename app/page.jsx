@@ -94,6 +94,7 @@ export default function HomePage() {
   const [forwardValidation, setForwardValidation] = useState([]);
   const [adaptiveWeights, setAdaptiveWeights] = useState({});
   const [lastVisitAt, setLastVisitAt] = useState(null);
+  const [priorityAlerts, setPriorityAlerts] = useState([]);
 
   useEffect(() => {
     setSignalHistory(readSignalHistory());
@@ -253,6 +254,114 @@ export default function HomePage() {
     return `Back after ${diffDays}d`;
   }, [lastVisitAt]);
 
+
+  useEffect(() => {
+    if (!topSignal || !marketReady || typeof window === 'undefined') return;
+
+    try {
+      const previousSignal = JSON.parse(window.localStorage.getItem('midnight-signal-last-top-signal') || 'null');
+      const previousWatchlist = JSON.parse(window.localStorage.getItem('midnight-signal-watchlist-snapshot') || '{}');
+      const previousRegime = window.localStorage.getItem('midnight-signal-last-regime');
+      const dismissed = JSON.parse(window.localStorage.getItem('midnight-signal-dismissed-alerts') || '[]');
+
+      const nextAlerts = [];
+
+      if (previousSignal?.symbol && previousSignal.symbol !== topSignal.symbol) {
+        nextAlerts.push({
+          id: `flip:${previousSignal.symbol}:${topSignal.symbol}`,
+          level: 'critical',
+          priority: 3,
+          symbol: topSignal.symbol,
+          title: 'New top signal detected',
+          body: `${previousSignal.symbol} → ${topSignal.symbol}`,
+        });
+      }
+
+      if (
+        typeof previousSignal?.conviction === 'number' &&
+        typeof topSignal?.conviction === 'number'
+      ) {
+        const convictionDelta = Math.round(topSignal.conviction - previousSignal.conviction);
+        if (Math.abs(convictionDelta) >= 5) {
+          nextAlerts.push({
+            id: `conviction:${topSignal.symbol}:${convictionDelta > 0 ? 'up' : 'down'}:${Math.abs(convictionDelta)}`,
+            level: convictionDelta > 0 ? 'positive' : 'warning',
+            priority: 2,
+            symbol: topSignal.symbol,
+            title: convictionDelta > 0 ? 'Conviction jumped' : 'Conviction cooled',
+            body: `${topSignal.symbol} ${convictionDelta > 0 ? 'up' : 'down'} ${Math.abs(convictionDelta)} pts`,
+          });
+        }
+      }
+
+      watchlistHighlights.slice(0, 2).forEach((asset, index) => {
+        const previousAsset = previousWatchlist?.[asset.symbol];
+        const convictionDelta = typeof previousAsset?.conviction === 'number'
+          ? Math.round((asset.conviction || 0) - previousAsset.conviction)
+          : 0;
+        const changeMagnitude = Math.abs(asset.change24h || 0);
+
+        if (changeMagnitude >= 2 || Math.abs(convictionDelta) >= 4) {
+          const rising = (asset.change24h || 0) >= 0;
+          nextAlerts.push({
+            id: `watch:${asset.symbol}:${rising ? 'up' : 'down'}:${index}`,
+            level: rising ? 'watch' : 'warning',
+            priority: 1,
+            symbol: asset.symbol,
+            title: 'Watchlist move',
+            body: rising
+              ? `${asset.symbol} is gaining strength`
+              : `${asset.symbol} is losing momentum`,
+          });
+        }
+      });
+
+      if (previousRegime && regimeSummary?.regime && previousRegime !== regimeSummary.regime) {
+        nextAlerts.push({
+          id: `regime:${previousRegime}:${regimeSummary.regime}`,
+          level: 'watch',
+          priority: 1,
+          symbol: topSignal.symbol,
+          title: 'Market tone changed',
+          body: `${String(previousRegime).replace(/-/g, ' ')} → ${String(regimeSummary.regime).replace(/-/g, ' ')}`,
+        });
+      }
+
+      const filteredAlerts = nextAlerts
+        .filter((item) => !dismissed.includes(item.id))
+        .sort((a, b) => b.priority - a.priority)
+        .slice(0, 3);
+
+      setPriorityAlerts(filteredAlerts);
+
+      window.localStorage.setItem(
+        'midnight-signal-last-top-signal',
+        JSON.stringify({ symbol: topSignal.symbol, conviction: topSignal.conviction })
+      );
+      window.localStorage.setItem(
+        'midnight-signal-watchlist-snapshot',
+        JSON.stringify(
+          Object.fromEntries(
+            rankedAssets
+              .filter((item) => (state?.watchlist || []).includes(item.symbol))
+              .map((item) => [
+                item.symbol,
+                {
+                  conviction: item.conviction,
+                  change24h: item.change24h,
+                },
+              ])
+          )
+        )
+      );
+      if (regimeSummary?.regime) {
+        window.localStorage.setItem('midnight-signal-last-regime', regimeSummary.regime);
+      }
+    } catch {
+      setPriorityAlerts([]);
+    }
+  }, [topSignal, watchlistHighlights, regimeSummary, rankedAssets, state?.watchlist, marketReady]);
+
   useEffect(() => {
     if (!topSignal || !marketReady) return;
     const next = appendSignalSnapshot(buildSignalSnapshot(topSignal, marketSource));
@@ -294,6 +403,28 @@ export default function HomePage() {
     }
   }, [marketReady, topSignal?.symbol, topSignal?.conviction]);
 
+
+  function dismissPriorityAlert(alertId) {
+    setPriorityAlerts((previous) => previous.filter((item) => item.id !== alertId));
+    if (typeof window === 'undefined') return;
+    try {
+      const dismissed = JSON.parse(window.localStorage.getItem('midnight-signal-dismissed-alerts') || '[]');
+      const next = Array.from(new Set([...dismissed, alertId])).slice(-20);
+      window.localStorage.setItem('midnight-signal-dismissed-alerts', JSON.stringify(next));
+    } catch {
+      // no-op
+    }
+  }
+
+  function openAlertAsset(symbol) {
+    const asset = rankedAssets.find((item) => item.symbol === symbol);
+    if (!asset) return;
+    setDetailAsset(asset);
+    if (typeof document !== 'undefined') {
+      document.getElementById('market-scan')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   function toggleWatchlist(symbol) {
     setState((previous) => ({
       ...previous,
@@ -325,6 +456,38 @@ export default function HomePage() {
             setLearningOpen(true);
           }}
         />
+
+
+        {priorityAlerts.length ? (
+          <section className="priority-alert-stack" aria-label="Signal alerts">
+            {priorityAlerts.map((alert) => (
+              <div key={alert.id} className={`priority-alert priority-alert--${alert.level}`}>
+                <div className="priority-alert-copy">
+                  <div className="priority-alert-title">{alert.title}</div>
+                  <div className="priority-alert-body">{alert.body}</div>
+                </div>
+                <div className="priority-alert-actions">
+                  {alert.symbol ? (
+                    <button
+                      type="button"
+                      className="ghost-button small"
+                      onClick={() => openAlertAsset(alert.symbol)}
+                    >
+                      Open
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="ghost-button small"
+                    onClick={() => dismissPriorityAlert(alert.id)}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ))}
+          </section>
+        ) : null}
 
         <HeroSection
           selected={topSignal}
@@ -407,7 +570,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.36 · behavioral retention + return summary · source: {marketSource}
+          Build v11.38 · watchlist intelligence + priority alerts · source: {marketSource}
         </div>
       </div>
 
