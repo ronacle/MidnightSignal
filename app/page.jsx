@@ -586,7 +586,6 @@ export default function HomePage() {
             forwardScorecard={forwardScorecard}
             adaptiveSummary={adaptiveSummary}
             decisionLayer={decisionLayer}
-            stripeFastLaunch={STRIPE_FAST_LAUNCH}
           />
         </section>
 
