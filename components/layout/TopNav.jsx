@@ -22,7 +22,7 @@ export default function TopNav({ state, user, status, onJump, onOpenControls, on
         </div>
       </div>
 
-      <div className="menu-links">
+      <div className="menu-links nav-chip-row">
         {links.map(([id, label]) => (
           <button key={id} className="nav-chip" onClick={() => onJump?.(id)} type="button">
             {label}
@@ -30,13 +30,13 @@ export default function TopNav({ state, user, status, onJump, onOpenControls, on
         ))}
       </div>
 
-      <div className="menu-status">
+      <div className="menu-status nav-actions-row">
         <span className="badge">{state.mode}</span>
         <span className={`badge ${planTier === 'pro' ? 'plan-nav-badge tier-pro' : 'plan-nav-badge tier-basic'}`}>{planTier === 'pro' ? 'Pro Active' : 'Free Plan'}</span>
         <span className="badge">{user ? 'Cloud ready' : 'Saved locally'}</span>
         <span className="badge status-pill">{status}</span>
-        <button className="ghost-button nav-action" onClick={onOpenLearning} type="button">Learning</button>
-        <button className="button nav-action" onClick={onOpenControls} type="button">Controls</button>
+        <button className="ghost-button nav-action" onClick={onOpenLearning} type="button"><span className="nav-action-label">Learning</span><span className="nav-action-label-mobile">Learn</span></button>
+        <button className="button nav-action" onClick={onOpenControls} type="button"><span className="nav-action-label">Controls</span><span className="nav-action-label-mobile">Menu</span></button>
       </div>
     </div>
   );

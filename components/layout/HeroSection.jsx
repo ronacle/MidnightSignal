@@ -25,7 +25,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={118} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.51</div>
+            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.52</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
@@ -43,6 +43,10 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           <span className="badge">Live market context</span>
           <span className="badge">Explainable signals</span>
           <span className="badge">Not financial advice</span>
+        </div>
+
+        <div className="hero-mobile-hint muted small">
+          Mobile flow: start with Tonight’s Top Signal, tap any asset card for details, then use Controls for session changes.
         </div>
 
         <div className="hero-conversion-row premium-conversion-row">

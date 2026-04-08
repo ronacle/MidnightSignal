@@ -2853,3 +2853,201 @@ button, input, select { font: inherit; }
     padding: 10px;
   }
 }
+
+
+/* v11.52 mobile refinement + interaction polish */
+html {
+  scroll-behavior: smooth;
+}
+
+#top-signal,
+#since-last-visit,
+#market-scan {
+  scroll-margin-top: 92px;
+}
+
+.nav-action-label-mobile {
+  display: none;
+}
+
+.hero-mobile-hint {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(107,197,255,0.12);
+  background: rgba(255,255,255,0.03);
+}
+
+.nav-chip,
+.nav-action,
+.top20-card,
+.button,
+.ghost-button,
+.sheet-handle {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.nav-chip:active,
+.nav-action:active,
+.top20-card:active,
+.button:active,
+.ghost-button:active {
+  transform: translateY(1px) scale(0.995);
+}
+
+.sheet {
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 860px) {
+  .menu-bar {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .menu-brand-copy small {
+    letter-spacing: 0.08em;
+  }
+
+  .nav-chip-row {
+    width: calc(100% + 4px);
+    margin-right: -4px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+    justify-content: flex-start;
+  }
+
+  .nav-chip-row::-webkit-scrollbar {
+    height: 0;
+  }
+
+  .nav-chip {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+
+  .nav-actions-row {
+    justify-content: stretch;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nav-actions-row .badge {
+    display: none;
+  }
+
+  .nav-actions-row .nav-action {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .brand-row-large,
+  .premium-brand-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .premium-beacon-wrap {
+    padding: 8px;
+  }
+
+  .brand-copy h1 {
+    font-size: clamp(2rem, 9vw, 2.9rem);
+    line-height: 1.02;
+  }
+
+  .hero-support-copy p:last-child {
+    margin-bottom: 0;
+  }
+
+  .premium-conversion-row,
+  .hero-stat-grid {
+    gap: 10px;
+  }
+
+  .lead-signal-actions .lead-signal-toggle,
+  .upgrade-strip-inline,
+  .upgrade-strip-inline .primary-button,
+  .upgrade-strip-inline .upgrade-strip-copy {
+    width: 100%;
+  }
+
+  .upgrade-strip-inline {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .top20-card {
+    min-height: 220px;
+  }
+
+  .sheet {
+    width: 100%;
+    max-width: 100%;
+    left: 0;
+    transform: translate(0, 102%);
+    border-radius: 22px 22px 0 0;
+    max-height: 88vh;
+    padding: 10px 14px 20px;
+  }
+
+  .sheet-root.open .sheet {
+    transform: translate(0, 0);
+  }
+
+  .sheet-header {
+    flex-direction: column;
+  }
+
+  .sheet-badges {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .nav-action-label {
+    display: none;
+  }
+
+  .nav-action-label-mobile {
+    display: inline;
+  }
+
+  .menu-brand-copy span {
+    font-size: 0.98rem;
+  }
+
+  .hero-copy,
+  .lead-signal-panel,
+  .panel {
+    gap: 10px;
+  }
+
+  .premium-pill-row {
+    gap: 6px;
+  }
+
+  .premium-pill-row .badge {
+    font-size: 0.74rem;
+    padding: 5px 9px;
+  }
+
+  .hero-mobile-hint {
+    font-size: 0.78rem;
+  }
+
+  .top20-card {
+    padding: 13px;
+  }
+
+  .top20-bottom-note {
+    font-size: 0.76rem;
+  }
+
+  .sheet-title {
+    font-size: 1.35rem;
+  }
+}
