@@ -26,6 +26,13 @@ import {
   writeAdaptiveWeights,
 } from '@/lib/adaptive-weights';
 import { buildDecisionLayer } from '@/lib/decision-layer';
+import {
+  buildAssetSnapshotMap,
+  buildSystemAlerts,
+  evaluateConfiguredAlerts,
+  readAlertMemory,
+  writeAlertMemory,
+} from '@/lib/alert-engine';
 
 const STRIPE_FAST_LAUNCH = true;
 
@@ -272,109 +279,92 @@ export default function HomePage() {
   useEffect(() => {
     if (!topSignal || !marketReady || typeof window === 'undefined') return;
 
-    try {
-      const previousSignal = JSON.parse(window.localStorage.getItem('midnight-signal-last-top-signal') || 'null');
-      const previousWatchlist = JSON.parse(window.localStorage.getItem('midnight-signal-watchlist-snapshot') || '{}');
-      const previousRegime = window.localStorage.getItem('midnight-signal-last-regime');
-      const dismissed = JSON.parse(window.localStorage.getItem('midnight-signal-dismissed-alerts') || '[]');
+    let cancelled = false;
 
-      const nextAlerts = [];
+    async function runAlertEngine() {
+      try {
+        const memory = readAlertMemory();
+        const previousMap = memory?.assetMap || {};
+        const currentMap = buildAssetSnapshotMap(rankedAssets);
+        const previousRegime = window.localStorage.getItem('midnight-signal-last-regime');
+        const dismissed = JSON.parse(window.localStorage.getItem('midnight-signal-dismissed-alerts') || '[]');
 
-      if (previousSignal?.symbol && previousSignal.symbol !== topSignal.symbol) {
-        nextAlerts.push({
-          id: `flip:${previousSignal.symbol}:${topSignal.symbol}`,
-          level: 'critical',
-          priority: 3,
-          symbol: topSignal.symbol,
-          title: 'New top signal detected',
-          body: `${previousSignal.symbol} → ${topSignal.symbol}`,
+        const systemAlerts = buildSystemAlerts({
+          previousTopSignal: JSON.parse(window.localStorage.getItem('midnight-signal-last-top-signal') || 'null'),
+          topSignal,
+          previousRegime,
+          regimeSummary,
+          watchlistHighlights,
         });
-      }
 
-      if (
-        typeof previousSignal?.conviction === 'number' &&
-        typeof topSignal?.conviction === 'number'
-      ) {
-        const convictionDelta = Math.round(topSignal.conviction - previousSignal.conviction);
-        if (Math.abs(convictionDelta) >= 5) {
-          nextAlerts.push({
-            id: `conviction:${topSignal.symbol}:${convictionDelta > 0 ? 'up' : 'down'}:${Math.abs(convictionDelta)}`,
-            level: convictionDelta > 0 ? 'positive' : 'warning',
-            priority: 2,
-            symbol: topSignal.symbol,
-            title: convictionDelta > 0 ? 'Conviction jumped' : 'Conviction cooled',
-            body: `${topSignal.symbol} ${convictionDelta > 0 ? 'up' : 'down'} ${Math.abs(convictionDelta)} pts`,
-          });
-        }
-      }
-
-      watchlistHighlights.slice(0, 2).forEach((asset, index) => {
-        const previousAsset = previousWatchlist?.[asset.symbol];
-        const convictionDelta = typeof previousAsset?.conviction === 'number'
-          ? Math.round((asset.conviction || 0) - previousAsset.conviction)
-          : 0;
-        const changeMagnitude = Math.abs(asset.change24h || 0);
-
-        if (changeMagnitude >= 2 || Math.abs(convictionDelta) >= 4) {
-          const rising = (asset.change24h || 0) >= 0;
-          nextAlerts.push({
-            id: `watch:${asset.symbol}:${rising ? 'up' : 'down'}:${index}`,
-            level: rising ? 'watch' : 'warning',
-            priority: 1,
-            symbol: asset.symbol,
-            title: 'Watchlist move',
-            body: rising
-              ? `${asset.symbol} is gaining strength`
-              : `${asset.symbol} is losing momentum`,
-          });
-        }
-      });
-
-      if (previousRegime && regimeSummary?.regime && previousRegime !== regimeSummary.regime) {
-        nextAlerts.push({
-          id: `regime:${previousRegime}:${regimeSummary.regime}`,
-          level: 'watch',
-          priority: 1,
-          symbol: topSignal.symbol,
-          title: 'Market tone changed',
-          body: `${String(previousRegime).replace(/-/g, ' ')} → ${String(regimeSummary.regime).replace(/-/g, ' ')}`,
+        const configured = evaluateConfiguredAlerts(state?.alerts || [], previousMap, currentMap, {
+          triggerLog: memory?.triggerLog || {},
+          cooldownMinutes: Number(state?.alertCooldownMinutes || 30),
         });
+
+        const allAlerts = [...configured.events, ...systemAlerts]
+          .filter((item) => !dismissed.includes(item.id))
+          .sort((a, b) => b.priority - a.priority);
+
+        if (!cancelled) {
+          setPriorityAlerts(allAlerts.slice(0, 4));
+        }
+
+        if (configured.events.length) {
+          const recent = [
+            ...configured.events,
+            ...(state?.recentAlertEvents || []),
+          ].slice(0, 12);
+          setState((previous) => ({ ...previous, recentAlertEvents: recent }));
+
+          if (state?.signalSoundsEnabled && typeof window !== 'undefined' && window.AudioContext) {
+            try {
+              const context = new window.AudioContext();
+              const oscillator = context.createOscillator();
+              const gain = context.createGain();
+              oscillator.type = 'sine';
+              oscillator.frequency.value = 880;
+              gain.gain.value = 0.03;
+              oscillator.connect(gain);
+              gain.connect(context.destination);
+              oscillator.start();
+              oscillator.stop(context.currentTime + 0.12);
+            } catch {}
+          }
+
+          if (state?.alertDeliveryEnabled && state?.alertDeliveryEmail) {
+            try {
+              await fetch('/api/alerts/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  email: state.alertDeliveryEmail,
+                  alerts: configured.events,
+                  digestMode: state.alertDigestMode || 'instant',
+                }),
+              });
+            } catch {}
+          }
+        }
+
+        writeAlertMemory({ assetMap: currentMap, triggerLog: configured.triggerLog });
+        window.localStorage.setItem(
+          'midnight-signal-last-top-signal',
+          JSON.stringify({ symbol: topSignal.symbol, conviction: topSignal.conviction })
+        );
+        if (regimeSummary?.regime) {
+          window.localStorage.setItem('midnight-signal-last-regime', regimeSummary.regime);
+        }
+      } catch {
+        if (!cancelled) setPriorityAlerts([]);
       }
-
-      const filteredAlerts = nextAlerts
-        .filter((item) => !dismissed.includes(item.id))
-        .sort((a, b) => b.priority - a.priority)
-        .slice(0, 3);
-
-      setPriorityAlerts(filteredAlerts);
-
-      window.localStorage.setItem(
-        'midnight-signal-last-top-signal',
-        JSON.stringify({ symbol: topSignal.symbol, conviction: topSignal.conviction })
-      );
-      window.localStorage.setItem(
-        'midnight-signal-watchlist-snapshot',
-        JSON.stringify(
-          Object.fromEntries(
-            rankedAssets
-              .filter((item) => (state?.watchlist || []).includes(item.symbol))
-              .map((item) => [
-                item.symbol,
-                {
-                  conviction: item.conviction,
-                  change24h: item.change24h,
-                },
-              ])
-          )
-        )
-      );
-      if (regimeSummary?.regime) {
-        window.localStorage.setItem('midnight-signal-last-regime', regimeSummary.regime);
-      }
-    } catch {
-      setPriorityAlerts([]);
     }
-  }, [topSignal, watchlistHighlights, regimeSummary, rankedAssets, state?.watchlist, marketReady]);
+
+    void runAlertEngine();
+    return () => {
+      cancelled = true;
+    };
+  }, [topSignal, watchlistHighlights, regimeSummary, rankedAssets, state?.watchlist, marketReady, state?.alerts, state?.alertCooldownMinutes, state?.alertDeliveryEnabled, state?.alertDeliveryEmail, state?.alertDigestMode, state?.signalSoundsEnabled, setState]);
 
   useEffect(() => {
     if (!topSignal || !marketReady) return;
@@ -584,7 +574,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.40 · live CoinGecko market layer + signal engine pass · source: {marketSource}
+          Build v11.41 · trigger tightening + real alert engine pass · source: {marketSource}
         </div>
       </div>
 
