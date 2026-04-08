@@ -5,6 +5,6 @@ export async function GET() {
     ok: true,
     app: 'midnight-signal',
     version: VERSION,
-    build: 'real-email-alerts',
+    build: 'auth-account-polish',
   });
 }

@@ -2580,6 +2580,36 @@ button, input, select { font: inherit; }
 .account-card {
   background: rgba(255,255,255,0.025);
 }
+.account-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.account-mini-stat {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(107, 197, 255, 0.14);
+  background: rgba(255,255,255,0.03);
+}
+.settings-presets-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.settings-toggle-full {
+  grid-column: 1 / -1;
+}
+.settings-memory-note {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(107, 197, 255, 0.18);
+  background: rgba(107, 197, 255, 0.04);
+}
+@media (max-width: 760px) {
+  .account-mini-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .billing-next-step {
   padding: 12px 14px;
   border-radius: 16px;

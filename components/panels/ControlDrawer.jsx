@@ -274,6 +274,7 @@ export default function ControlDrawer({ open, onClose, state, setState, user, st
             profileCount={(state?.savedProfiles || []).filter(Boolean).length}
             entitlement={state?.entitlement || {}}
             acceptedDisclaimer={Boolean(state?.acceptedDisclaimer)}
+            state={state}
           />
           <SettingsPanel state={state} setState={setState} />
           <BillingPanel state={state} setState={setState} user={user} onRefresh={onRefresh} />

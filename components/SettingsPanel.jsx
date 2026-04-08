@@ -2,9 +2,42 @@
 
 import { applyProfileSnapshot, buildProfileSnapshot } from '@/lib/profiles';
 
+const FOCUS_OPTIONS = [
+  { value: 'top-signal', label: 'Top Signal first' },
+  { value: 'watchlist', label: 'Watchlist first' },
+  { value: 'board-scan', label: 'Top 20 board first' },
+];
+
 export default function SettingsPanel({ state, setState }) {
   function update(key, value) {
     setState((previous) => ({ ...previous, [key]: value }));
+  }
+
+  function applyPreset(preset) {
+    if (preset === 'beginner') {
+      setState((previous) => ({
+        ...previous,
+        mode: 'Beginner',
+        strategy: 'Swing',
+        timeframe: '1H',
+        livePulseEnabled: true,
+        signalSoundsEnabled: false,
+        preferredDashboardFocus: 'top-signal',
+      }));
+      return;
+    }
+
+    if (preset === 'pro') {
+      setState((previous) => ({
+        ...previous,
+        mode: 'Pro',
+        strategy: 'Scalp',
+        timeframe: '15M',
+        livePulseEnabled: true,
+        signalSoundsEnabled: true,
+        preferredDashboardFocus: 'board-scan',
+      }));
+    }
   }
 
   function saveProfile(index) {
@@ -12,6 +45,10 @@ export default function SettingsPanel({ state, setState }) {
       const savedProfiles = Array.isArray(previous.savedProfiles) ? [...previous.savedProfiles] : [null, null, null];
       const profile = {
         ...buildProfileSnapshot(previous),
+        restoreLastSelectedAsset: Boolean(previous.restoreLastSelectedAsset),
+        restorePanelState: Boolean(previous.restorePanelState),
+        preferredDashboardFocus: previous.preferredDashboardFocus || 'top-signal',
+        soundProfile: previous.soundProfile || 'beacon-soft',
         id: `slot-${index + 1}`,
         name: previous.profileName || `Profile ${index + 1}`,
       };
@@ -40,9 +77,14 @@ export default function SettingsPanel({ state, setState }) {
 
   return (
     <div className="panel stack">
-      <div className="row space-between">
-        <h2 className="section-title">Session Settings</h2>
-        <span className="badge">Cross-device ready</span>
+      <div className="row space-between wrap">
+        <h2 className="section-title">Settings center</h2>
+        <span className="badge">Account-ready preferences</span>
+      </div>
+
+      <div className="settings-presets-row">
+        <button className="ghost-button" type="button" onClick={() => applyPreset('beginner')}>Use beginner setup</button>
+        <button className="ghost-button" type="button" onClick={() => applyPreset('pro')}>Use pro scan setup</button>
       </div>
 
       <div className="controls">
@@ -91,6 +133,52 @@ export default function SettingsPanel({ state, setState }) {
             <option>4H</option>
           </select>
         </div>
+
+        <div className="field">
+          <label>Dashboard focus</label>
+          <select className="select" value={state.preferredDashboardFocus || 'top-signal'} onChange={(e) => update('preferredDashboardFocus', e.target.value)}>
+            {FOCUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <label className="toggle-row settings-toggle-full">
+          <input
+            type="checkbox"
+            checked={Boolean(state.restoreLastSelectedAsset)}
+            onChange={(e) => update('restoreLastSelectedAsset', e.target.checked)}
+          />
+          <div>
+            <div className="toggle-title">Restore last selected asset</div>
+            <div className="muted small">Re-open the same asset next session so your workflow feels continuous.</div>
+          </div>
+        </label>
+
+        <label className="toggle-row settings-toggle-full">
+          <input
+            type="checkbox"
+            checked={Boolean(state.restorePanelState)}
+            onChange={(e) => update('restorePanelState', e.target.checked)}
+          />
+          <div>
+            <div className="toggle-title">Restore panel state</div>
+            <div className="muted small">Keep drawer preferences and view posture consistent between visits.</div>
+          </div>
+        </label>
+
+        <div className="field">
+          <label>Sound profile</label>
+          <select className="select" value={state.soundProfile || 'beacon-soft'} onChange={(e) => update('soundProfile', e.target.value)}>
+            <option value="beacon-soft">Beacon soft</option>
+            <option value="beacon-clear">Beacon clear</option>
+            <option value="silent-focus">Silent focus</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="settings-memory-note muted small">
+        Saved to account when signed in: mode, strategy, timeframe, focus preference, watchlist, selected asset, alert settings, and restore behavior.
       </div>
 
       <div className="stack">
