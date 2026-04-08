@@ -983,7 +983,7 @@ const sinceLastVisitSummary = useMemo(() => {
             <div className="landing-mini-card">
               <div className="landing-mini-label">Tonight&apos;s preview</div>
               <div className="landing-mini-symbol">{topSignal?.symbol || '--'} <span>{Math.round(topSignal?.conviction || 0)}%</span></div>
-              <div className="landing-mini-copy">{decisionLayer?.statusLabel || topSignal?.signalLabel || 'Top signal ready'} • {signalContext?.marketContext || 'Context loading'}</div>
+              <div className="landing-mini-copy">{decisionLayer?.statusLabel || topSignal?.signalLabel || 'Top signal ready'} • {signalContext?.marketContext?.headline || 'Context loading'}</div>
             </div>
             <div className="landing-mini-grid">
               <div className="landing-mini-stat"><span>Context</span><strong>{signalContext?.catalystTitle || 'Catalyst watch armed'}</strong></div>
