@@ -1,7 +1,7 @@
 'use client';
 
 import { MARKET_FIXTURES } from '@/lib/default-state';
-import { formatPct, formatPrice, getConvictionTier } from '@/lib/utils';
+import { formatCompactNumber, formatPct, formatPrice, getConvictionTier } from '@/lib/utils';
 
 const FALLBACK_ASSETS = [
   ...MARKET_FIXTURES,
@@ -53,10 +53,12 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
                 {formatPct(asset.change24h || 0)}
               </span>
             </div>
-            <div className="muted small">{asset.story}</div>
-            <div className="row">
+            <div className="muted small">{asset.signalLabel || asset.story}</div>
+            <div className="row wrap">
               <span className="badge">{asset.signalScore ?? asset.conviction}%</span>
               <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
+              <span className="badge">#{asset.rank ?? '—'}</span>
+              <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
             </div>
           </button>
         ))}

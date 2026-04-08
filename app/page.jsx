@@ -49,21 +49,34 @@ const EXTRA_SCAN_ASSETS = [
 
 function buildMarketUniverse(liveItems = []) {
   const fallbackAssets = [...MARKET_FIXTURES, ...EXTRA_SCAN_ASSETS].slice(0, 20);
-  const liveBySymbol = new Map((liveItems || []).map((item) => [item.symbol, item]));
+  const fallbackBySymbol = new Map(fallbackAssets.map((item, index) => [item.symbol, { ...item, fallbackRank: index + 1 }]));
 
-  return fallbackAssets.map((asset, index) => {
-    const live = liveBySymbol.get(asset.symbol);
-    return {
-      ...asset,
-      rank: live?.rank || index + 1,
-      price: live?.price ?? null,
-      change24h: live?.change24h ?? 0,
-      volumeNum: live?.volumeNum ?? 0,
-      marketCap: live?.marketCap ?? 0,
-      lastUpdated: live?.lastUpdated ?? null,
-      live: Boolean(live),
-    };
-  });
+  if (Array.isArray(liveItems) && liveItems.length) {
+    return liveItems.slice(0, 20).map((item, index) => {
+      const fallback = fallbackBySymbol.get(item.symbol) || {};
+      return {
+        ...fallback,
+        ...item,
+        rank: item.rank || fallback.fallbackRank || index + 1,
+        conviction: fallback.conviction || item.signalScore || 50,
+        live: true,
+      };
+    });
+  }
+
+  return fallbackAssets.map((asset, index) => ({
+    ...asset,
+    rank: asset.rank || index + 1,
+    price: asset.price ?? null,
+    change24h: asset.change24h ?? 0,
+    volumeNum: asset.volumeNum ?? 0,
+    marketCap: asset.marketCap ?? 0,
+    lastUpdated: asset.lastUpdated ?? null,
+    priceRange24h: asset.priceRange24h ?? 0,
+    distanceFromHigh24h: asset.distanceFromHigh24h ?? -8,
+    volumeToMarketCap: asset.volumeToMarketCap ?? 0,
+    live: false,
+  }));
 }
 
 export default function HomePage() {
@@ -114,6 +127,7 @@ export default function HomePage() {
         if (data?.ok && Array.isArray(data.items) && data.items.length) {
           setLiveItems(data.items);
           setMarketSource(data.source || 'coingecko');
+          setMarketUpdatedAt(data.updatedAt || new Date().toISOString());
         } else {
           setLiveItems([]);
           setMarketSource(data?.source || 'fallback');
@@ -544,7 +558,7 @@ export default function HomePage() {
               <h2 className="section-title">Tonight&apos;s Board</h2>
             </div>
             <div className="muted small">
-              Scan the field, open a name, and save favorites from the board.
+              Scan the live field, open a name, and save favorites from the board.
             </div>
           </div>
 
@@ -570,7 +584,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.39 · signal feel + stability pass · source: {marketSource}
+          Build v11.40 · live CoinGecko market layer + signal engine pass · source: {marketSource}
         </div>
       </div>
 

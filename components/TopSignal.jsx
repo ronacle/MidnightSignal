@@ -1,6 +1,6 @@
 'use client';
 
-import { formatPct, formatPrice, formatTime, getConvictionTier } from '@/lib/utils';
+import { formatCompactNumber, formatPct, formatPrice, formatTime, getConvictionTier } from '@/lib/utils';
 
 export default function TopSignal({
   asset,
@@ -29,6 +29,8 @@ export default function TopSignal({
     ['Volume', asset?.factors?.volume],
     ['Relative Strength', asset?.factors?.relativeStrength],
     ['Volatility', asset?.factors?.volatility],
+    ['Liquidity', asset?.factors?.liquidity],
+    ['Structure', asset?.factors?.structure],
   ].filter(([, value]) => typeof value === 'number');
 
   const recent = signalHistory.slice(0, 4);
@@ -51,6 +53,7 @@ export default function TopSignal({
         <div>
           <div className="eyebrow">{embedded ? 'Expanded system view' : 'System-selected lead asset'}</div>
           <div className="value">{asset.symbol} · {asset.name}</div>
+          <div className="muted small">{asset.signalLabel || 'Balanced signal posture'}</div>
         </div>
         <div className="top-signal-price-row">
           <span className="signal-price">{formatPrice(asset.price)}</span>
@@ -58,12 +61,31 @@ export default function TopSignal({
             {formatPct(asset.change24h || 0)} 24h
           </span>
         </div>
-        <div className="muted">{asset.story}</div>
-        <div className="row">
+        <div className="row wrap">
           <span className="badge">{asset.signalScore ?? asset.conviction}% score</span>
           <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
+          <span className="badge">Rank #{asset.rank ?? '—'}</span>
+          <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
+          <span className="badge">{asset.volumeToMarketCap ?? '—'}% turnover</span>
+        </div>
+        <div className="muted">{asset.story}</div>
+        {asset.signalReasons?.length ? (
+          <div className="factor-block">
+            <div className="eyebrow">Why this appears tonight</div>
+            <div className="history-stack">
+              {asset.signalReasons.slice(0, 3).map((reason) => (
+                <div className="history-row" key={reason}>
+                  <span>Reason</span>
+                  <span>{reason}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        <div className="row wrap">
           <span className="badge">{state.mode} mode</span>
           <span className="badge">{state.strategy}</span>
+          <span className="badge">{marketSource === 'coingecko' ? 'Live market' : 'Fallback market'}</span>
         </div>
       </div>
 
