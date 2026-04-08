@@ -397,6 +397,7 @@ export default function TonightBrief({
   if (!asset) return null;
 
   const profile = getUserProfile(state);
+  const planTier = state?.planTier || 'basic';
 
   const factorPairs = [
     ['momentum', asset?.factors?.momentum],
@@ -549,7 +550,7 @@ export default function TonightBrief({
       <div className="compact-performance-panel">
         <div className="compact-performance-header">
           <div className="eyebrow">Your Signal Performance</div>
-          <span className="compact-performance-coming-soon">Advanced insights coming soon</span>
+          <span className="compact-performance-coming-soon">{planTier === 'pro' ? 'Pro insight active' : 'Advanced insights coming soon'}</span>
         </div>
         <div className="compact-performance-grid">
           <div className="compact-performance-item">
@@ -569,13 +570,24 @@ export default function TonightBrief({
             <strong>{getBestRegime(forwardScorecard)}</strong>
           </div>
         </div>
-        <div className="compact-performance-insight">{performanceInsight}</div>
-        <div className="compact-user-bias">
-          <span className="compact-user-bias-label">Your bias</span>
-          <span className="compact-user-bias-text">
-            {profile.isPro ? 'You prefer a tighter read' : 'You respond best to guided context'} · focus tends toward {userBias.preferredDriver}
-          </span>
-        </div>
+        {planTier === 'pro' ? (
+          <>
+            <div className="compact-performance-insight">{performanceInsight}</div>
+            <div className="compact-user-bias">
+              <span className="compact-user-bias-label">Your bias</span>
+              <span className="compact-user-bias-text">
+                {profile.isPro ? 'You prefer a tighter read' : 'You respond best to guided context'} · focus tends toward {userBias.preferredDriver}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className="compact-performance-locked">
+            <div className="compact-performance-locked-blur" />
+            <div className="compact-performance-locked-content">
+              <div className="compact-performance-insight">Unlock Pro to see deeper performance edge tracking, regime insights, and personalized behavior patterns.</div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="compact-brief-rows">

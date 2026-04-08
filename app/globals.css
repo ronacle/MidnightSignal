@@ -2045,3 +2045,149 @@ button, input, select { font: inherit; }
     flex-direction: column;
   }
 }
+
+
+/* v11.29 monetization layer */
+.plan-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.plan-status-badge.tier-basic {
+  border-color: rgba(255,255,255,0.1);
+  color: rgba(233,246,255,0.9);
+}
+
+.plan-status-badge.tier-pro {
+  border-color: rgba(107,197,255,0.28);
+  color: #9ddcff;
+  box-shadow: 0 0 18px rgba(107,197,255,0.14);
+}
+
+.lead-signal-toggle.is-gated {
+  border-color: rgba(107,197,255,0.22);
+  background: linear-gradient(180deg, rgba(107,197,255,0.06), rgba(107,197,255,0.03));
+}
+
+.pro-teaser-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(107,197,255,0.14);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+  min-height: 150px;
+}
+
+.pro-teaser-blur {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(107,197,255,0.12), transparent 35%),
+    radial-gradient(circle at 80% 35%, rgba(126,226,168,0.08), transparent 30%),
+    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  filter: blur(8px);
+  opacity: 0.9;
+}
+
+.pro-teaser-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+}
+
+.compact-performance-locked {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.025);
+  min-height: 76px;
+}
+
+.compact-performance-locked-blur {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+}
+
+.compact-performance-locked-content {
+  position: relative;
+  z-index: 1;
+  padding: 14px;
+}
+
+.factor-block-gated {
+  border-style: dashed;
+  border-color: rgba(107,197,255,0.16);
+  background: linear-gradient(180deg, rgba(107,197,255,0.035), rgba(255,255,255,0.02));
+}
+
+.upgrade-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(4, 8, 16, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.upgrade-modal-card {
+  width: min(680px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(107,197,255,0.18);
+  background: linear-gradient(180deg, rgba(12,18,28,0.96), rgba(8,12,20,0.96));
+  box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+}
+
+.upgrade-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.upgrade-close {
+  min-width: 42px;
+}
+
+.upgrade-modal-price {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(233,246,255,0.96);
+}
+
+.upgrade-modal-list {
+  display: grid;
+  gap: 10px;
+}
+
+.upgrade-modal-item {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.upgrade-modal-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .upgrade-modal-card {
+    padding: 18px;
+  }
+}
