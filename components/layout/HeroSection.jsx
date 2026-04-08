@@ -3,12 +3,16 @@
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
 
-export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls}) {
+export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state }) {
   const isLocalOnly = !user;
   const syncLabel = user ? (syncing ? 'Syncing…' : 'Sync Active') : 'Saved locally';
   const syncDetail = user
     ? (lastSyncedAt ? `Last synced ${formatTime(lastSyncedAt)}` : 'Your settings follow you across devices.')
     : 'Saved locally on this device.';
+  const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
+  const disclaimerAccepted = Boolean(state?.acceptedDisclaimer);
+  const setupCount = [Boolean(user), disclaimerAccepted, planTier === 'pro'].filter(Boolean).length;
+  const setupLabel = `${setupCount}/3 setup steps complete`;
 
   return (
     <section className="hero hero-shell">
@@ -18,23 +22,23 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={108} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow">Midnight Signal · v11.13.3</div>
+            <div className="eyebrow">Midnight Signal · v11.48</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
-              Know the setup, the why, and act with more confidence.
+              Learn the setup, understand the why, and move with clearer market awareness.
             </p>
             <div className="hero-support-copy">
-              <p>Start with the top signal, read the why, then scan the Top 20 for broader market context.</p>
-              <p>When signed in, your selected asset, mode, strategy, timeframe, watchlist, and disclaimer acceptance stay in sync across devices.</p>
+              <p>Start with Tonight’s Top Signal, open the why, then scan the Top 20 for broader posture.</p>
+              <p>Control Panel now gives you a cleaner flow for setup, sync, billing truth, and account management.</p>
             </div>
           </div>
         </div>
 
         <div className="hero-pill-row">
-          <span className="badge glow-badge">Surface-first flow restored</span>
-          <span className="badge">Learning drawer</span>
-          <span className="badge">Controls drawer</span>
+          <span className="badge glow-badge">Onboarding cleanup</span>
+          <span className="badge">Billing center polish</span>
+          <span className="badge">Stripe-verified Pro</span>
         </div>
       </div>
 
@@ -58,20 +62,22 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           <div className="eyebrow">Sync state</div>
           <div className="value">{syncLabel}</div>
           <div className="muted small">{syncDetail}</div>
-          {isLocalOnly ? (
-            <button className="ghost-button sync-inline-action" onClick={onOpenControls}>
-              Sync now
-            </button>
-          ) : (
-            <button className="ghost-button sync-inline-action" onClick={onOpenControls}>
-              Manage sync
-            </button>
-          )}
+          <button className="ghost-button sync-inline-action" onClick={onOpenControls}>
+            {isLocalOnly ? 'Open setup' : 'Manage account'}
+          </button>
         </div>
         <div className="mini">
           <div className="eyebrow">Watchlist</div>
           <div className="value">{watchlistCount}</div>
           <div className="muted small">Tracked assets</div>
+        </div>
+        <div className="mini onboarding-mini">
+          <div className="eyebrow">Getting started</div>
+          <div className="value">{setupLabel}</div>
+          <div className="muted small">
+            {!user ? 'Sign in to sync across devices.' : !disclaimerAccepted ? 'Accept the Agreement of Understanding.' : planTier !== 'pro' ? 'Optional: upgrade for Pro tools.' : 'Your setup is complete.'}
+          </div>
+          <button className="ghost-button sync-inline-action" onClick={onOpenControls}>Continue</button>
         </div>
       </div>
     </section>

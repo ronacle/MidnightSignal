@@ -30,7 +30,7 @@ function UpgradeModal({ open, onClose }) {
         <div className="upgrade-modal-header">
           <div>
             <div className="eyebrow">Midnight Signal Pro</div>
-            <h2 id="upgrade-modal-title" className="section-title">Unlock deeper signal intelligence</h2>
+            <h2 id="upgrade-modal-title" className="section-title">Unlock the full Midnight Signal view</h2>
           </div>
           <button type="button" className="ghost-button upgrade-close" onClick={onClose} aria-label="Close upgrade dialog">
             ✕
@@ -47,12 +47,12 @@ function UpgradeModal({ open, onClose }) {
         </div>
 
         <div className="upgrade-modal-note">
-          Secure checkout via Stripe. Pro now unlocks only after a verified Stripe entitlement check. Midnight Signal is an educational tool, not financial advice.
+          Stripe-verified access only. Pro unlocks after a real entitlement check, not just a success page redirect. Midnight Signal is an educational tool, not financial advice.
         </div>
 
         <div className="upgrade-modal-actions">
           <a className="primary-button upgrade-link-button" href="/api/stripe/checkout">
-            Unlock Pro
+            Continue to secure checkout
           </a>
           <button type="button" className="ghost-button" onClick={onClose}>Maybe later</button>
         </div>
@@ -214,9 +214,9 @@ export default function LeadSignalPanel({
               <div className="pro-teaser-blur" />
               <div className="pro-teaser-content">
                 <div className="eyebrow">Pro Insight</div>
-                <div className="value">Unlock deeper validation trends and regime edge tracking</div>
-                <div className="muted">Go beyond the brief with expanded breakdowns, forward tracking, and stronger signal context.</div>
-                <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>See Pro access</button>
+                <div className="value">Unlock deeper validation, forward tracking, and regime edge</div>
+                <div className="muted">Go beyond the brief with expanded breakdowns, cleaner decision support, and stronger follow-through context.</div>
+                <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>See Pro plan</button>
               </div>
             </div>
 

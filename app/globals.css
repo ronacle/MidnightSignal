@@ -2522,3 +2522,87 @@ button, input, select { font: inherit; }
 .market-grid-single {
   scroll-margin-top: 84px;
 }
+
+
+.wrap-gap { flex-wrap: wrap; }
+.account-panel {
+  background: linear-gradient(180deg, rgba(18, 32, 58, 0.96), rgba(8, 16, 30, 0.98));
+}
+.onboarding-summary {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(107, 197, 255, 0.2);
+  background: linear-gradient(180deg, rgba(107, 197, 255, 0.12), rgba(107, 197, 255, 0.05));
+}
+.onboarding-progress {
+  font-size: 1.2rem;
+  margin-top: 2px;
+}
+.setup-steps {
+  display: grid;
+  gap: 10px;
+}
+.setup-step {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.025);
+}
+.setup-step.done {
+  border-color: rgba(73, 209, 125, 0.28);
+  background: rgba(73, 209, 125, 0.08);
+}
+.setup-step-dot {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: rgba(255,255,255,0.03);
+  font-weight: 700;
+}
+.setup-step.done .setup-step-dot {
+  color: #dfffea;
+  border-color: rgba(73, 209, 125, 0.35);
+  background: rgba(73, 209, 125, 0.18);
+}
+.setup-step-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.account-card {
+  background: rgba(255,255,255,0.025);
+}
+.billing-next-step {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(107, 197, 255, 0.16);
+  background: rgba(107, 197, 255, 0.06);
+  color: #d6ebff;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.onboarding-mini {
+  border-color: rgba(107, 197, 255, 0.2);
+  background: linear-gradient(180deg, rgba(107, 197, 255, 0.1), rgba(255,255,255,0.03));
+}
+.upgrade-modal-card {
+  max-width: 720px;
+}
+.upgrade-modal-list {
+  display: grid;
+  gap: 10px;
+}
+.upgrade-modal-item {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+}

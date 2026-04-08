@@ -40,7 +40,8 @@ export default function SuccessPage() {
           };
 
           try {
-            const raw = window.localStorage.getItem('midnight-signal-local-state-v11.47')
+            const raw = window.localStorage.getItem('midnight-signal-local-state-v11.48')
+              || window.localStorage.getItem('midnight-signal-local-state-v11.47')
               || window.localStorage.getItem('midnight-signal-local-state-v11.45')
               || window.localStorage.getItem('midnight-signal-local-state-v11.44')
               || window.localStorage.getItem('midnight-signal-local-state-v11.43');
@@ -48,7 +49,7 @@ export default function SuccessPage() {
             window.localStorage.setItem('midnight-signal-plan', 'pro');
             window.localStorage.setItem('midnight-signal-upgrade-success', new Date().toISOString());
             window.localStorage.setItem('midnight-signal-last-stripe-session', sessionId);
-            window.localStorage.setItem('midnight-signal-local-state-v11.47', JSON.stringify({
+            window.localStorage.setItem('midnight-signal-local-state-v11.48', JSON.stringify({
               ...parsed,
               ...stored,
             }));

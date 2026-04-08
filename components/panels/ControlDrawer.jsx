@@ -132,13 +132,13 @@ function BillingPanel({ state, setState, user, onRefresh }) {
   return (
     <div className="panel stack compact-panel billing-panel">
       <div className="row space-between">
-        <h3 className="section-title">Billing & account center</h3>
+        <h3 className="section-title">Billing & plan center</h3>
         <span className={`badge ${planTier === 'pro' ? 'plan-nav-badge tier-pro' : 'plan-nav-badge tier-basic'}`}>{planTier === 'pro' ? 'Pro Active' : 'Free Plan'}</span>
       </div>
 
       <div className="muted small">
         {planTier === 'pro'
-          ? 'Your Pro access is verified from Stripe on this account. Use the account center below to refresh billing truth, manage payment details, or schedule cancellation.'
+          ? 'Your Pro access is verified from Stripe on this account. Use the billing center below to refresh Stripe truth, manage payment details, or schedule cancellation.'
           : 'You are on the free plan. Upgrade from the Top Signal panel to unlock deeper validation, forward tracking, expanded signal context, and synced Pro access after Stripe verification.'}
       </div>
 
@@ -149,6 +149,13 @@ function BillingPanel({ state, setState, user, onRefresh }) {
         <div className="muted small"><strong>Last Stripe check:</strong> {checkedAtLabel}</div>
         <div className="muted small"><strong>Stripe customer:</strong> {customerId || 'Not linked yet'}</div>
         <div className="muted small"><strong>Subscription:</strong> {subscriptionId || 'Not linked yet'}</div>
+      </div>
+
+      <div className="billing-next-step">
+        <strong>{planTier === 'pro' ? 'Next best action:' : 'Upgrade path:'}</strong>{' '}
+        {planTier === 'pro'
+          ? 'Refresh billing if anything changed in Stripe, then use Manage subscription for payment methods, invoices, or plan updates.'
+          : 'Open the Pro paywall from the Top Signal panel when you want the deeper signal breakdown and advanced tracking tools.'}
       </div>
 
       <div className="row wrap-gap">
@@ -266,6 +273,7 @@ export default function ControlDrawer({ open, onClose, state, setState, user, st
             planTier={state?.planTier || 'basic'}
             profileCount={(state?.savedProfiles || []).filter(Boolean).length}
             entitlement={state?.entitlement || {}}
+            acceptedDisclaimer={Boolean(state?.acceptedDisclaimer)}
           />
           <SettingsPanel state={state} setState={setState} />
           <BillingPanel state={state} setState={setState} user={user} onRefresh={onRefresh} />
