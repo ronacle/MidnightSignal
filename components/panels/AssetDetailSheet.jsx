@@ -36,7 +36,7 @@ function formatRelative(value) {
   return `${minutes}m ago`;
 }
 
-export default function AssetDetailSheet({ asset, open, onClose, timeframe, onToggleWatchlist, inWatchlist, onOpenLearning, onSetAlert }) {
+export default function AssetDetailSheet({ asset, open, onClose, timeframe, onToggleWatchlist, inWatchlist, onOpenLearning, onSetAlert, onShare }) {
   if (!asset) return null;
 
   const breakdown = breakdownRows(asset, timeframe);
@@ -120,6 +120,7 @@ export default function AssetDetailSheet({ asset, open, onClose, timeframe, onTo
             </button>
             <button className="ghost-button" onClick={() => onSetAlert?.(asset)}>Set alert</button>
             <button className="ghost-button" onClick={() => onOpenLearning?.(asset)}>Open learning context</button>
+            <button className="ghost-button" onClick={() => onShare?.(asset)}>Share this signal</button>
 
             <div className="list-item stack">
               <div className="row space-between">

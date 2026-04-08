@@ -3,7 +3,7 @@
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
 
-export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state, ritualStatus, alertSummary }) {
+export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state, ritualStatus, alertSummary, growthSummary, inviteBanner, onShareSignal, onCopyReferral }) {
   const isLocalOnly = !user;
   const syncLabel = user ? (syncing ? 'Syncing…' : 'Sync Active') : 'Saved locally';
   const syncDetail = user
@@ -25,7 +25,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={118} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.65</div>
+            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.70</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
@@ -76,6 +76,8 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           ) : null}
         </div>
 
+        {inviteBanner ? <div className="invite-banner hero-invite-banner">{inviteBanner}</div> : null}
+
         <div className="hero-mobile-hint muted small">
           Mobile flow: start with Tonight’s Top Signal, tap any asset card for details, then use Controls for session changes.
         </div>
@@ -85,8 +87,9 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <div className="eyebrow">Start here</div>
             <div className="hero-conversion-title">Read tonight’s signal in under a minute</div>
             <p className="muted small">Use the free flow first: Top Signal → Why it appears → Board scan → Watchlist.</p>
-            <div className="row">
+            <div className="row wrap">
               <button className="button" onClick={onOpenControls} type="button">Open control panel</button>
+              <button className="ghost-button" onClick={onShareSignal} type="button">Share Tonight&apos;s Signal</button>
               <span className="badge">{setupLabel}</span>
             </div>
           </div>
@@ -98,6 +101,11 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
               <li>Free mode stays useful before any upgrade pressure.</li>
               <li>The beacon visual language now carries from hero to board to breakdown.</li>
             </ul>
+            <div className="row wrap hero-growth-row">
+              <span className="badge glow-badge">Invite code {growthSummary?.inviteCode || 'MSCODE'}</span>
+              <span className="badge">{growthSummary?.rewardLabel || 'Invite 3 to unlock 7 days Pro'}</span>
+              <button className="ghost-button" onClick={onCopyReferral} type="button">Copy referral link</button>
+            </div>
           </div>
         </div>
       </div>

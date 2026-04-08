@@ -51,6 +51,127 @@ import {
 
 const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v1';
 
+const GROWTH_LOOP_STORAGE_KEY = 'midnight-signal-growth-loop-v1';
+
+function createReferralCode() {
+  return `MS${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
+function sanitizeGrowthLoopState(value) {
+  const base = {
+    referralCode: createReferralCode(),
+    visits: 0,
+    signups: 0,
+    shares: 0,
+    downloads: 0,
+    unlockedTrial: false,
+    activeReferral: null,
+    activeReferralHandled: false,
+    lastSharedAt: null,
+  };
+
+  if (!value || typeof value !== 'object') return base;
+
+  return {
+    referralCode: String(value.referralCode || base.referralCode).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12) || base.referralCode,
+    visits: Number.isFinite(Number(value.visits)) ? Math.max(0, Number(value.visits)) : 0,
+    signups: Number.isFinite(Number(value.signups)) ? Math.max(0, Number(value.signups)) : 0,
+    shares: Number.isFinite(Number(value.shares)) ? Math.max(0, Number(value.shares)) : 0,
+    downloads: Number.isFinite(Number(value.downloads)) ? Math.max(0, Number(value.downloads)) : 0,
+    unlockedTrial: Boolean(value.unlockedTrial),
+    activeReferral: value.activeReferral && typeof value.activeReferral === 'object'
+      ? {
+          code: String(value.activeReferral.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12),
+          firstSeenAt: value.activeReferral.firstSeenAt || null,
+        }
+      : null,
+    activeReferralHandled: Boolean(value.activeReferralHandled),
+    lastSharedAt: value.lastSharedAt || null,
+  };
+}
+
+function readGrowthLoopState() {
+  if (typeof window === 'undefined') return sanitizeGrowthLoopState(null);
+  try {
+    return sanitizeGrowthLoopState(JSON.parse(window.localStorage.getItem(GROWTH_LOOP_STORAGE_KEY) || 'null'));
+  } catch {
+    return sanitizeGrowthLoopState(null);
+  }
+}
+
+function writeGrowthLoopState(value) {
+  if (typeof window === 'undefined') return sanitizeGrowthLoopState(value);
+  const next = sanitizeGrowthLoopState(value);
+  try {
+    window.localStorage.setItem(GROWTH_LOOP_STORAGE_KEY, JSON.stringify(next));
+  } catch {}
+  return next;
+}
+
+function buildSharePayload(asset, context, referralCode) {
+  const symbol = asset?.symbol || 'BTC';
+  const conviction = Math.round(asset?.conviction || asset?.signalScore || 0);
+  const posture = asset?.signalLabel || asset?.sentiment || 'Mixed posture';
+  const why = asset?.watchNext || asset?.postureSummary || context?.whyThisIsHappening?.detail || 'Watch for the next confirmation cycle.';
+  const catalyst = context?.relatedCatalysts?.[0]?.headline || context?.catalystTitle || context?.marketContext?.headline || 'No clear catalyst detected';
+  const referralSuffix = referralCode ? `?ref=${encodeURIComponent(referralCode)}` : '';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const shareUrl = `${baseUrl}/signal/${symbol.toLowerCase()}${referralSuffix}`;
+  const title = `Tonight's Signal: ${symbol}`;
+  const text = [
+    `🌙 Tonight's Signal: ${symbol} — ${posture} (${conviction}%)`,
+    `Why it matters tonight: ${why}`,
+    `Catalyst watch: ${catalyst}`,
+    `Open the full signal: ${shareUrl}`,
+  ].join('\n\n');
+  return { title, text, shareUrl, why, catalyst, posture, conviction };
+}
+
+function downloadSignalCard(asset, context, referralCode) {
+  if (typeof window === 'undefined' || !asset) return false;
+  const { shareUrl, why, catalyst, posture, conviction } = buildSharePayload(asset, context, referralCode);
+  const safeWhy = String(why || '').replace(/[&<>]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char]));
+  const safeCatalyst = String(catalyst || '').replace(/[&<>]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char]));
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+    <defs>
+      <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0%" stop-color="#07111f" />
+        <stop offset="50%" stop-color="#0f1c33" />
+        <stop offset="100%" stop-color="#16284a" />
+      </linearGradient>
+      <linearGradient id="accent" x1="0" x2="1">
+        <stop offset="0%" stop-color="#5b7cfa" />
+        <stop offset="100%" stop-color="#8ba8ff" />
+      </linearGradient>
+    </defs>
+    <rect width="1200" height="675" rx="36" fill="url(#bg)" />
+    <circle cx="150" cy="130" r="58" fill="rgba(139,168,255,.12)" />
+    <circle cx="150" cy="130" r="34" fill="rgba(139,168,255,.22)" />
+    <text x="220" y="110" fill="#9fb4ff" font-family="Arial, Helvetica, sans-serif" font-size="28">MIDNIGHT SIGNAL</text>
+    <text x="220" y="165" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700">${asset.symbol}</text>
+    <text x="220" y="225" fill="#d8e2ff" font-family="Arial, Helvetica, sans-serif" font-size="34">${posture} • ${conviction}% conviction</text>
+    <rect x="72" y="286" width="1056" height="132" rx="28" fill="rgba(9,17,32,.6)" stroke="rgba(139,168,255,.18)" />
+    <text x="108" y="330" fill="#8ba8ff" font-family="Arial, Helvetica, sans-serif" font-size="24">Why it matters tonight</text>
+    <text x="108" y="372" fill="#f8fbff" font-family="Arial, Helvetica, sans-serif" font-size="34">${safeWhy}</text>
+    <rect x="72" y="446" width="1056" height="104" rx="28" fill="rgba(9,17,32,.48)" stroke="rgba(139,168,255,.14)" />
+    <text x="108" y="490" fill="#8ba8ff" font-family="Arial, Helvetica, sans-serif" font-size="24">Catalyst watch</text>
+    <text x="108" y="530" fill="#f8fbff" font-family="Arial, Helvetica, sans-serif" font-size="30">${safeCatalyst}</text>
+    <text x="72" y="616" fill="#9fb4ff" font-family="Arial, Helvetica, sans-serif" font-size="24">${shareUrl}</text>
+    <text x="1042" y="616" text-anchor="end" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="26">What's the signal tonight?</text>
+  </svg>`;
+  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `midnight-signal-${asset.symbol.toLowerCase()}-v11.70.svg`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+  return true;
+}
+
 function normalizeSignalLabel(label = '') {
   return String(label || '')
     .replace(/\s+/g, ' ')
@@ -319,6 +440,9 @@ export default function HomePage() {
   const [contextMeta, setContextMeta] = useState({ live: false, sourceTypes: { article: 0, x: 0, note: 0 }, updatedAt: null });
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistStatus, setWaitlistStatus] = useState('');
+  const [growthLoop, setGrowthLoop] = useState(() => sanitizeGrowthLoopState(null));
+  const [inviteBanner, setInviteBanner] = useState('');
+  const [shareStatus, setShareStatus] = useState('');
   const entitlementRefreshRef = useRef(false);
 
   useEffect(() => {
@@ -416,6 +540,32 @@ export default function HomePage() {
       }
     } catch {
       // no-op
+    }
+  }, []);
+
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const url = new URL(window.location.href);
+      const ref = String(url.searchParams.get('ref') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+      const current = readGrowthLoopState();
+      let next = current;
+
+      if (ref && ref !== current.referralCode) {
+        next = writeGrowthLoopState({
+          ...current,
+          visits: (current.visits || 0) + (current.activeReferralHandled && current.activeReferral?.code === ref ? 0 : 1),
+          activeReferral: { code: ref, firstSeenAt: current.activeReferral?.code === ref ? current.activeReferral.firstSeenAt : new Date().toISOString() },
+          activeReferralHandled: true,
+        });
+        setInviteBanner(`You were invited by ${ref} to check tonight's signal.`);
+      }
+
+      setGrowthLoop(next);
+    } catch {
+      setGrowthLoop(sanitizeGrowthLoopState(null));
     }
   }, []);
 
@@ -812,6 +962,11 @@ const sinceLastVisitSummary = useMemo(() => {
   }, [topSignal, regimeSummary, marketSource, marketReady, liveItems]);
 
 
+
+  useEffect(() => {
+    writeGrowthLoopState(growthLoop);
+  }, [growthLoop]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -866,6 +1021,67 @@ const sinceLastVisitSummary = useMemo(() => {
     }));
   }
 
+
+  const growthSummary = useMemo(() => {
+    const referred = Boolean(growthLoop?.activeReferral?.code);
+    const rewardReady = Number(growthLoop?.signups || 0) >= 3;
+    return {
+      inviteCode: growthLoop?.referralCode || 'MSCODE',
+      visits: Number(growthLoop?.visits || 0),
+      signups: Number(growthLoop?.signups || 0),
+      shares: Number(growthLoop?.shares || 0),
+      downloads: Number(growthLoop?.downloads || 0),
+      rewardLabel: rewardReady ? 'Invite reward unlocked' : `Invite ${Math.max(0, 3 - Number(growthLoop?.signups || 0))} more to unlock 7 days Pro`,
+      referralLabel: referred ? `Active invite: ${growthLoop.activeReferral.code}` : 'No referral attached yet',
+    };
+  }, [growthLoop]);
+
+  async function shareSignalCard(asset = topSignal) {
+    if (typeof window === 'undefined' || !asset) return;
+    const payload = buildSharePayload(asset, signalContext, growthLoop?.referralCode);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: payload.title, text: payload.text, url: payload.shareUrl });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(payload.text);
+      }
+      setGrowthLoop((previous) => ({ ...previous, shares: Number(previous.shares || 0) + 1, lastSharedAt: new Date().toISOString() }));
+      setShareStatus(`Share ready for ${asset.symbol}.`);
+    } catch {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(payload.text);
+          setGrowthLoop((previous) => ({ ...previous, shares: Number(previous.shares || 0) + 1, lastSharedAt: new Date().toISOString() }));
+          setShareStatus(`Copied ${asset.symbol} share text.`);
+        } catch {
+          setShareStatus('Unable to share right now.');
+        }
+      } else {
+        setShareStatus('Unable to share right now.');
+      }
+    }
+  }
+
+  async function copyReferralLink() {
+    if (typeof window === 'undefined') return;
+    const url = `${window.location.origin}/?ref=${encodeURIComponent(growthSummary.inviteCode)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareStatus('Referral link copied.');
+    } catch {
+      setShareStatus(url);
+    }
+  }
+
+  function downloadTopSignalCard(asset = topSignal) {
+    if (!asset) return;
+    const ok = downloadSignalCard(asset, signalContext, growthLoop?.referralCode);
+    if (ok) {
+      setGrowthLoop((previous) => ({ ...previous, downloads: Number(previous.downloads || 0) + 1 }));
+      setShareStatus(`${asset.symbol} signal card downloaded.`);
+    }
+  }
+
   async function handleEarlyAccessSignup(event) {
     event?.preventDefault?.();
     const email = String(waitlistEmail || '').trim();
@@ -881,6 +1097,14 @@ const sinceLastVisitSummary = useMemo(() => {
         return;
       }
       setWaitlistStatus('Check your inbox for the magic link — early access is now tied to your email.');
+      setGrowthLoop((previous) => {
+        const nextSignups = Number(previous.signups || 0) + 1;
+        return {
+          ...previous,
+          signups: nextSignups,
+          unlockedTrial: previous.unlockedTrial || nextSignups >= 3,
+        };
+      });
       setWaitlistEmail('');
     } catch (error) {
       setWaitlistStatus(error?.message || 'Could not start email sign-in.');
@@ -955,11 +1179,52 @@ const sinceLastVisitSummary = useMemo(() => {
           state={state}
           ritualStatus={ritualStatus}
           alertSummary={alertSummary}
+          growthSummary={growthSummary}
+          inviteBanner={inviteBanner}
+          onShareSignal={() => shareSignalCard(topSignal)}
+          onCopyReferral={copyReferralLink}
           onOpenControls={() => {
             setAlertAsset(null);
             setControlOpen(true);
           }}
         />
+
+
+        <section className="growth-loop-grid" aria-label="Growth loop">
+          <div className="growth-loop-card card">
+            <div className="growth-loop-head">
+              <div>
+                <div className="eyebrow">Share tonight&apos;s signal</div>
+                <h2 className="section-title">Turn a strong read into a shareable signal card</h2>
+              </div>
+              <span className="badge glow-badge">v11.70 growth loop</span>
+            </div>
+            <div className="growth-loop-actions">
+              <button type="button" className="primary-button" onClick={() => shareSignalCard(topSignal)}>Share Tonight&apos;s Signal 🌙</button>
+              <button type="button" className="ghost-button" onClick={() => downloadTopSignalCard(topSignal)}>Download signal card</button>
+              <button type="button" className="ghost-button" onClick={copyReferralLink}>Copy referral link</button>
+            </div>
+            <div className="growth-share-preview">
+              <div className="growth-preview-symbol">{topSignal?.symbol || '--'} <span>{Math.round(topSignal?.conviction || 0)}%</span></div>
+              <div className="growth-preview-copy">{topSignal?.signalLabel || 'Mixed posture'} • {topSignal?.watchNext || signalContext?.whyThisIsHappening?.detail || 'Watch for the next confirmation cycle.'}</div>
+              <div className="growth-preview-meta">{signalContext?.relatedCatalysts?.[0]?.headline || signalContext?.catalystTitle || signalContext?.marketContext?.headline || 'No clear catalyst detected'} </div>
+            </div>
+            <div className="capture-status muted small">{shareStatus || 'Share text includes your referral code so interested users land on tonight's signal with your invite attached.'}</div>
+          </div>
+
+          <div className="growth-loop-card card growth-loop-stats-card">
+            <div className="eyebrow">Referral engine</div>
+            <h3 className="section-title">Growth without a spammy loop</h3>
+            <div className="growth-stats-grid">
+              <div className="growth-stat"><span>Code</span><strong>{growthSummary.inviteCode}</strong></div>
+              <div className="growth-stat"><span>Visits</span><strong>{growthSummary.visits}</strong></div>
+              <div className="growth-stat"><span>Signups</span><strong>{growthSummary.signups}</strong></div>
+              <div className="growth-stat"><span>Shares</span><strong>{growthSummary.shares}</strong></div>
+            </div>
+            <div className="growth-referral-note">{growthSummary.rewardLabel}</div>
+            <div className="muted small">{growthSummary.referralLabel}. Invite 3 and unlock a 7-day Pro reward path for founding users.</div>
+          </div>
+        </section>
 
         <AlertCenterPanel
           alerts={recentAlertEvents}
@@ -972,6 +1237,7 @@ const sinceLastVisitSummary = useMemo(() => {
         <section className="landing-command card" aria-label="Midnight Signal landing message">
           <div className="landing-command-copy">
             <div className="eyebrow">What&apos;s the signal tonight?</div>
+            {inviteBanner ? <div className="invite-banner">{inviteBanner}</div> : null}
             <h2 className="section-title">Transforming market noise into market wisdom</h2>
             <p className="muted small">Midnight Signal helps non-experts read posture, confidence, and catalysts fast. Free gets the nightly read. Pro unlocks the deeper board, retention loop, and alert engine.</p>
             <div className="landing-command-actions">
@@ -1237,7 +1503,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.69 · Cardano Midnight News hooks · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
+          Build v11.70 · growth loop + referrals · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 
@@ -1284,6 +1550,7 @@ const sinceLastVisitSummary = useMemo(() => {
           setAlertAsset(asset);
           setControlOpen(true);
         }}
+        onShare={(asset) => shareSignalCard(asset)}
       />
     </main>
   );
