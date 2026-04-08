@@ -32,58 +32,78 @@ function getChangeIndicator(asset) {
 
 export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS, recentAlertSymbols = [] }) {
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
+  const visibleAssets = planTier === 'pro' ? assets : assets.slice(0, 8);
+  const hiddenCount = Math.max(0, (assets?.length || 0) - visibleAssets.length);
 
   return (
     <div className="panel stack premium-board-shell">
       <div className="row space-between">
         <div>
           <h2 className="section-title">Top 20</h2>
-          <div className="muted small">{planTier === 'pro' ? 'Pro view active: board scan + full breakdown access.' : "Free view active: board scan, Tonight's Brief, watchlist, and alert setup remain available."}</div>
+          <div className="muted small">
+            {planTier === 'pro'
+              ? 'Pro view active: full board scan + full breakdown access.'
+              : 'Free view active: top board preview, watchlist, alerts, and Tonight’s Brief remain open.'}
+          </div>
         </div>
         <span className="badge glow-badge">Ranked by confidence + signal</span>
       </div>
       <div className="top20-grid">
-        {assets.map((asset) => {
+        {visibleAssets.map((asset) => {
           const hasAlert = recentAlertSymbols.includes(asset.symbol);
           return (
-          <button
-            key={asset.symbol}
-            type="button"
-            className={`top20-card premium-top20-card ${state.selectedAsset === asset.symbol ? 'active' : ''} ${hasAlert ? 'top20-card-alert' : ''}`}
-            onClick={() => {
-              setState((prev) => ({ ...prev, selectedAsset: asset.symbol }));
-              onAssetOpen?.(asset);
-            }}
-          >
-            <div className="row space-between">
-              <div>
-                <div className="asset-name">{asset.symbol}</div>
-                <div className="asset-meta">{asset.name}</div>
+            <button
+              key={asset.symbol}
+              type="button"
+              className={`top20-card premium-top20-card ${state.selectedAsset === asset.symbol ? 'active' : ''} ${hasAlert ? 'top20-card-alert' : ''}`}
+              onClick={() => {
+                setState((prev) => ({ ...prev, selectedAsset: asset.symbol }));
+                onAssetOpen?.(asset);
+              }}
+            >
+              <div className="row space-between">
+                <div>
+                  <div className="asset-name">{asset.symbol}</div>
+                  <div className="asset-meta">{asset.name}</div>
+                </div>
+                <div className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</div>
               </div>
-              <div className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</div>
-            </div>
-            <div className="top20-price-row">
-              <span className="top20-price">{formatPrice(asset.price)}</span>
-              <span className={`top20-change ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>
-                {formatPct(asset.change24h || 0)}
-              </span>
-            </div>
-            <div className="muted small">{asset.signalLabel || asset.story}</div>
+              <div className="top20-price-row">
+                <span className="top20-price">{formatPrice(asset.price)}</span>
+                <span className={`top20-change ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>
+                  {formatPct(asset.change24h || 0)}
+                </span>
+              </div>
+              <div className="muted small">{asset.signalLabel || asset.story}</div>
+              <div className="row wrap">
+                {hasAlert ? <span className="badge glow-badge">New alert</span> : null}
+                <span className="badge">Score {asset.signalScore ?? asset.conviction}%</span>
+                <span className="badge">Confidence {asset.confidenceScore ?? asset.signalScore ?? asset.conviction}%</span>
+                <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
+                <span className="badge">#{asset.rank ?? '—'}</span>
+              </div>
+              <div className="row wrap">
+                <span className="badge">{getChangeIndicator(asset)}</span>
+                <span className="badge">{asset.timeframeAgreement || 'Mixed agreement'}</span>
+                <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
+              </div>
+              <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
+            </button>
+          );
+        })}
+
+        {planTier !== 'pro' ? (
+          <a className="top20-card premium-top20-card top20-upgrade-card" href="/api/stripe/checkout?plan=pro-founder&billing_cycle=monthly">
+            <div className="eyebrow">Pro board unlock</div>
+            <div className="asset-name">+{hiddenCount} more assets</div>
+            <div className="muted small">Unlock the full Top 20 board, deeper validation, and synced premium access.</div>
             <div className="row wrap">
-              {hasAlert ? <span className="badge glow-badge">New alert</span> : null}
-              <span className="badge">Score {asset.signalScore ?? asset.conviction}%</span>
-              <span className="badge">Confidence {asset.confidenceScore ?? asset.signalScore ?? asset.conviction}%</span>
-              <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
-              <span className="badge">#{asset.rank ?? '—'}</span>
+              <span className="badge glow-badge">Founding price</span>
+              <span className="badge">$9/month</span>
             </div>
-            <div className="row wrap">
-              <span className="badge">{getChangeIndicator(asset)}</span>
-              <span className="badge">{asset.timeframeAgreement || 'Mixed agreement'}</span>
-              <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
-            </div>
-            <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
-          </button>
-        );})}
+            <div className="top20-bottom-note muted small">Secure checkout via Stripe.</div>
+          </a>
+        ) : null}
       </div>
     </div>
   );

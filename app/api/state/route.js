@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: '11.64',
+    version: '11.65',
     feature: 'auth-account-polish',
     includes: [
       'magic-link-account-center',

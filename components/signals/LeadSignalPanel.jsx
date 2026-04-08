@@ -14,35 +14,58 @@ function UpgradeModal({ open, onClose }) {
 
   return (
     <div className="upgrade-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title">
-      <div className="upgrade-modal-card">
+      <div className="upgrade-modal-card upgrade-modal-card-wide">
         <div className="upgrade-modal-header">
           <div>
             <div className="eyebrow">Midnight Signal Pro</div>
-            <h2 id="upgrade-modal-title" className="section-title">Unlock the full Midnight Signal view</h2>
+            <h2 id="upgrade-modal-title" className="section-title">Unlock the deeper midnight layer</h2>
           </div>
           <button type="button" className="ghost-button upgrade-close" onClick={onClose} aria-label="Close upgrade dialog">
             ✕
           </button>
         </div>
 
-        <div className="upgrade-modal-price">Early access · $9/month · cancel anytime</div>
+        <div className="upgrade-launch-strip">
+          <div>
+            <strong>Founding access</strong>
+            <div className="muted small">Early access pricing · secure Stripe checkout · cancel anytime</div>
+          </div>
+          <div className="upgrade-modal-price">$9/month</div>
+        </div>
 
-        <div className="upgrade-modal-list">
-          <div className="upgrade-modal-item">Full signal breakdown with deeper validation context</div>
-          <div className="upgrade-modal-item">Advanced performance edge tracking and regime insights</div>
-          <div className="upgrade-modal-item">Expanded multi-timeframe and forward signal detail</div>
-          <div className="upgrade-modal-item">Advanced alerts and automation-oriented features coming soon</div>
+        <div className="upgrade-comparison-grid">
+          <div className="upgrade-compare-card">
+            <div className="eyebrow">Free</div>
+            <div className="value">Nightly signal quick read</div>
+            <div className="upgrade-compare-list">
+              <div>Tonight&apos;s Top Signal</div>
+              <div>Tonight&apos;s Brief</div>
+              <div>Watchlist + alert setup</div>
+              <div>Top board preview</div>
+            </div>
+          </div>
+
+          <div className="upgrade-compare-card upgrade-compare-card-pro">
+            <div className="eyebrow">Pro</div>
+            <div className="value">Full signal intelligence</div>
+            <div className="upgrade-compare-list">
+              <div>Full signal breakdown + validation layer</div>
+              <div>Forward tracking + regime context</div>
+              <div>Premium board access and deeper revisit history</div>
+              <div>Email alert delivery + synced Pro access</div>
+            </div>
+          </div>
         </div>
 
         <div className="upgrade-modal-note">
-          Stripe-verified access only. Pro unlocks after a real entitlement check, not just a success page redirect. Midnight Signal is an educational tool, not financial advice.
+          Midnight Signal stays educational first. Pro is for users who want more context, stronger tracking, and a cleaner nightly workflow — not louder hype.
         </div>
 
         <div className="upgrade-modal-actions">
-          <a className="primary-button upgrade-link-button" href="/api/stripe/checkout">
-            Continue to secure checkout
+          <a className="primary-button upgrade-link-button" href="/api/stripe/checkout?plan=pro-founder&billing_cycle=monthly">
+            Start secure checkout
           </a>
-          <button type="button" className="ghost-button" onClick={onClose}>Maybe later</button>
+          <button type="button" className="ghost-button" onClick={onClose}>Keep exploring free</button>
         </div>
       </div>
     </div>
@@ -139,8 +162,6 @@ export default function LeadSignalPanel({
     return () => window.clearTimeout(timer);
   }, [expanded]);
 
-
-
   function handleExpand() {
     if (planTier !== 'pro') {
       setUpgradeOpen(true);
@@ -188,28 +209,31 @@ export default function LeadSignalPanel({
             <div className="pro-teaser-card">
               <div className="pro-teaser-blur" />
               <div className="pro-teaser-content">
-                <div className="eyebrow">Available now vs Pro</div>
-                <div className="value">You already have Tonight’s Brief, board scan, watchlist, and alerts in the same midnight visual flow</div>
-                <div className="muted">Pro adds the deeper validation layer, forward tracking, and expanded regime context when you want more than the quick read.</div>
-                <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>See Pro plan</button>
+                <div className="eyebrow">Launch pricing</div>
+                <div className="value">Keep the quick read free. Unlock the deeper midnight lab for $9/month.</div>
+                <div className="muted">Full validation, forward tracking, synced Pro access, and richer revisit history all sit behind one clean Stripe-backed plan.</div>
+                <div className="row wrap-gap">
+                  <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>See Pro plan</button>
+                  <a className="ghost-button" href="/api/stripe/checkout?plan=pro-founder&billing_cycle=monthly">Upgrade now</a>
+                </div>
               </div>
             </div>
 
             <div className="pro-preview-grid" aria-hidden="true">
               <div className="pro-preview-card">
                 <div className="eyebrow">Free now</div>
-                <div className="value">Brief + board</div>
-                <div className="muted">Fast read of the current setup</div>
+                <div className="value">Fast nightly read</div>
+                <div className="muted">Top signal, brief, watchlist, and alerts</div>
               </div>
               <div className="pro-preview-card">
-                <div className="eyebrow">Pro adds</div>
-                <div className="value">Validation edge</div>
-                <div className="muted">Historical follow-through and score context</div>
+                <div className="eyebrow">Pro unlock</div>
+                <div className="value">Full validation</div>
+                <div className="muted">Deeper confidence context and follow-through tracking</div>
               </div>
               <div className="pro-preview-card">
-                <div className="eyebrow">Pro adds</div>
-                <div className="value">Forward tracking</div>
-                <div className="muted">See how signals behave after the call</div>
+                <div className="eyebrow">Pro unlock</div>
+                <div className="value">Premium revisit flow</div>
+                <div className="muted">Richer context, stronger retention, cleaner nightly workflow</div>
               </div>
             </div>
           </div>
@@ -243,8 +267,8 @@ export default function LeadSignalPanel({
         {planTier !== 'pro' ? (
           <div className="upgrade-strip-inline">
             <div className="upgrade-strip-copy">
-              <strong>Free gives you the quick read. Pro opens the deeper midnight lab.</strong>
-              <span>Upgrade only if you want validation scaffolding, forward tracking, and richer decision support.</span>
+              <strong>Free keeps the nightly pulse. Pro adds the deeper proof.</strong>
+              <span>Upgrade only when you want the full validation layer, richer revisit context, and synced premium access.</span>
             </div>
             <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>
               View Pro

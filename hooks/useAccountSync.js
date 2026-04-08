@@ -14,8 +14,9 @@ import {
   writeEmailDeliveryMemory,
 } from '@/lib/alert-engine';
 
-const STORAGE_KEY = 'midnight-signal-local-state-v11.64';
+const STORAGE_KEY = 'midnight-signal-local-state-v11.65';
 const LEGACY_STORAGE_KEYS = [
+  'midnight-signal-local-state-v11.64',
   'midnight-signal-local-state-v11.49',
   'midnight-signal-local-state-v11.48',
   'midnight-signal-local-state-v11.47',
