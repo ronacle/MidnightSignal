@@ -8,6 +8,7 @@ export default function SuccessPage() {
     try {
       window.localStorage.setItem("ms_premium_unlocked", "true");
       window.localStorage.setItem("ms_unlock_seen_at", new Date().toLocaleString());
+      window.localStorage.setItem("midnight-signal-plan", "pro");
     } catch {}
   }, []);
 

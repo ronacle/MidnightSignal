@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady }) {
+export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, planTier = 'basic', profileCount = 0 }) {
   const [email, setEmail] = useState('');
   const [feedback, setFeedback] = useState('');
 
@@ -31,7 +31,8 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
           <div className="list-item stack">
             <div><strong>Signed in as:</strong> {user.email}</div>
             <div className="muted small">Last synced: {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : 'Not yet synced'}</div>
-            <div className="muted small">Cloud alert memory, digest queue, watchlist, and settings now follow your account.</div>
+            <div className="muted small">Cloud sync now carries your watchlist, saved profiles, alert memory, digest queue, and {planTier === 'pro' ? 'Pro access state' : 'membership state'}.</div>
+            <div className="muted small">Saved profiles in cloud: {profileCount}</div>
             <div className="row">
               <button className="button" onClick={onRefresh}>Pull latest cloud state</button>
               <button className="ghost-button" onClick={onSignOut}>Sign out</button>
@@ -41,7 +42,7 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
       ) : (
         <form className="stack" onSubmit={handleSubmit}>
           <div className="muted small">
-            Sign in with the same email on multiple devices to sync settings, watchlist, selected asset, onboarding state, alert rules, trigger memory, and digest queue.
+            Sign in with the same email on multiple devices to sync settings, watchlist, selected asset, onboarding state, saved profiles, alert rules, trigger memory, digest queue, and membership state.
           </div>
           <input
             className="input"

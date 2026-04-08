@@ -19,30 +19,8 @@ function PlaceholderPanel({ title, text }) {
 }
 
 
-const PLAN_STORAGE_KEY = 'midnight-signal-plan';
-
-function BillingPanel() {
-  const [planTier, setPlanTier] = React.useState('basic');
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const syncPlan = () => {
-      try {
-        setPlanTier(window.localStorage.getItem(PLAN_STORAGE_KEY) || 'basic');
-      } catch {
-        setPlanTier('basic');
-      }
-    };
-
-    syncPlan();
-    window.addEventListener('storage', syncPlan);
-    window.addEventListener('focus', syncPlan);
-    return () => {
-      window.removeEventListener('storage', syncPlan);
-      window.removeEventListener('focus', syncPlan);
-    };
-  }, []);
+function BillingPanel({ state }) {
+  const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
 
   return (
     <div className="panel stack compact-panel billing-panel">
@@ -54,7 +32,7 @@ function BillingPanel() {
       <div className="muted small">
         {planTier === 'pro'
           ? 'Your Pro access is active on this browser. Deeper signal breakdowns and advanced context are unlocked.'
-          : 'You are on the free plan. Upgrade from the Top Signal panel to unlock deeper validation, forward tracking, and expanded signal context.'}
+          : 'You are on the free plan. Upgrade from the Top Signal panel to unlock deeper validation, forward tracking, expanded signal context, and synced Pro access across devices.'}
       </div>
 
       <div className="billing-note">Secure checkout via Stripe · Cancel anytime · Educational tool, not financial advice.</div>
@@ -155,9 +133,11 @@ export default function ControlDrawer({ open, onClose, state, setState, user, st
             onSignOut={onSignOut}
             onRefresh={onRefresh}
             supabaseReady={supabaseReady}
+            planTier={state?.planTier || 'basic'}
+            profileCount={(state?.savedProfiles || []).filter(Boolean).length}
           />
           <SettingsPanel state={state} setState={setState} />
-          <BillingPanel />
+          <BillingPanel state={state} />
           <AlertManagerPanel state={state} setState={setState} alertAsset={alertAsset} onConsumeAlertAsset={onConsumeAlertAsset} />
           <LiveUpdateControls state={state} setState={setState} />
           <DisclaimerCard state={state} setState={setState} />

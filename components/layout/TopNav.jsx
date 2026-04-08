@@ -1,32 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
-const PLAN_STORAGE_KEY = 'midnight-signal-plan';
-
 export default function TopNav({ state, user, status, onJump, onOpenControls, onOpenLearning }) {
-  const [planTier, setPlanTier] = useState('basic');
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const syncPlan = () => {
-      try {
-        setPlanTier(window.localStorage.getItem(PLAN_STORAGE_KEY) || 'basic');
-      } catch {
-        setPlanTier('basic');
-      }
-    };
-
-    syncPlan();
-    window.addEventListener('storage', syncPlan);
-    window.addEventListener('focus', syncPlan);
-
-    return () => {
-      window.removeEventListener('storage', syncPlan);
-      window.removeEventListener('focus', syncPlan);
-    };
-  }, []);
+  const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
   const links = [
     ['top-signal', 'Top Signal'],
     ['since-last-visit', 'Since Last Visit'],

@@ -202,6 +202,7 @@ export default function HomePage() {
       if (upgraded === '1') {
         window.localStorage.setItem('midnight-signal-plan', 'pro');
         window.localStorage.setItem('midnight-signal-upgrade-success', new Date().toISOString());
+        setState((previous) => ({ ...previous, planTier: 'pro' }));
         setUpgradeNotice('Pro unlocked — deeper signal layers active.');
         url.searchParams.delete('upgraded');
         window.history.replaceState({}, '', url.toString());
@@ -579,6 +580,7 @@ export default function HomePage() {
           <LeadSignalPanel
             asset={topSignal}
             state={state}
+            setState={setState}
             marketSource={marketSource}
             marketUpdatedAt={marketUpdatedAt}
             marketReady={marketReady}
@@ -642,7 +644,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.43 · auth + saved cloud alert state hardening · source: {marketSource}
+          Build v11.44 · saved profiles + plan gating cleanup · source: {marketSource}
         </div>
       </div>
 

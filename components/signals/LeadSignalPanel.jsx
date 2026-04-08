@@ -67,6 +67,7 @@ function UpgradeModal({ open, onClose, onUnlockLocal }) {
 export default function LeadSignalPanel({
   asset,
   state,
+  setState,
   marketSource,
   marketUpdatedAt,
   marketReady,
@@ -83,7 +84,7 @@ export default function LeadSignalPanel({
   const [persistedSnapshot, setPersistedSnapshot] = useState(null);
   const [userBias, setUserBias] = useState(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [planTier, setPlanTier] = useState('basic');
+  const [planTier, setPlanTier] = useState(state?.planTier || 'basic');
   const breakdownRef = useRef(null);
 
   const awarenessState = useMemo(() => {
@@ -103,6 +104,7 @@ export default function LeadSignalPanel({
       const storedSnapshot = window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
       const storedBias = window.localStorage.getItem(USER_BIAS_STORAGE_KEY);
       const storedPlan = window.localStorage.getItem(PLAN_STORAGE_KEY);
+      const resolvedPlan = state?.planTier || storedPlan || 'basic';
 
       setSessionState((current) => ({
         ...(current || {}),
@@ -112,11 +114,15 @@ export default function LeadSignalPanel({
 
       if (storedSnapshot) setPersistedSnapshot(JSON.parse(storedSnapshot));
       if (storedBias) setUserBias(JSON.parse(storedBias));
-      if (storedPlan) setPlanTier(storedPlan);
+      setPlanTier(resolvedPlan);
     } catch {
       setSessionState((current) => ({ ...(current || {}), ...(state || {}) }));
     }
   }, [state]);
+
+  useEffect(() => {
+    setPlanTier(state?.planTier || 'basic');
+  }, [state?.planTier]);
 
   useEffect(() => {
     if (!asset || typeof window === 'undefined') return;
@@ -152,7 +158,11 @@ export default function LeadSignalPanel({
     try {
       const res = await fetch('/api/checkout', { method: 'POST' });
       const data = await res.json();
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setUpgradeOpen(true);
     } catch {
       setUpgradeOpen(true);
     }
@@ -161,6 +171,7 @@ export default function LeadSignalPanel({
   function handleLocalUnlock() {
     setPlanTier('pro');
     setUpgradeOpen(false);
+    setState?.((previous) => ({ ...previous, planTier: 'pro' }));
 
     if (typeof window !== 'undefined') {
       try {

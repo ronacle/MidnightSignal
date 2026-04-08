@@ -3,13 +3,13 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: '11.43',
-    feature: 'auth-cloud-alert-state-hardening',
+    version: '11.44',
+    feature: 'saved-user-profiles-plan-gating-cleanup',
     includes: [
-      'supabase-account-sync',
-      'cloud-alert-memory',
-      'cloud-digest-queue',
-      'device-label-persistence'
+      'saved-profiles',
+      'cloud-membership-state',
+      'checkout-route-cleanup',
+      'legacy-local-state-migration'
     ]
   });
 }

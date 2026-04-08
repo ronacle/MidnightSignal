@@ -6,7 +6,8 @@ import { mergeState } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase-browser';
 import { readAlertMemory, readDigestMemory, writeAlertMemory, writeDigestMemory } from '@/lib/alert-engine';
 
-const STORAGE_KEY = 'midnight-signal-local-state-v11.43';
+const STORAGE_KEY = 'midnight-signal-local-state-v11.44';
+const LEGACY_STORAGE_KEYS = ['midnight-signal-local-state-v11.43'];
 const POLL_INTERVAL_MS = 60000;
 
 function deriveDeviceLabel() {
@@ -22,7 +23,7 @@ function deriveDeviceLabel() {
 function readLocalState() {
   if (typeof window === 'undefined') return DEFAULT_STATE;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEY) || LEGACY_STORAGE_KEYS.map((key) => window.localStorage.getItem(key)).find(Boolean);
     const parsed = raw ? JSON.parse(raw) : {};
     return mergeState(DEFAULT_STATE, {
       ...parsed,
@@ -67,6 +68,7 @@ export function useAccountSync() {
     writeAlertMemory(enriched.alertMemory);
     writeDigestMemory(enriched.alertDigestMemory);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched));
+    window.localStorage.setItem('midnight-signal-plan', enriched.planTier || 'basic');
   }, []);
 
   const pushRemote = useCallback(async (draftState, currentUser) => {

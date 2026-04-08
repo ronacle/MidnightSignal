@@ -1,6 +1,6 @@
 export async function POST() {
-  return Response.json(
-    { ok: false, message: 'Checkout disabled' },
-    { status: 503 }
-  );
+  return Response.json({
+    ok: true,
+    url: '/api/stripe/checkout'
+  });
 }

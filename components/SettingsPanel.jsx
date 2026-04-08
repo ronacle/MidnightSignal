@@ -1,8 +1,41 @@
 'use client';
 
+import { applyProfileSnapshot, buildProfileSnapshot } from '@/lib/profiles';
+
 export default function SettingsPanel({ state, setState }) {
   function update(key, value) {
     setState((previous) => ({ ...previous, [key]: value }));
+  }
+
+  function saveProfile(index) {
+    setState((previous) => {
+      const savedProfiles = Array.isArray(previous.savedProfiles) ? [...previous.savedProfiles] : [null, null, null];
+      const profile = {
+        ...buildProfileSnapshot(previous),
+        id: `slot-${index + 1}`,
+        name: previous.profileName || `Profile ${index + 1}`,
+      };
+      savedProfiles[index] = profile;
+      return {
+        ...previous,
+        profileId: profile.id,
+        savedProfiles,
+      };
+    });
+  }
+
+  function loadProfile(index) {
+    const profile = state.savedProfiles?.[index];
+    if (!profile) return;
+    setState((previous) => applyProfileSnapshot({ ...previous }, profile));
+  }
+
+  function clearProfile(index) {
+    setState((previous) => {
+      const savedProfiles = Array.isArray(previous.savedProfiles) ? [...previous.savedProfiles] : [null, null, null];
+      savedProfiles[index] = null;
+      return { ...previous, savedProfiles };
+    });
   }
 
   return (
@@ -13,6 +46,16 @@ export default function SettingsPanel({ state, setState }) {
       </div>
 
       <div className="controls">
+        <div className="field">
+          <label>Profile name</label>
+          <input
+            className="input"
+            value={state.profileName || ''}
+            onChange={(e) => update('profileName', e.target.value)}
+            placeholder="My setup"
+          />
+        </div>
+
         <div className="field">
           <label>Mode</label>
           <select className="select" value={state.mode} onChange={(e) => update('mode', e.target.value)}>
@@ -47,6 +90,42 @@ export default function SettingsPanel({ state, setState }) {
             <option>1H</option>
             <option>4H</option>
           </select>
+        </div>
+      </div>
+
+      <div className="stack">
+        <div className="row space-between">
+          <div>
+            <div className="eyebrow">Saved profiles</div>
+            <div className="muted small">Store up to 3 real setups and carry them with your account.</div>
+          </div>
+          <span className="badge">Cloud profiles</span>
+        </div>
+
+        <div className="stack">
+          {[0, 1, 2].map((index) => {
+            const profile = state.savedProfiles?.[index];
+            return (
+              <div className="list-item stack" key={`profile-slot-${index + 1}`}>
+                <div className="row space-between wrap">
+                  <div>
+                    <div className="value">Slot {index + 1}: {profile?.name || 'Empty profile'}</div>
+                    <div className="muted small">
+                      {profile
+                        ? `${profile.mode} · ${profile.strategy} · ${profile.timeframe} · ${profile.watchlist?.length || 0} watch assets`
+                        : 'Save your current setup here.'}
+                    </div>
+                  </div>
+                  <span className="badge">{profile ? 'Saved' : 'Empty'}</span>
+                </div>
+                <div className="row wrap">
+                  <button className="button" type="button" onClick={() => saveProfile(index)}>Save current</button>
+                  <button className="ghost-button" type="button" disabled={!profile} onClick={() => loadProfile(index)}>Load</button>
+                  <button className="ghost-button" type="button" disabled={!profile} onClick={() => clearProfile(index)}>Clear</button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
