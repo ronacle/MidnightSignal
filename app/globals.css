@@ -3187,3 +3187,43 @@ html {
 .tone-bullish{border-color:rgba(72,187,120,.5)!important;color:#d4ffe3!important;}
 .tone-neutral{border-color:rgba(148,163,184,.45)!important;color:#e2e8f0!important;}
 .tone-bearish{border-color:rgba(248,113,113,.45)!important;color:#ffe2e2!important;}
+
+
+/* v11.61 context layer + daily ritual */
+.ritual-checkin-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(116, 155, 255, 0.22);
+  background: linear-gradient(180deg, rgba(10, 16, 34, 0.92), rgba(7, 12, 26, 0.86));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+.ritual-checkin-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(237, 243, 255, 0.96);
+}
+.signal-context-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.signal-context-strip-card {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+}
+@media (max-width: 860px) {
+  .ritual-checkin-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .signal-context-strip {
+    grid-template-columns: 1fr;
+  }
+}

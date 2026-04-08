@@ -178,6 +178,57 @@ function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
   };
 }
 
+
+
+function buildDailyRitualStatus(lastVisitAt, marketUpdatedAt, topSignal, visitIntelligence) {
+  const now = Date.now();
+  const visitTs = lastVisitAt ? new Date(lastVisitAt).getTime() : null;
+  const marketTs = marketUpdatedAt ? new Date(marketUpdatedAt).getTime() : null;
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  const visitedToday = Boolean(visitTs) && new Date(visitTs).toDateString() === today.toDateString();
+
+  let streak = 1;
+  try {
+    if (typeof window !== 'undefined') {
+      const stored = JSON.parse(window.localStorage.getItem('midnight-signal-daily-ritual') || 'null');
+      if (stored?.dayKey === todayKey) {
+        streak = stored.streak || 1;
+      } else {
+        const yesterday = new Date(now - 24 * 60 * 60 * 1000).toDateString();
+        const nextStreak = stored?.lastDateString === yesterday ? (stored.streak || 1) + 1 : 1;
+        window.localStorage.setItem('midnight-signal-daily-ritual', JSON.stringify({
+          dayKey: todayKey,
+          streak: nextStreak,
+          lastDateString: today.toDateString(),
+        }));
+        streak = nextStreak;
+      }
+    }
+  } catch {
+    // no-op
+  }
+
+  const ageMinutes = marketTs ? Math.max(0, Math.round((now - marketTs) / 60000)) : null;
+  const freshness = ageMinutes === null ? 'freshness unknown' : ageMinutes <= 2 ? 'signal refreshed just now' : `signal refreshed ${ageMinutes}m ago`;
+
+  if (!visitedToday) {
+    return {
+      title: "Tonight's check-in is ready",
+      detail: `${topSignal?.symbol || 'Your lead asset'} is waiting with ${topSignal?.signalLabel || 'a fresh signal posture'} and ${freshness}.`,
+      badge: 'Check-in pending',
+      streakLabel: `Streak ${streak} night${streak === 1 ? '' : 's'}`,
+    };
+  }
+
+  return {
+    title: "Tonight's check-in complete",
+    detail: visitIntelligence?.takeaway || `${topSignal?.symbol || 'Your lead asset'} remains the focus tonight.`,
+    badge: 'Checked in',
+    streakLabel: `Streak ${streak} night${streak === 1 ? '' : 's'}`,
+  };
+}
+
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
   { symbol: 'AVAX', name: 'Avalanche', conviction: 44, sentiment: 'bearish', story: 'Weak follow-through is keeping conviction lower.' },
@@ -758,6 +809,7 @@ const sinceLastVisitSummary = useMemo(() => {
   }
 
   const signalContext = useMemo(() => buildSignalContext(topSignal, rankedAssets, state.watchlist, regimeSummary, { items: contextItems, meta: contextMeta }), [topSignal, rankedAssets, state.watchlist, regimeSummary, contextItems, contextMeta]);
+  const ritualStatus = useMemo(() => buildDailyRitualStatus(lastVisitAt, marketUpdatedAt, topSignal, visitIntelligence), [lastVisitAt, marketUpdatedAt, topSignal, visitIntelligence]);
 
   return (
     <main className="page">
@@ -817,6 +869,7 @@ const sinceLastVisitSummary = useMemo(() => {
           watchlistCount={state.watchlist.length}
           syncing={syncing}
           state={state}
+          ritualStatus={ritualStatus}
           onOpenControls={() => {
             setAlertAsset(null);
             setControlOpen(true);

@@ -24,7 +24,20 @@ export default function SignalContextPanel({ context, asset }) {
         </div>
       </div>
 
-      <div className="signal-context-hero">
+<div className="signal-context-strip">
+  <div className="signal-context-strip-card">
+    <div className="signal-context-label">Market context</div>
+    <div className="signal-context-item-title">{context.marketContext?.headline}</div>
+    <div className="muted small">{context.marketContext?.detail}</div>
+  </div>
+  <div className="signal-context-strip-card">
+    <div className="signal-context-label">Catalyst watch</div>
+    <div className="signal-context-item-title">{context.catalystLine}</div>
+    <div className="muted small">This is the shortest explanation of why tonight&apos;s setup matters right now.</div>
+  </div>
+</div>
+
+<div className="signal-context-hero">
         <div className="signal-context-title">{context.headline}</div>
         <div className="muted small">{context.subhead}</div>
         <p className="signal-context-setup">{context.setup}</p>

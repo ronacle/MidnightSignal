@@ -3,7 +3,7 @@
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
 
-export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state }) {
+export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state, ritualStatus }) {
   const isLocalOnly = !user;
   const syncLabel = user ? (syncing ? 'Syncing…' : 'Sync Active') : 'Saved locally';
   const syncDetail = user
@@ -25,7 +25,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={118} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.60</div>
+            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.61</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
@@ -42,8 +42,23 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           <span className="badge glow-badge">Beacon-guided signal flow</span>
           <span className="badge">Live market context</span>
           <span className="badge">Explainable signals</span>
+          <span className="badge">Daily ritual flow</span>
           <span className="badge">Not financial advice</span>
         </div>
+
+        {ritualStatus ? (
+          <div className="ritual-checkin-card">
+            <div>
+              <div className="eyebrow">Daily ritual</div>
+              <div className="ritual-checkin-title">{ritualStatus.title}</div>
+              <div className="muted small">{ritualStatus.detail}</div>
+            </div>
+            <div className="row wrap">
+              <span className="badge">{ritualStatus.badge}</span>
+              <span className="badge">{ritualStatus.streakLabel}</span>
+            </div>
+          </div>
+        ) : null}
 
         <div className="hero-mobile-hint muted small">
           Mobile flow: start with Tonight’s Top Signal, tap any asset card for details, then use Controls for session changes.
