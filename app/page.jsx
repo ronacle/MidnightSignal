@@ -699,7 +699,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.53 · Dashboard clarity pass + calmer information density · source: {marketSource}
+          Build v11.50 · Landing-to-app conversion pass + trust/SEO polish · source: {marketSource}
         </div>
       </div>
 

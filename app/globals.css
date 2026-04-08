@@ -2855,7 +2855,7 @@ button, input, select { font: inherit; }
 }
 
 
-/* v11.52 mobile refinement + interaction polish */
+/* v11.54 mobile refinement + interaction polish */
 html {
   scroll-behavior: smooth;
 }
