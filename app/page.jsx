@@ -5,6 +5,7 @@ import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
 import Top20Grid from '@/components/signals/Top20Grid';
 import LeadSignalPanel from '@/components/signals/LeadSignalPanel';
+import WatchlistPanel from '@/components/WatchlistPanel';
 import SignalContextPanel from '@/components/signals/SignalContextPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
@@ -929,12 +930,21 @@ const sinceLastVisitSummary = useMemo(() => {
             </div>
           </div>
 
-          <Top20Grid
-            state={state}
-            setState={setState}
-            onAssetOpen={setDetailAsset}
-            assets={rankedAssets}
-          />
+          <div className="board-flow-stack">
+            <WatchlistPanel
+              state={state}
+              setState={setState}
+              onAssetOpen={setDetailAsset}
+              assets={rankedAssets}
+            />
+
+            <Top20Grid
+              state={state}
+              setState={setState}
+              onAssetOpen={setDetailAsset}
+              assets={rankedAssets}
+            />
+          </div>
         </section>
 
         {upgradeNotice ? (
@@ -951,7 +961,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.57.3 · Signal + news/X context layer · source: {marketSource}
+          Build v11.58 · Signal Alive · locked hierarchy · source: {marketSource}
         </div>
       </div>
 

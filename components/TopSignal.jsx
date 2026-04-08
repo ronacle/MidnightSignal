@@ -39,6 +39,16 @@ export default function TopSignal({
   const currentAdaptive = adaptiveSummary.find((entry) => entry.regime === (regimeSummary?.regime || asset?.marketRegime));
   const topSignalMotion = Boolean(state?.livePulseEnabled);
 
+  const confidenceBreakdown = [
+    ['Trend', asset?.factors?.trend],
+    ['Momentum', asset?.factors?.momentum],
+    ['Volume', asset?.factors?.volume],
+    ['Structure', asset?.factors?.structure],
+  ]
+    .filter(([, value]) => typeof value === 'number')
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
   const conviction = asset.signalScore ?? asset.conviction ?? 0;
   const convictionTone = conviction >= 70 ? 'top-signal-strong' : conviction < 45 ? 'top-signal-cautious' : '';
 
@@ -69,6 +79,19 @@ export default function TopSignal({
           <span className="badge">{asset.volumeToMarketCap ?? '—'}% turnover</span>
         </div>
         <div className="muted">{asset.story}</div>
+        {confidenceBreakdown.length ? (
+          <div className="factor-block confidence-breakdown-block">
+            <div className="eyebrow">Confidence breakdown</div>
+            <div className="confidence-breakdown-grid">
+              {confidenceBreakdown.map(([label, value]) => (
+                <div className="confidence-chip" key={label}>
+                  <span>{label}</span>
+                  <strong>{value}%</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {asset.signalReasons?.length ? (
           <div className="factor-block">
             <div className="eyebrow">Why this appears tonight</div>
