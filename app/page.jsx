@@ -360,6 +360,47 @@ export default function HomePage() {
   }, []);
 
 
+  useEffect(() => {
+    if (entitlementRefreshRef.current) return;
+    if (!state?.entitlement || !shouldRefreshEntitlement(state.entitlement)) return;
+
+    entitlementRefreshRef.current = true;
+
+    async function refreshEntitlement() {
+      try {
+        const response = await fetch('/api/stripe/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entitlement: state.entitlement }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (data?.ok && data?.entitlement) {
+          setState((previous) => ({
+            ...previous,
+            entitlement: data.entitlement,
+            planTier: data.entitlement?.verified ? 'pro' : 'basic',
+          }));
+        }
+      } catch {
+        // no-op
+      } finally {
+        entitlementRefreshRef.current = false;
+      }
+    }
+
+    void refreshEntitlement();
+  }, [setState, state?.entitlement]);
+
+  const rankedAssets = useMemo(
+    () => rankAssets(buildMarketUniverse(liveItems), adaptiveWeights),
+    [liveItems, adaptiveWeights]
+  );
+
+  const topSignal = useMemo(
+    () => rankedAssets[0] || MARKET_FIXTURES[0],
+    [rankedAssets]
+  );
+
 useEffect(() => {
   if (typeof window === 'undefined' || !topSignal?.symbol) return;
 
@@ -402,47 +443,6 @@ useEffect(() => {
     window.clearInterval(timer);
   };
 }, [topSignal?.symbol, state?.watchlist]);
-
-  useEffect(() => {
-    if (entitlementRefreshRef.current) return;
-    if (!state?.entitlement || !shouldRefreshEntitlement(state.entitlement)) return;
-
-    entitlementRefreshRef.current = true;
-
-    async function refreshEntitlement() {
-      try {
-        const response = await fetch('/api/stripe/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ entitlement: state.entitlement }),
-        });
-        const data = await response.json().catch(() => ({}));
-        if (data?.ok && data?.entitlement) {
-          setState((previous) => ({
-            ...previous,
-            entitlement: data.entitlement,
-            planTier: data.entitlement?.verified ? 'pro' : 'basic',
-          }));
-        }
-      } catch {
-        // no-op
-      } finally {
-        entitlementRefreshRef.current = false;
-      }
-    }
-
-    void refreshEntitlement();
-  }, [setState, state?.entitlement]);
-
-  const rankedAssets = useMemo(
-    () => rankAssets(buildMarketUniverse(liveItems), adaptiveWeights),
-    [liveItems, adaptiveWeights]
-  );
-
-  const topSignal = useMemo(
-    () => rankedAssets[0] || MARKET_FIXTURES[0],
-    [rankedAssets]
-  );
 
   const selected = useMemo(
     () => rankedAssets.find((item) => item.symbol === state.selectedAsset) || topSignal,
@@ -951,7 +951,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.56 · Signal + news/X context layer · source: {marketSource}
+          Build v11.56.1 · Signal + news/X context layer · source: {marketSource}
         </div>
       </div>
 
