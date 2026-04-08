@@ -3053,7 +3053,7 @@ html {
 }
 
 
-/* v11.57.2 session intelligence */
+/* v11.57.3 session intelligence */
 .since-intel-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3101,7 +3101,7 @@ html {
 }
 
 
-/* v11.57.2 signal + news/X context layer */
+/* v11.57.3 signal + news/X context layer */
 .signal-context-panel {
   display: grid;
   gap: 14px;
