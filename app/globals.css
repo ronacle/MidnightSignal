@@ -2409,3 +2409,23 @@ button, input, select { font: inherit; }
     display: grid;
   }
 }
+
+/* v11.37 alerts */
+.signal-alert {
+  background: rgba(79,124,255,0.12);
+  border: 1px solid rgba(79,124,255,0.3);
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:13px;
+}
+.signal-alert button {
+  background:none;
+  border:none;
+  color:#fff;
+  cursor:pointer;
+  opacity:0.7;
+}
