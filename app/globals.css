@@ -3629,3 +3629,113 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* v11.68 mobile pass + production cleanup */
+.landing-mini-copy,
+.preview-sub-copy,
+.signal-context-setup,
+.signal-context-item-title,
+.signal-context-item .muted,
+.since-intel-item,
+.capture-status,
+.plan-list li,
+.alert-center-body {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.signal-context-head .stack,
+.preview-head,
+.alert-center-meta-row,
+.landing-command-actions,
+.capture-actions {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .landing-command,
+  .product-preview,
+  .plan-ladder,
+  .brand-story,
+  .email-capture,
+  .signal-context-card,
+  .signal-context-strip-card,
+  .since-intel-card,
+  .since-takeaway {
+    padding: 14px;
+  }
+
+  .signal-context-head,
+  .preview-head,
+  .alert-center-item,
+  .landing-mini-symbol {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .landing-mini-symbol {
+    gap: 6px;
+  }
+
+  .preview-badge,
+  .badge {
+    white-space: normal;
+  }
+
+  .alert-center-item {
+    gap: 10px;
+  }
+
+  .alert-center-copy,
+  .signal-context-head .stack,
+  .preview-head > * {
+    width: 100%;
+  }
+
+  .since-chip-row {
+    flex-wrap: wrap;
+  }
+
+  .capture-actions > *,
+  .landing-command-actions > * {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .landing-command {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .landing-mini-symbol {
+    font-size: 1.5rem;
+  }
+
+  .preview-panel-title,
+  .plan-title,
+  .signal-context-title,
+  .ritual-checkin-title {
+    font-size: 0.98rem;
+  }
+
+  .signal-context-panel {
+    gap: 12px;
+  }
+
+  .signal-context-item,
+  .preview-subcard,
+  .landing-mini-stat,
+  .plan-card,
+  .wisdom-step,
+  .trust-note,
+  .capture-status {
+    padding: 12px;
+  }
+
+  .top20-card,
+  .watchlist-rail-card {
+    min-width: 0;
+  }
+}

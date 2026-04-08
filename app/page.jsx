@@ -57,6 +57,19 @@ function normalizeSignalLabel(label = '') {
     .trim() || 'Mixed posture';
 }
 
+function safeRenderText(value, fallback = '') {
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.map((item) => safeRenderText(item, '')).filter(Boolean).join(' · ') || fallback;
+  if (value && typeof value === 'object') {
+    if (typeof value.headline === 'string' && value.headline.trim()) return value.headline;
+    if (typeof value.title === 'string' && value.title.trim()) return value.title;
+    if (typeof value.label === 'string' && value.label.trim()) return value.label;
+    if (typeof value.detail === 'string' && value.detail.trim()) return value.detail;
+    if (typeof value.body === 'string' && value.body.trim()) return value.body;
+  }
+  return fallback;
+}
+
 function createSessionSnapshot({ topSignal, rankedAssets = [], watchlist = [], regimeSummary, marketUpdatedAt }) {
   const watchSymbols = Array.isArray(watchlist) ? watchlist.map((item) => String(item).toUpperCase()) : [];
   const watchAssets = rankedAssets.filter((item) => watchSymbols.includes(item.symbol));
@@ -983,10 +996,10 @@ const sinceLastVisitSummary = useMemo(() => {
             <div className="landing-mini-card">
               <div className="landing-mini-label">Tonight&apos;s preview</div>
               <div className="landing-mini-symbol">{topSignal?.symbol || '--'} <span>{Math.round(topSignal?.conviction || 0)}%</span></div>
-              <div className="landing-mini-copy">{decisionLayer?.statusLabel || topSignal?.signalLabel || 'Top signal ready'} • {signalContext?.marketContext?.headline || 'Context loading'}</div>
+              <div className="landing-mini-copy">{safeRenderText(decisionLayer?.statusLabel || topSignal?.signalLabel, 'Top signal ready')} • {safeRenderText(signalContext?.marketContext, 'Context loading')}</div>
             </div>
             <div className="landing-mini-grid">
-              <div className="landing-mini-stat"><span>Context</span><strong>{signalContext?.catalystTitle || 'Catalyst watch armed'}</strong></div>
+              <div className="landing-mini-stat"><span>Context</span><strong>{safeRenderText(signalContext?.catalystTitle, 'Catalyst watch armed')}</strong></div>
               <div className="landing-mini-stat"><span>Alerts</span><strong>{alertSummary.badge}</strong></div>
               <div className="landing-mini-stat"><span>Board</span><strong>{state.planTier === 'pro' ? 'Full board unlocked' : 'Preview + upgrade path'}</strong></div>
             </div>
@@ -1014,11 +1027,11 @@ const sinceLastVisitSummary = useMemo(() => {
               <div className="preview-three-up">
                 <div className="preview-subcard">
                   <div className="preview-sub-label">Why now</div>
-                  <div className="preview-sub-copy">{signalContext?.whyThisIsHappening?.[0] || 'Momentum, trend, and volatility are fused into one plain-English read.'}</div>
+                  <div className="preview-sub-copy">{safeRenderText(signalContext?.whyThisIsHappening?.[0], 'Momentum, trend, and volatility are fused into one plain-English read.')}</div>
                 </div>
                 <div className="preview-subcard">
                   <div className="preview-sub-label">Catalyst</div>
-                  <div className="preview-sub-copy">{signalContext?.catalystSummary || 'Possible catalyst matching now sits next to the signal instead of in a noisy feed.'}</div>
+                  <div className="preview-sub-copy">{safeRenderText(signalContext?.catalystSummary, 'Possible catalyst matching now sits next to the signal instead of in a noisy feed.')}</div>
                 </div>
                 <div className="preview-subcard">
                   <div className="preview-sub-label">What changes next</div>
@@ -1237,7 +1250,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.67 · Landing + conversion engine · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
+          Build v11.68 · Mobile pass + production cleanup · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 
