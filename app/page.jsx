@@ -32,6 +32,8 @@ import {
   evaluateConfiguredAlerts,
   readAlertMemory,
   writeAlertMemory,
+  queueDigestEvents,
+  consumeQueuedDigestEvents,
 } from '@/lib/alert-engine';
 
 const STRIPE_FAST_LAUNCH = true;
@@ -334,16 +336,46 @@ export default function HomePage() {
 
           if (state?.alertDeliveryEnabled && state?.alertDeliveryEmail) {
             try {
-              await fetch('/api/alerts/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  email: state.alertDeliveryEmail,
-                  alerts: configured.events,
-                  digestMode: state.alertDigestMode || 'instant',
-                }),
-              });
-            } catch {}
+              const digestMode = state.alertDigestMode || 'instant';
+              let payloadAlerts = configured.events;
+              let shouldSend = Boolean(configured.events.length);
+
+              if (digestMode === 'digest') {
+                queueDigestEvents(configured.events);
+                const digest = consumeQueuedDigestEvents(Number(state?.alertDigestIntervalMinutes || 240));
+                shouldSend = digest.shouldSend;
+                payloadAlerts = digest.alerts;
+              }
+
+              if (shouldSend && payloadAlerts.length) {
+                const response = await fetch('/api/alerts/send', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    email: state.alertDeliveryEmail,
+                    alerts: payloadAlerts,
+                    digestMode,
+                  }),
+                });
+                const data = await response.json().catch(() => ({}));
+                setState((previous) => ({
+                  ...previous,
+                  alertLastDeliveryAt: data?.sentAt || new Date().toISOString(),
+                  alertLastDeliveryStatus: data?.ok
+                    ? data?.mode === 'mock'
+                      ? 'Delivery route ready in mock mode'
+                      : digestMode === 'digest'
+                        ? 'Digest sent'
+                        : 'Instant alert sent'
+                    : data?.message || 'Delivery failed',
+                }));
+              }
+            } catch (error) {
+              setState((previous) => ({
+                ...previous,
+                alertLastDeliveryStatus: error?.message || 'Delivery failed',
+              }));
+            }
           }
         }
 
@@ -364,7 +396,7 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [topSignal, watchlistHighlights, regimeSummary, rankedAssets, state?.watchlist, marketReady, state?.alerts, state?.alertCooldownMinutes, state?.alertDeliveryEnabled, state?.alertDeliveryEmail, state?.alertDigestMode, state?.signalSoundsEnabled, setState]);
+  }, [topSignal, watchlistHighlights, regimeSummary, rankedAssets, state?.watchlist, marketReady, state?.alerts, state?.alertCooldownMinutes, state?.alertDeliveryEnabled, state?.alertDeliveryEmail, state?.alertDigestMode, state?.alertDigestIntervalMinutes, state?.signalSoundsEnabled, setState]);
 
   useEffect(() => {
     if (!topSignal || !marketReady) return;
@@ -574,7 +606,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.41 · trigger tightening + real alert engine pass · source: {marketSource}
+          Build v11.42 · email alert hardening + digest polish · source: {marketSource}
         </div>
       </div>
 

@@ -29,9 +29,20 @@ function describeAlert(alert) {
   return 'Custom alert';
 }
 
+function formatTimestamp(value) {
+  if (!value) return 'Not sent yet';
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return 'Not sent yet';
+  }
+}
+
 export default function AlertManagerPanel({ state, setState, alertAsset, onConsumeAlertAsset }) {
   const [draft, setDraft] = useState(DEFAULT_DRAFT);
   const [editingId, setEditingId] = useState(null);
+  const [sendStatus, setSendStatus] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
   const alerts = state.alerts || [];
   const recentEvents = state.recentAlertEvents || [];
 
@@ -109,6 +120,52 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
 
   function clearRecentEvents() {
     updateStateField('recentAlertEvents', []);
+  }
+
+  async function sendTestEmail() {
+    if (!state.alertDeliveryEmail) {
+      setSendStatus('Enter a delivery email first.');
+      return;
+    }
+
+    setSendingTest(true);
+    setSendStatus('Sending test alert...');
+    try {
+      const response = await fetch('/api/alerts/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          test: true,
+          email: state.alertDeliveryEmail,
+          digestMode: state.alertDigestMode || 'instant',
+          alerts: [{
+            symbol: 'TEST',
+            posture: 'Delivery path check',
+            confidence: 100,
+            text: 'This is a Midnight Signal test email from v11.42.'
+          }]
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.message || 'Unable to send test alert.');
+      }
+      const status = data?.mode === 'mock'
+        ? 'Email route responded in mock mode. Add RESEND_API_KEY and ALERTS_FROM_EMAIL for live delivery.'
+        : 'Test alert sent.';
+      setSendStatus(status);
+      setState((previous) => ({
+        ...previous,
+        alertLastDeliveryAt: data?.sentAt || new Date().toISOString(),
+        alertLastDeliveryStatus: status,
+      }));
+    } catch (error) {
+      const message = error?.message || 'Unable to send test alert.';
+      setSendStatus(message);
+      setState((previous) => ({ ...previous, alertLastDeliveryStatus: message }));
+    } finally {
+      setSendingTest(false);
+    }
   }
 
   return (
@@ -206,6 +263,45 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
             </select>
           </div>
         </div>
+
+        <div className="controls">
+          <div className="field">
+            <label>Delivery mode</label>
+            <select
+              className="select"
+              value={state.alertDigestMode || 'instant'}
+              onChange={(e) => updateStateField('alertDigestMode', e.target.value)}
+            >
+              <option value="instant">Instant alerts</option>
+              <option value="digest">Digest mode</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label>Digest cadence</label>
+            <select
+              className="select"
+              value={state.alertDigestIntervalMinutes || '240'}
+              onChange={(e) => updateStateField('alertDigestIntervalMinutes', e.target.value)}
+              disabled={(state.alertDigestMode || 'instant') !== 'digest'}
+            >
+              <option value="60">Hourly</option>
+              <option value="240">Every 4 hours</option>
+              <option value="720">Twice daily</option>
+              <option value="1440">Daily</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="row">
+          <button className="ghost-button" type="button" disabled={sendingTest || !state.alertDeliveryEmail} onClick={sendTestEmail}>
+            {sendingTest ? 'Sending…' : 'Send test alert'}
+          </button>
+        </div>
+
+        {sendStatus ? <div className="muted small">{sendStatus}</div> : null}
+        {state.alertLastDeliveryStatus ? <div className="muted small">Last delivery status: {state.alertLastDeliveryStatus}</div> : null}
+        <div className="muted small">Last delivery: {formatTimestamp(state.alertLastDeliveryAt)}</div>
       </div>
 
       <div className="stack">
@@ -247,6 +343,7 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
               <span className="badge">{event.source === 'configured' ? 'Rule' : 'System'}</span>
             </div>
             <div className="muted small">{event.body || event.text}</div>
+            <div className="muted small">{formatTimestamp(event.triggeredAt || event.queuedAt)}</div>
           </div>
         )) : (
           <div className="list-item muted small">No alerts have fired on this device yet.</div>
