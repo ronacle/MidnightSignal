@@ -45,6 +45,21 @@ import {
 
 const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v1';
 
+
+function formatSnapshotStamp(value) {
+  if (!value) return 'First tracked visit';
+  try {
+    return new Date(value).toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  } catch {
+    return 'Recent visit';
+  }
+}
+
 function normalizeSignalLabel(label = '') {
   return String(label || '')
     .replace(/\s+/g, ' ')
@@ -489,6 +504,8 @@ useEffect(() => {
   }, [rankedAssets, state?.watchlist]);
 
 
+const previousSnapshotLabel = useMemo(() => formatSnapshotStamp(previousSessionSnapshot?.capturedAt || lastVisitAt), [previousSessionSnapshot?.capturedAt, lastVisitAt]);
+
 const currentSessionSnapshot = useMemo(
   () => createSessionSnapshot({
     topSignal,
@@ -702,8 +719,11 @@ const sinceLastVisitSummary = useMemo(() => {
     if (typeof window === 'undefined') return;
     try {
       setLastVisitAt(window.localStorage.getItem('midnight-signal-last-visit-at'));
+      const storedSnapshot = window.localStorage.getItem(SESSION_SNAPSHOT_KEY);
+      setPreviousSessionSnapshot(storedSnapshot ? JSON.parse(storedSnapshot) : null);
     } catch {
       setLastVisitAt(null);
+      setPreviousSessionSnapshot(null);
     }
   }, []);
 
@@ -874,8 +894,14 @@ const sinceLastVisitSummary = useMemo(() => {
             <div>
               <div className="eyebrow">Return signal</div>
               <h2 className="section-title">Since your last visit</h2>
+              <div className="muted small">Last tracked session: {previousSnapshotLabel}</div>
             </div>
-            <span className="badge since-badge">{lastVisitLabel}</span>
+            <div className="since-badge-stack">
+              <span className="badge since-badge">{lastVisitLabel}</span>
+              {previousSessionSnapshot?.topSignal?.symbol && previousSessionSnapshot.topSignal.symbol !== topSignal?.symbol ? (
+                <span className="badge since-badge since-badge-fresh">New tonight</span>
+              ) : null}
+            </div>
           </div>
 
           <div className="since-chip-row">
@@ -961,7 +987,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.58 · Signal Alive · locked hierarchy · source: {marketSource}
+          Build v11.59 · Signal Intelligence · board momentum cues · source: {marketSource}
         </div>
       </div>
 

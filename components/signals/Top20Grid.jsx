@@ -22,6 +22,19 @@ const FALLBACK_ASSETS = [
   { symbol: 'SEI', name: 'Sei', conviction: 64, sentiment: 'bullish', story: 'Momentum is improving with better follow-through.' },
 ].slice(0, 20);
 
+function deriveBoardSignal(asset) {
+  const trend = Number(asset?.factors?.trend ?? asset?.timeframe?.tf1h ?? 50);
+  const momentum = Number(asset?.factors?.momentum ?? asset?.timeframe?.mtfMomentum ?? 50);
+  const delta = momentum - trend;
+  if (delta >= 6 || ((asset?.change24h || 0) > 0 && momentum >= 60)) {
+    return { icon: '↑', label: 'Improving' };
+  }
+  if (delta <= -6 || ((asset?.change24h || 0) < 0 && trend <= 45)) {
+    return { icon: '↓', label: 'Weakening' };
+  }
+  return { icon: '•', label: 'Flat' };
+}
+
 export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS }) {
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
 
@@ -35,11 +48,14 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
         <span className="badge glow-badge">Ranked signal scan</span>
       </div>
       <div className="top20-grid">
-        {assets.map((asset) => (
+        {assets.map((asset) => {
+          const boardSignal = deriveBoardSignal(asset);
+          const isFavorite = state?.watchlist?.includes(asset.symbol);
+          return (
           <button
             key={asset.symbol}
             type="button"
-            className={`top20-card premium-top20-card ${state.selectedAsset === asset.symbol ? 'active' : ''}`}
+            className={`top20-card premium-top20-card ${state.selectedAsset === asset.symbol ? 'active' : ''} ${isFavorite ? 'is-favorite' : ''}`}
             onClick={() => {
               setState((prev) => ({ ...prev, selectedAsset: asset.symbol }));
               onAssetOpen?.(asset);
@@ -55,7 +71,7 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
             <div className="top20-price-row">
               <span className="top20-price">{formatPrice(asset.price)}</span>
               <span className={`top20-change ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>
-                {formatPct(asset.change24h || 0)}
+                {formatPct(asset.change24h || 0)} 24h
               </span>
             </div>
             <div className="muted small">{asset.signalLabel || asset.story}</div>
@@ -63,11 +79,13 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
               <span className="badge">{asset.signalScore ?? asset.conviction}%</span>
               <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
               <span className="badge">#{asset.rank ?? '—'}</span>
+              <span className={`badge trend-badge trend-${boardSignal.label.toLowerCase()}`}>{boardSignal.icon} {boardSignal.label}</span>
+              {isFavorite ? <span className="badge favorite-badge">★ Favorite</span> : null}
               <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
             </div>
             <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
           </button>
-        ))}
+        )})}
       </div>
     </div>
   );

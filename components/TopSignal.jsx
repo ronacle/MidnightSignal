@@ -2,6 +2,102 @@
 
 import { formatCompactNumber, formatPct, formatPrice, formatTime, getConvictionTier } from '@/lib/utils';
 
+function deriveSignalStatus(asset, previousEntry) {
+  const currentScore = Number(asset?.signalScore ?? asset?.conviction ?? 0);
+  const previousScore = Number(previousEntry?.signalScore ?? previousEntry?.conviction ?? NaN);
+  const scoreDelta = Number.isFinite(previousScore) ? Math.round(currentScore - previousScore) : 0;
+  const sameLeader = previousEntry?.symbol ? previousEntry.symbol === asset?.symbol : true;
+
+  let label = 'Unchanged';
+  let tone = 'steady';
+
+  if (!sameLeader && previousEntry?.symbol) {
+    label = 'New tonight';
+    tone = 'fresh';
+  } else if (scoreDelta >= 3) {
+    label = 'Strengthening';
+    tone = 'up';
+  } else if (scoreDelta <= -3) {
+    label = 'Weakening';
+    tone = 'down';
+  }
+
+  return {
+    label,
+    tone,
+    scoreDelta,
+    summary: !sameLeader && previousEntry?.symbol
+      ? `Leadership rotated from ${previousEntry.symbol} to ${asset?.symbol}.`
+      : scoreDelta >= 3
+        ? `${asset?.symbol} improved by ${scoreDelta} points since the last snapshot.`
+        : scoreDelta <= -3
+          ? `${asset?.symbol} cooled by ${Math.abs(scoreDelta)} points since the last snapshot.`
+          : `${asset?.symbol} is holding a similar read to the last snapshot.`,
+  };
+}
+
+function deriveAlignment(tf = {}) {
+  const rows = [
+    ['5m', Number(tf?.tf5m)],
+    ['15m', Number(tf?.tf15m)],
+    ['1h', Number(tf?.tf1h)],
+  ].filter(([, value]) => Number.isFinite(value));
+
+  if (!rows.length) {
+    return {
+      label: 'Alignment building',
+      summary: 'Timeframe alignment becomes more useful once more live reads come through.',
+      chips: [],
+    };
+  }
+
+  const strong = rows.filter(([, value]) => value >= 60).length;
+  const weak = rows.filter(([, value]) => value <= 40).length;
+
+  let label = 'Mixed alignment';
+  let summary = 'Timeframes are split, so confirmation matters more than speed tonight.';
+
+  if (strong === rows.length) {
+    label = 'Aligned bullish';
+    summary = '5m, 15m, and 1h are all leaning the same way, so the signal has cleaner support.';
+  } else if (weak === rows.length) {
+    label = 'Aligned cautious';
+    summary = 'All tracked windows are soft, so rallies still need stronger proof.';
+  } else if (strong >= 2) {
+    label = 'Mostly aligned';
+    summary = 'Most tracked windows agree, so the setup has better follow-through potential.';
+  }
+
+  return {
+    label,
+    summary,
+    chips: rows.map(([label, value]) => ({ label, value })),
+  };
+}
+
+function deriveContextHint(asset, alignment, status) {
+  const volatility = Number(asset?.factors?.volatility ?? 50);
+  const momentum = Number(asset?.factors?.momentum ?? 50);
+  const trend = Number(asset?.factors?.trend ?? 50);
+
+  if (status.tone === 'fresh') {
+    return 'Leadership changed tonight, so let the new top signal prove itself before assuming full trend continuation.';
+  }
+  if (alignment.label === 'Mixed alignment') {
+    return 'Trend conflict across timeframes means patience matters more than speed right now.';
+  }
+  if (momentum >= 65 && volatility <= 55) {
+    return 'Momentum is improving after volatility cooled, which is usually a cleaner confirmation mix.';
+  }
+  if (trend >= 65 && momentum < 55) {
+    return 'Trend is holding, but short-term momentum still needs to catch up.';
+  }
+  if (volatility >= 65) {
+    return 'Volatility is still elevated, so confirmation beats chasing tonight.';
+  }
+  return 'Watch for confirmation instead of reacting to one metric in isolation.';
+}
+
 export default function TopSignal({
   asset,
   state,
@@ -35,14 +131,15 @@ export default function TopSignal({
 
   const recent = signalHistory.slice(0, 4);
   const forwardRecent = forwardValidation.slice(0, 5);
+  const previousEntry = signalHistory[1] || null;
   const tf = asset?.timeframe || {};
   const currentAdaptive = adaptiveSummary.find((entry) => entry.regime === (regimeSummary?.regime || asset?.marketRegime));
   const topSignalMotion = Boolean(state?.livePulseEnabled);
 
   const confidenceBreakdown = [
-    ['Trend', asset?.factors?.trend],
+    ['Trend alignment', asset?.factors?.trend],
     ['Momentum', asset?.factors?.momentum],
-    ['Volume', asset?.factors?.volume],
+    ['Volatility posture', asset?.factors?.volatility],
     ['Structure', asset?.factors?.structure],
   ]
     .filter(([, value]) => typeof value === 'number')
@@ -51,6 +148,9 @@ export default function TopSignal({
 
   const conviction = asset.signalScore ?? asset.conviction ?? 0;
   const convictionTone = conviction >= 70 ? 'top-signal-strong' : conviction < 45 ? 'top-signal-cautious' : '';
+  const signalStatus = deriveSignalStatus(asset, previousEntry);
+  const alignment = deriveAlignment(tf);
+  const contextHint = deriveContextHint(asset, alignment, signalStatus);
 
   return (
     <div className={`panel stack ${topSignalMotion ? 'top-signal-motion' : ''} ${embedded ? 'embedded-top-signal' : ''} ${convictionTone}`}>
@@ -74,11 +174,34 @@ export default function TopSignal({
         <div className="row wrap">
           <span className="badge">{asset.signalScore ?? asset.conviction}% score</span>
           <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
+          <span className={`badge signal-status-badge signal-status-${signalStatus.tone}`}>{signalStatus.label}</span>
           <span className="badge">Rank #{asset.rank ?? '—'}</span>
           <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
           <span className="badge">{asset.volumeToMarketCap ?? '—'}% turnover</span>
         </div>
         <div className="muted">{asset.story}</div>
+
+        <div className="factor-block signal-intel-block">
+          <div className="eyebrow">Why this is the top signal</div>
+          <div className="signal-intel-grid">
+            <div className="signal-intel-card">
+              <span className="signal-intel-label">Status</span>
+              <strong>{signalStatus.label}</strong>
+              <div className="muted small">{signalStatus.summary}</div>
+            </div>
+            <div className="signal-intel-card">
+              <span className="signal-intel-label">Timeframe alignment</span>
+              <strong>{alignment.label}</strong>
+              <div className="muted small">{alignment.summary}</div>
+            </div>
+            <div className="signal-intel-card">
+              <span className="signal-intel-label">Watch for</span>
+              <strong>{confidenceBreakdown[0]?.[0] || 'Confirmation'}</strong>
+              <div className="muted small">{contextHint}</div>
+            </div>
+          </div>
+        </div>
+
         {confidenceBreakdown.length ? (
           <div className="factor-block confidence-breakdown-block">
             <div className="eyebrow">Confidence breakdown</div>
@@ -92,6 +215,7 @@ export default function TopSignal({
             </div>
           </div>
         ) : null}
+
         {asset.signalReasons?.length ? (
           <div className="factor-block">
             <div className="eyebrow">Why this appears tonight</div>
@@ -109,6 +233,8 @@ export default function TopSignal({
           <span className="badge">{state.mode} mode</span>
           <span className="badge">{state.strategy}</span>
           <span className="badge">{marketSource === 'coingecko' ? 'Live market' : 'Fallback market'}</span>
+          <span className="badge">{marketReady ? 'Engine live' : 'Engine loading'}</span>
+          <span className="badge">{marketUpdatedAt ? `Updated ${formatTime(marketUpdatedAt)}` : 'Awaiting refresh'}</span>
         </div>
       </div>
 
@@ -179,6 +305,14 @@ export default function TopSignal({
           <div className="factor-chip"><span>15m</span><strong>{tf.tf15m ?? '—'}</strong></div>
           <div className="factor-chip"><span>1h</span><strong>{tf.tf1h ?? '—'}</strong></div>
           <div className="factor-chip"><span>MTF Momentum</span><strong>{tf.mtfMomentum ?? '—'}</strong></div>
+        </div>
+        <div className="history-stack compact-history-stack">
+          {alignment.chips.map((chip) => (
+            <div className="history-row" key={chip.label}>
+              <span>{chip.label}</span>
+              <span>{chip.value}%</span>
+            </div>
+          ))}
         </div>
         {beginner ? <div className="muted small">This blends short and medium views together so the app is not overreacting to only one moment.</div> : null}
       </div>
@@ -258,24 +392,13 @@ export default function TopSignal({
                 <span>{entry.symbol}</span>
                 <span>{entry.score}%</span>
                 <span>{entry.regime}</span>
-                <span>1h {entry.checkpoints?.['1h']?.returnPct ?? '—'}% · 4h {entry.checkpoints?.['4h']?.returnPct ?? '—'}% · 24h {entry.checkpoints?.['24h']?.returnPct ?? '—'}%</span>
+                <span>{formatTime(entry.timestamp)}</span>
               </div>
-            )) : <div className="muted small">No forward validation signals tracked yet.</div>}
+            )) : <div className="muted small">Forward tracking begins after the first live snapshots are stored.</div>}
           </div>
         </div>
         </>
-      ) : (
-        <div className="factor-block factor-block-gated">
-          <div className="eyebrow">Pro Insight</div>
-          <div className="muted small">Free covers the current setup. Pro adds validation, performance tracking, and forward signal logs.</div>
-        </div>
-      )}
-
-      <div className="row">
-        <div className="muted small">
-          {marketReady ? `Source: ${marketSource} · Updated ${formatTime(marketUpdatedAt)}` : 'Loading signal engine…'}
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }

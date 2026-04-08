@@ -5,12 +5,13 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     version: VERSION,
-    feature: 'signal-alive-layout-lock',
+    feature: 'signal-intelligence-layer',
     includes: [
-      'top-signal-pulse',
-      'confidence-breakdown',
-      'watchlist-pinned-above-board',
-      'since-last-visit-layout-guard'
+      'top-signal-status-and-drivers',
+      'multi-timeframe-alignment-read',
+      'since-last-visit-upgrade',
+      'board-change-indicators',
+      'watchlist-momentum-badges'
     ]
   });
 }

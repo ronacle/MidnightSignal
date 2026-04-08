@@ -3352,3 +3352,110 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* v11.59 signal intelligence */
+.signal-intel-block {
+  border: 1px solid rgba(107,197,255,0.14);
+  background: linear-gradient(180deg, rgba(107,197,255,0.06), rgba(255,255,255,0.025));
+}
+
+.signal-intel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.signal-intel-card {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(107,197,255,0.12);
+  background: rgba(7, 18, 35, 0.62);
+  display: grid;
+  gap: 6px;
+}
+
+.signal-intel-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(205, 228, 255, 0.72);
+}
+
+.signal-status-badge {
+  border-color: rgba(107,197,255,0.18);
+}
+
+.signal-status-up,
+.signal-status-fresh {
+  background: rgba(53, 208, 127, 0.14);
+  color: #dfffea;
+}
+
+.signal-status-down {
+  background: rgba(255, 107, 107, 0.12);
+  color: #ffe3e3;
+}
+
+.signal-status-steady {
+  background: rgba(107,197,255,0.12);
+  color: #e4f5ff;
+}
+
+.trend-badge {
+  border-color: rgba(107,197,255,0.14);
+}
+
+.trend-improving {
+  background: rgba(53, 208, 127, 0.14);
+  color: #dfffea;
+}
+
+.trend-weakening {
+  background: rgba(255, 107, 107, 0.12);
+  color: #ffe3e3;
+}
+
+.trend-flat {
+  background: rgba(107,197,255,0.12);
+  color: #e4f5ff;
+}
+
+.favorite-badge {
+  background: rgba(255, 211, 92, 0.12);
+  color: #ffefbc;
+}
+
+.top20-card.is-favorite {
+  border-color: rgba(255, 211, 92, 0.18);
+}
+
+.watchlist-rail-meta-row,
+.since-badge-stack {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.since-badge-stack {
+  justify-content: flex-end;
+}
+
+.since-badge-fresh {
+  background: rgba(53, 208, 127, 0.14);
+  color: #dfffea;
+}
+
+.compact-history-stack {
+  margin-top: 10px;
+}
+
+@media (max-width: 860px) {
+  .signal-intel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .since-badge-stack {
+    justify-content: flex-start;
+  }
+}

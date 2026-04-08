@@ -5,6 +5,14 @@ import { MARKET_FIXTURES } from '@/lib/default-state';
 
 const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
 
+function deriveWatchMomentum(asset) {
+  const momentum = Number(asset?.factors?.momentum ?? asset?.timeframe?.mtfMomentum ?? 50);
+  const trend = Number(asset?.factors?.trend ?? asset?.timeframe?.tf1h ?? 50);
+  if (momentum - trend >= 6) return { icon: '↑', label: 'Improving' };
+  if (trend - momentum >= 6) return { icon: '↓', label: 'Weakening' };
+  return { icon: '•', label: 'Flat' };
+}
+
 export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [] }) {
   const [newSymbol, setNewSymbol] = useState('LINK');
   const assetPool = useMemo(() => (assets?.length ? assets : MARKET_FIXTURES), [assets]);
@@ -37,6 +45,14 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
     onAssetOpen?.(asset);
   }
 
+  const orderedWatchlist = useMemo(() => {
+    return [...(state.watchlist || [])].sort((a, b) => {
+      const assetA = assetPool.find((item) => item.symbol === a);
+      const assetB = assetPool.find((item) => item.symbol === b);
+      return Number(assetB?.signalScore ?? assetB?.conviction ?? 0) - Number(assetA?.signalScore ?? assetA?.conviction ?? 0);
+    });
+  }, [assetPool, state.watchlist]);
+
   return (
     <aside className="panel stack watchlist-rail compact-watchlist-panel">
       <div className="row space-between">
@@ -44,7 +60,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
           <h2 className="section-title compact-title">Watchlist</h2>
           <div className="muted small">Your prioritized assets</div>
         </div>
-        <span className="badge">Synced</span>
+        <span className="badge">Pinned first</span>
       </div>
 
       <div className="watchlist-add-row">
@@ -55,7 +71,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
       </div>
 
       <div className="watchlist-rail-grid">
-        {state.watchlist.map((symbol) => {
+        {orderedWatchlist.map((symbol) => {
           const asset = assetPool.find((item) => item.symbol === symbol) || {
             symbol,
             name: symbol,
@@ -63,6 +79,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
             sentiment: 'neutral',
             story: 'Custom watchlist asset waiting for live feed wiring.'
           };
+          const momentumRead = deriveWatchMomentum(asset);
 
           return (
             <div className="watchlist-rail-card" key={symbol}>
@@ -95,6 +112,10 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
               </div>
 
               <div className="watchlist-rail-name" title={asset.name}>{asset.name}</div>
+              <div className="watchlist-rail-meta-row">
+                <span className={`badge trend-badge trend-${momentumRead.label.toLowerCase()}`}>{momentumRead.icon} {momentumRead.label}</span>
+                <span className={`badge ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>{asset.change24h >= 0 ? '+' : ''}{Number(asset.change24h || 0).toFixed(1)}%</span>
+              </div>
             </div>
           );
         })}
