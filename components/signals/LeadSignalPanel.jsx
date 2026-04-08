@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect,   useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import TonightBrief from '@/components/signals/TonightBrief';
 import TopSignalCard from '@/components/signals/TopSignalCard';
 
@@ -13,53 +13,6 @@ function UpgradeModal({ open, onClose, onUnlockLocal }) {
   if (!open) return null;
 
   const checkoutLink = '/api/stripe/checkout';
-
-  
-  function LockedSection({ children }) {
-    if (isPro) return children;
-    return (
-      <div style={{ position: 'relative' }}>
-        <div style={{ filter: 'blur(6px)', opacity: 0.5, pointerEvents: 'none' }}>
-          {children}
-        </div>
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            background: 'rgba(15,20,35,0.9)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 14,
-            padding: 16,
-            textAlign: 'center'
-          }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              Unlock Full Signal Context
-            </div>
-            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
-              See validation history, forward tracking, and deeper conviction layers.
-            </div>
-            <button
-              onClick={() => window.location.href='/api/checkout'}
-              style={{
-                background:'#4f7cff',
-                color:'#fff',
-                border:'none',
-                padding:'8px 12px',
-                borderRadius:8,
-                cursor:'pointer'
-              }}
-            >
-              Upgrade to Pro
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="upgrade-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title">
@@ -74,7 +27,7 @@ function UpgradeModal({ open, onClose, onUnlockLocal }) {
           </button>
         </div>
 
-        <div className="upgrade-modal-price">Early access · $9/month</div>
+        <div className="upgrade-modal-price">Early access · $9/month · cancel anytime</div>
 
         <div className="upgrade-modal-list">
           <div className="upgrade-modal-item">Full signal breakdown with deeper validation context</div>
@@ -84,7 +37,7 @@ function UpgradeModal({ open, onClose, onUnlockLocal }) {
         </div>
 
         <div className="upgrade-modal-note">
-          Stripe fast launch is enabled. If Stripe keys are connected, checkout will open. A local unlock fallback is included for immediate validation.
+          Secure checkout via Stripe. Midnight Signal is an educational tool, not financial advice. A local unlock fallback remains available for immediate validation.
         </div>
 
         <div className="upgrade-modal-actions">
@@ -115,14 +68,6 @@ export default function LeadSignalPanel({
   adaptiveSummary = [],
   decisionLayer = null,
 }) {
-  const [isPro, setIsPro] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const plan = window.localStorage.getItem('midnight-signal-plan');
-    setIsPro(plan === 'pro');
-  }, []);
-
   const [expanded, setExpanded] = useState(false);
   const [sessionState, setSessionState] = useState(state || {});
   const [persistedSnapshot, setPersistedSnapshot] = useState(null);
@@ -198,54 +143,7 @@ export default function LeadSignalPanel({
       breakdownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 140);
 
-    
-  function LockedSection({ children }) {
-    if (isPro) return children;
-    return (
-      <div style={{ position: 'relative' }}>
-        <div style={{ filter: 'blur(6px)', opacity: 0.5, pointerEvents: 'none' }}>
-          {children}
-        </div>
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            background: 'rgba(15,20,35,0.9)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 14,
-            padding: 16,
-            textAlign: 'center'
-          }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              Unlock Full Signal Context
-            </div>
-            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
-              See validation history, forward tracking, and deeper conviction layers.
-            </div>
-            <button
-              onClick={() => window.location.href='/api/checkout'}
-              style={{
-                background:'#4f7cff',
-                color:'#fff',
-                border:'none',
-                padding:'8px 12px',
-                borderRadius:8,
-                cursor:'pointer'
-              }}
-            >
-              Upgrade to Pro
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return () => window.clearTimeout(timer);
+    return () => window.clearTimeout(timer);
   }, [expanded]);
 
   const handleLocalUnlock = () => {
@@ -271,53 +169,6 @@ export default function LeadSignalPanel({
   };
 
   if (!asset) return null;
-
-  
-  function LockedSection({ children }) {
-    if (isPro) return children;
-    return (
-      <div style={{ position: 'relative' }}>
-        <div style={{ filter: 'blur(6px)', opacity: 0.5, pointerEvents: 'none' }}>
-          {children}
-        </div>
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            background: 'rgba(15,20,35,0.9)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 14,
-            padding: 16,
-            textAlign: 'center'
-          }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              Unlock Full Signal Context
-            </div>
-            <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 10 }}>
-              See validation history, forward tracking, and deeper conviction layers.
-            </div>
-            <button
-              onClick={() => window.location.href='/api/checkout'}
-              style={{
-                background:'#4f7cff',
-                color:'#fff',
-                border:'none',
-                padding:'8px 12px',
-                borderRadius:8,
-                cursor:'pointer'
-              }}
-            >
-              Upgrade to Pro
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -352,13 +203,33 @@ export default function LeadSignalPanel({
         </div>
 
         {planTier !== 'pro' ? (
-          <div className="pro-teaser-card">
-            <div className="pro-teaser-blur" />
-            <div className="pro-teaser-content">
-              <div className="eyebrow">Pro Insight</div>
-              <div className="value">Unlock deeper validation trends and regime edge tracking</div>
-              <div className="muted">Go beyond the brief with expanded breakdowns, performance edge context, and upcoming advanced alerts.</div>
-              <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>See Pro access</button>
+          <div className="pro-teaser-stack">
+            <div className="pro-teaser-card">
+              <div className="pro-teaser-blur" />
+              <div className="pro-teaser-content">
+                <div className="eyebrow">Pro Insight</div>
+                <div className="value">Unlock deeper validation trends and regime edge tracking</div>
+                <div className="muted">Go beyond the brief with expanded breakdowns, forward tracking, and stronger signal context.</div>
+                <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>See Pro access</button>
+              </div>
+            </div>
+
+            <div className="pro-preview-grid" aria-hidden="true">
+              <div className="pro-preview-card">
+                <div className="eyebrow">Validation</div>
+                <div className="value">74% match rate</div>
+                <div className="muted">Historical follow-through preview</div>
+              </div>
+              <div className="pro-preview-card">
+                <div className="eyebrow">Forward edge</div>
+                <div className="value">+2 checkpoints</div>
+                <div className="muted">Track signal progress after the call</div>
+              </div>
+              <div className="pro-preview-card">
+                <div className="eyebrow">Decision layer</div>
+                <div className="value">Bias + posture</div>
+                <div className="muted">See the deeper why behind the setup</div>
+              </div>
             </div>
           </div>
         ) : null}

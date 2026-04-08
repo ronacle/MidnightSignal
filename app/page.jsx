@@ -324,7 +324,7 @@ export default function HomePage() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.31 · paywall foundation + plan visibility + checkout redirects · source: {marketSource}
+          Build v11.33 · conversion refinement + pro preview stack + checkout polish · source: {marketSource}
         </div>
       </div>
 
