@@ -1209,7 +1209,7 @@ const sinceLastVisitSummary = useMemo(() => {
               <div className="growth-preview-copy">{topSignal?.signalLabel || 'Mixed posture'} • {topSignal?.watchNext || signalContext?.whyThisIsHappening?.detail || 'Watch for the next confirmation cycle.'}</div>
               <div className="growth-preview-meta">{signalContext?.relatedCatalysts?.[0]?.headline || signalContext?.catalystTitle || signalContext?.marketContext?.headline || 'No clear catalyst detected'} </div>
             </div>
-            <div className="capture-status muted small">{shareStatus || 'Share text includes your referral code so interested users land on tonight's signal with your invite attached.'}</div>
+            <div className="capture-status muted small">{shareStatus || "Share text includes your referral code so interested users land on tonight's signal with your invite attached."}</div>
           </div>
 
           <div className="growth-loop-card card growth-loop-stats-card">
