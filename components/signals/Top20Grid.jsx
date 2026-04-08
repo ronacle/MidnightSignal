@@ -30,7 +30,7 @@ function getChangeIndicator(asset) {
   return '• steady';
 }
 
-export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS }) {
+export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS, recentAlertSymbols = [] }) {
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
 
   return (
@@ -43,11 +43,13 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
         <span className="badge glow-badge">Ranked by confidence + signal</span>
       </div>
       <div className="top20-grid">
-        {assets.map((asset) => (
+        {assets.map((asset) => {
+          const hasAlert = recentAlertSymbols.includes(asset.symbol);
+          return (
           <button
             key={asset.symbol}
             type="button"
-            className={`top20-card premium-top20-card ${state.selectedAsset === asset.symbol ? 'active' : ''}`}
+            className={`top20-card premium-top20-card ${state.selectedAsset === asset.symbol ? 'active' : ''} ${hasAlert ? 'top20-card-alert' : ''}`}
             onClick={() => {
               setState((prev) => ({ ...prev, selectedAsset: asset.symbol }));
               onAssetOpen?.(asset);
@@ -68,6 +70,7 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
             </div>
             <div className="muted small">{asset.signalLabel || asset.story}</div>
             <div className="row wrap">
+              {hasAlert ? <span className="badge glow-badge">New alert</span> : null}
               <span className="badge">Score {asset.signalScore ?? asset.conviction}%</span>
               <span className="badge">Confidence {asset.confidenceScore ?? asset.signalScore ?? asset.conviction}%</span>
               <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
@@ -80,7 +83,7 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
             </div>
             <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
           </button>
-        ))}
+        );})}
       </div>
     </div>
   );

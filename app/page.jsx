@@ -6,6 +6,7 @@ import HeroSection from '@/components/layout/HeroSection';
 import Top20Grid from '@/components/signals/Top20Grid';
 import LeadSignalPanel from '@/components/signals/LeadSignalPanel';
 import SignalContextPanel from '@/components/signals/SignalContextPanel';
+import AlertCenterPanel from '@/components/signals/AlertCenterPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
@@ -33,6 +34,7 @@ import { buildDecisionLayer } from '@/lib/decision-layer';
 import {
   buildAssetSnapshotMap,
   buildSystemAlerts,
+  buildMeaningfulChangeAlerts,
   evaluateConfiguredAlerts,
   readAlertMemory,
   writeAlertMemory,
@@ -599,6 +601,28 @@ const sinceLastVisitSummary = useMemo(() => {
   }, [lastVisitAt]);
 
 
+  const recentAlertEvents = useMemo(() => Array.isArray(state?.recentAlertEvents) ? state.recentAlertEvents.slice(0, 5) : [], [state?.recentAlertEvents]);
+
+  const newAlertCountSinceVisit = useMemo(() => {
+    const visitTs = lastVisitAt ? new Date(lastVisitAt).getTime() : 0;
+    return (state?.recentAlertEvents || []).filter((alert) => {
+      const ts = alert?.triggeredAt ? new Date(alert.triggeredAt).getTime() : 0;
+      return ts && ts >= visitTs;
+    }).length;
+  }, [state?.recentAlertEvents, lastVisitAt]);
+
+  const recentAlertSymbols = useMemo(() => Array.from(new Set((state?.recentAlertEvents || []).map((alert) => alert?.symbol).filter(Boolean))).slice(0, 12), [state?.recentAlertEvents]);
+
+  const alertSummary = useMemo(() => ({
+    title: newAlertCountSinceVisit ? `${newAlertCountSinceVisit} important change${newAlertCountSinceVisit === 1 ? '' : 's'} since your last check` : 'Alert loop armed for tonight',
+    detail: newAlertCountSinceVisit
+      ? 'Watchlist assets and major signal shifts are being tracked so return visits feel instantly useful.'
+      : 'Signal changes will stack here as assets strengthen, weaken, or flip posture.',
+    badge: newAlertCountSinceVisit ? `${newAlertCountSinceVisit} new alerts` : 'Monitoring live',
+    watchlistLabel: `${state?.watchlist?.length || 0} watchlist names tracked`,
+  }), [newAlertCountSinceVisit, state?.watchlist]);
+
+
   useEffect(() => {
     if (!topSignal || !marketReady || typeof window === 'undefined') return;
 
@@ -625,7 +649,9 @@ const sinceLastVisitSummary = useMemo(() => {
           cooldownMinutes: Number(state?.alertCooldownMinutes || 30),
         });
 
-        const allAlerts = [...configured.events, ...systemAlerts]
+        const meaningfulAlerts = buildMeaningfulChangeAlerts(previousMap, currentMap, state?.watchlist || []);
+
+        const allAlerts = [...configured.events, ...meaningfulAlerts, ...systemAlerts]
           .filter((item) => !dismissed.includes(item.id))
           .sort((a, b) => b.priority - a.priority);
 
@@ -633,11 +659,11 @@ const sinceLastVisitSummary = useMemo(() => {
           setPriorityAlerts(allAlerts.slice(0, 4));
         }
 
-        if (configured.events.length) {
+        if (allAlerts.length) {
           const recent = [
-            ...configured.events,
+            ...allAlerts,
             ...(state?.recentAlertEvents || []),
-          ].slice(0, 12);
+          ].filter(Boolean).filter((alert, index, array) => array.findIndex((item) => item?.id === alert?.id) === index).slice(0, 12);
           setState((previous) => ({ ...previous, recentAlertEvents: recent }));
 
           if (state?.signalSoundsEnabled && typeof window !== 'undefined' && window.AudioContext) {
@@ -655,7 +681,7 @@ const sinceLastVisitSummary = useMemo(() => {
             } catch {}
           }
 
-          if (state?.alertDeliveryEnabled && state?.alertDeliveryEmail) {
+          if (configured.events.length && state?.alertDeliveryEnabled && state?.alertDeliveryEmail) {
             try {
               const digestMode = state.alertDigestMode || 'instant';
               let payloadAlerts = configured.events;
@@ -870,10 +896,19 @@ const sinceLastVisitSummary = useMemo(() => {
           syncing={syncing}
           state={state}
           ritualStatus={ritualStatus}
+          alertSummary={alertSummary}
           onOpenControls={() => {
             setAlertAsset(null);
             setControlOpen(true);
           }}
+        />
+
+        <AlertCenterPanel
+          alerts={recentAlertEvents}
+          newCount={newAlertCountSinceVisit}
+          lastVisitLabel={lastVisitLabel}
+          onOpenAsset={openAlertAsset}
+          onDismissAll={() => setState((previous) => ({ ...previous, recentAlertEvents: [] }))}
         />
 
         <section className="conversion-strip card" aria-label="Why Midnight Signal">
@@ -939,6 +974,14 @@ const sinceLastVisitSummary = useMemo(() => {
 
           <div className="since-intel-grid">
             <div className="since-intel-card">
+              <div className="since-intel-label">Important alerts</div>
+              <div className="since-intel-list">
+                {recentAlertEvents.length ? recentAlertEvents.slice(0, 3).map((item) => (
+                  <div key={item.id} className="since-intel-item">{item.symbol ? `${item.symbol}: ` : ''}{item.body || item.text}</div>
+                )) : <div className="since-intel-item muted">No important alerts since your last visit.</div>}
+              </div>
+            </div>
+            <div className="since-intel-card">
               <div className="since-intel-label">What changed</div>
               <div className="since-intel-list">
                 {visitIntelligence.highlights.map((item) => (
@@ -988,6 +1031,7 @@ const sinceLastVisitSummary = useMemo(() => {
             setState={setState}
             onAssetOpen={setDetailAsset}
             assets={rankedAssets}
+            recentAlertSymbols={recentAlertSymbols}
           />
 
           <Top20Grid
@@ -995,6 +1039,7 @@ const sinceLastVisitSummary = useMemo(() => {
             setState={setState}
             onAssetOpen={setDetailAsset}
             assets={rankedAssets}
+            recentAlertSymbols={recentAlertSymbols}
           />
         </section>
 
@@ -1012,7 +1057,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.60 · Live data tightening · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
+          Build v11.62 · Alerts + retention · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 

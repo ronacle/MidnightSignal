@@ -3,7 +3,7 @@
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
 
-export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state, ritualStatus }) {
+export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state, ritualStatus, alertSummary }) {
   const isLocalOnly = !user;
   const syncLabel = user ? (syncing ? 'Syncing…' : 'Sync Active') : 'Saved locally';
   const syncDetail = user
@@ -25,7 +25,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={118} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.61</div>
+            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.62</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
@@ -46,7 +46,8 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           <span className="badge">Not financial advice</span>
         </div>
 
-        {ritualStatus ? (
+        <div className="hero-status-grid">
+          {ritualStatus ? (
           <div className="ritual-checkin-card">
             <div>
               <div className="eyebrow">Daily ritual</div>
@@ -59,6 +60,21 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             </div>
           </div>
         ) : null}
+
+          {alertSummary ? (
+            <div className="ritual-checkin-card alert-ritual-card">
+              <div>
+                <div className="eyebrow">Retention loop</div>
+                <div className="ritual-checkin-title">{alertSummary.title}</div>
+                <div className="muted small">{alertSummary.detail}</div>
+              </div>
+              <div className="row wrap">
+                <span className="badge glow-badge">{alertSummary.badge}</span>
+                <span className="badge">{alertSummary.watchlistLabel}</span>
+              </div>
+            </div>
+          ) : null}
+        </div>
 
         <div className="hero-mobile-hint muted small">
           Mobile flow: start with Tonight’s Top Signal, tap any asset card for details, then use Controls for session changes.
