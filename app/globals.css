@@ -2256,3 +2256,44 @@ button, input, select { font: inherit; }
   font-size: 0.82rem;
   line-height: 1.45;
 }
+
+
+.upgrade-strip-inline {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 20, 36, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.upgrade-strip-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.upgrade-strip-copy strong {
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.upgrade-strip-copy span {
+  font-size: 0.84rem;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .upgrade-strip-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .upgrade-strip-inline .primary-button {
+    width: 100%;
+  }
+}

@@ -55,25 +55,6 @@ function UpgradeModal({ open, onClose, onUnlockLocal }) {
 }
 
 export default function LeadSignalPanel({
-
-  const [isPro, setIsPro] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const plan = window.localStorage.getItem('midnight-signal-plan');
-    setIsPro(plan === 'pro');
-  }, []);
-
-  async function handleUpgrade() {
-    try {
-      const res = await fetch('/api/checkout', { method: 'POST' });
-      const data = await res.json();
-      if (data?.url) window.location.href = data.url;
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
   asset,
   state,
   marketSource,
@@ -257,39 +238,20 @@ export default function LeadSignalPanel({
             />
           </div>
         </div>
-      
-      {!isPro && (
-        <div style={{
-          marginTop: 16,
-          padding: 12,
-          borderRadius: 12,
-          border: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(20,25,40,0.6)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12
-        }}>
-          <div style={{fontSize: 13, opacity: 0.8}}>
-            Unlock validation history, forward tracking, and deeper signal context.
-          </div>
-          <button
-            onClick={handleUpgrade}
-            style={{
-              background:'#4f7cff',
-              color:'#fff',
-              border:'none',
-              padding:'8px 12px',
-              borderRadius:8,
-              cursor:'pointer'
-            }}
-          >
-            Upgrade
-          </button>
-        </div>
-      )}
 
-</section>
+        {planTier !== 'pro' ? (
+          <div className="upgrade-strip-inline">
+            <div className="upgrade-strip-copy">
+              <strong>Unlock the full signal view.</strong>
+              <span>See deeper validation history, forward tracking, and expanded context.</span>
+            </div>
+            <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>
+              Upgrade
+            </button>
+          </div>
+        ) : null}
+
+      </section>
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} onUnlockLocal={handleLocalUnlock} />
     </>
