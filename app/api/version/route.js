@@ -5,6 +5,6 @@ export async function GET() {
     ok: true,
     app: 'midnight-signal',
     version: VERSION,
-    build: 'stabilization-deep-polish',
+    build: 'real-ingestion-expansion',
   });
 }

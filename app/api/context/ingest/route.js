@@ -1,9 +1,9 @@
 import { ingestContextItems, listContextItems } from '@/lib/context-ingestion';
 
 const INGEST_SCHEMA = {
-  accepts: ['x', 'rss', 'manual'],
+  accepts: ['x', 'rss', 'manual', 'newsletter'],
   requiredShape: ['title or headline', 'body or summary', 'source', 'publishedAt/timestamp'],
-  optionalShape: ['url', 'assetMentions', 'sentimentHint', 'catalystType', 'sourceHandle', 'sourceNetwork'],
+  optionalShape: ['url', 'assetMentions', 'sentimentHint', 'catalystType', 'sourceHandle', 'sourceNetwork', 'topicBucket', 'externalId', 'imageUrl'],
 };
 
 export async function GET(request) {
@@ -36,7 +36,7 @@ export async function POST(request) {
       inserted: result.inserted,
       items: result.items.slice(0, 12),
       updatedAt: result.updatedAt,
-      message: 'Context items accepted and normalized.',
+      message: 'Context items accepted, normalized, deduplicated, and freshness-ranked.',
       schema: INGEST_SCHEMA,
     });
   } catch {
