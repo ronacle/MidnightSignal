@@ -25,7 +25,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={118} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.70</div>
+            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.71</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
@@ -33,7 +33,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             </p>
             <div className="hero-support-copy">
               <p>Start with Tonight’s Top Signal, open the why, then scan the Top 20 for broader posture.</p>
-              <p>The brand system now matches the beacon identity more closely: darker glass, cleaner hierarchy, softer glows, and account-aware setup memory.</p>
+              <p>The system is cleaner and safer now: tighter hierarchy, more reliable rendering, stronger mobile rhythm, and fewer fragile content paths.</p>
             </div>
           </div>
         </div>

@@ -53,6 +53,23 @@ const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v1';
 
 const GROWTH_LOOP_STORAGE_KEY = 'midnight-signal-growth-loop-v1';
 
+
+function safeText(value, fallback = '') {
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (Array.isArray(value)) {
+    const first = value.find((item) => item !== null && item !== undefined);
+    return safeText(first, fallback);
+  }
+  if (value && typeof value === 'object') {
+    return safeText(value.headline ?? value.title ?? value.label ?? value.detail ?? value.body ?? value.summary ?? value.text, fallback);
+  }
+  return fallback;
+}
+
+function safeList(value) {
+  return Array.isArray(value) ? value : [];
+}
+
 function createReferralCode() {
   return `MS${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
@@ -112,8 +129,8 @@ function buildSharePayload(asset, context, referralCode) {
   const symbol = asset?.symbol || 'BTC';
   const conviction = Math.round(asset?.conviction || asset?.signalScore || 0);
   const posture = asset?.signalLabel || asset?.sentiment || 'Mixed posture';
-  const why = asset?.watchNext || asset?.postureSummary || context?.whyThisIsHappening?.detail || 'Watch for the next confirmation cycle.';
-  const catalyst = context?.relatedCatalysts?.[0]?.headline || context?.catalystTitle || context?.marketContext?.headline || 'No clear catalyst detected';
+  const why = safeText(asset?.watchNext, '') || safeText(asset?.postureSummary, '') || safeText(context?.whyThisIsHappening, 'Watch for the next confirmation cycle.');
+  const catalyst = safeText(safeList(context?.relatedCatalysts)[0]?.headline, '') || safeText(context?.catalystTitle, '') || safeText(context?.marketContext?.headline, 'No clear catalyst detected');
   const referralSuffix = referralCode ? `?ref=${encodeURIComponent(referralCode)}` : '';
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const shareUrl = `${baseUrl}/signal/${symbol.toLowerCase()}${referralSuffix}`;
@@ -164,7 +181,7 @@ function downloadSignalCard(asset, context, referralCode) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `midnight-signal-${asset.symbol.toLowerCase()}-v11.70.svg`;
+  link.download = `midnight-signal-${asset.symbol.toLowerCase()}-v11.71.svg`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -1197,7 +1214,7 @@ const sinceLastVisitSummary = useMemo(() => {
                 <div className="eyebrow">Share tonight&apos;s signal</div>
                 <h2 className="section-title">Turn a strong read into a shareable signal card</h2>
               </div>
-              <span className="badge glow-badge">v11.70 growth loop</span>
+              <span className="badge glow-badge">v11.71 stability pass</span>
             </div>
             <div className="growth-loop-actions">
               <button type="button" className="primary-button" onClick={() => shareSignalCard(topSignal)}>Share Tonight&apos;s Signal 🌙</button>
@@ -1206,8 +1223,8 @@ const sinceLastVisitSummary = useMemo(() => {
             </div>
             <div className="growth-share-preview">
               <div className="growth-preview-symbol">{topSignal?.symbol || '--'} <span>{Math.round(topSignal?.conviction || 0)}%</span></div>
-              <div className="growth-preview-copy">{topSignal?.signalLabel || 'Mixed posture'} • {topSignal?.watchNext || signalContext?.whyThisIsHappening?.detail || 'Watch for the next confirmation cycle.'}</div>
-              <div className="growth-preview-meta">{signalContext?.relatedCatalysts?.[0]?.headline || signalContext?.catalystTitle || signalContext?.marketContext?.headline || 'No clear catalyst detected'} </div>
+              <div className="growth-preview-copy">{topSignal?.signalLabel || 'Mixed posture'} • {safeText(topSignal?.watchNext, '') || safeText(signalContext?.whyThisIsHappening, 'Watch for the next confirmation cycle.')}</div>
+              <div className="growth-preview-meta">{safeText(safeList(signalContext?.relatedCatalysts)[0]?.headline, '') || safeText(signalContext?.catalystTitle, '') || safeText(signalContext?.marketContext?.headline, 'No clear catalyst detected')} </div>
             </div>
             <div className="capture-status muted small">{shareStatus || "Share text includes your referral code so interested users land on tonight's signal with your invite attached."}</div>
           </div>
@@ -1249,10 +1266,10 @@ const sinceLastVisitSummary = useMemo(() => {
             <div className="landing-mini-card">
               <div className="landing-mini-label">Tonight&apos;s preview</div>
               <div className="landing-mini-symbol">{topSignal?.symbol || '--'} <span>{Math.round(topSignal?.conviction || 0)}%</span></div>
-              <div className="landing-mini-copy">{decisionLayer?.statusLabel || topSignal?.signalLabel || 'Top signal ready'} • {signalContext?.marketContext?.headline || 'Context loading'}</div>
+              <div className="landing-mini-copy">{safeText(decisionLayer?.statusLabel, '') || safeText(topSignal?.signalLabel, 'Top signal ready')} • {safeText(signalContext?.marketContext?.headline, 'Context loading')}</div>
             </div>
             <div className="landing-mini-grid">
-              <div className="landing-mini-stat"><span>Context</span><strong>{signalContext?.catalystTitle || 'Catalyst watch armed'}</strong></div>
+              <div className="landing-mini-stat"><span>Context</span><strong>{safeText(signalContext?.catalystTitle, 'Catalyst watch armed')}</strong></div>
               <div className="landing-mini-stat"><span>Alerts</span><strong>{alertSummary.badge}</strong></div>
               <div className="landing-mini-stat"><span>Board</span><strong>{state.planTier === 'pro' ? 'Full board unlocked' : 'Preview + upgrade path'}</strong></div>
             </div>
@@ -1280,11 +1297,11 @@ const sinceLastVisitSummary = useMemo(() => {
               <div className="preview-three-up">
                 <div className="preview-subcard">
                   <div className="preview-sub-label">Why now</div>
-                  <div className="preview-sub-copy">{signalContext?.whyThisIsHappening?.[0] || 'Momentum, trend, and volatility are fused into one plain-English read.'}</div>
+                  <div className="preview-sub-copy">{safeText(signalContext?.whyThisIsHappening, 'Momentum, trend, and volatility are fused into one plain-English read.')}</div>
                 </div>
                 <div className="preview-subcard">
                   <div className="preview-sub-label">Catalyst</div>
-                  <div className="preview-sub-copy">{signalContext?.catalystSummary || 'Possible catalyst matching now sits next to the signal instead of in a noisy feed.'}</div>
+                  <div className="preview-sub-copy">{safeText(signalContext?.catalystSummary, 'Possible catalyst matching now sits next to the signal instead of in a noisy feed.')}</div>
                 </div>
                 <div className="preview-subcard">
                   <div className="preview-sub-label">What changes next</div>
@@ -1503,7 +1520,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.70 · growth loop + referrals · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
+          Build v11.71 · stabilization + deep polish · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 
