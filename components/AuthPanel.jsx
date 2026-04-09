@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 function Step({ done, title, text }) {
   return (
@@ -14,40 +14,11 @@ function Step({ done, title, text }) {
   );
 }
 
-function MiniStat({ label, value, detail }) {
-  return (
-    <div className="account-mini-stat">
-      <div className="eyebrow">{label}</div>
-      <div className="value">{value}</div>
-      <div className="muted small">{detail}</div>
-    </div>
-  );
-}
-
-export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, planTier = 'basic', profileCount = 0, entitlement = {}, acceptedDisclaimer = false, state }) {
-  const [email, setEmail] = useState(state?.alertDeliveryEmail || '');
+export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, planTier = 'basic', profileCount = 0, entitlement = {}, acceptedDisclaimer = false }) {
+  const [email, setEmail] = useState('');
   const [feedback, setFeedback] = useState('');
 
   const setupCount = useMemo(() => [Boolean(user), Boolean(acceptedDisclaimer), planTier === 'pro'].filter(Boolean).length, [user, acceptedDisclaimer, planTier]);
-  const watchlistCount = Array.isArray(state?.watchlist) ? state.watchlist.length : 0;
-  const selectedAsset = state?.selectedAsset || 'BTC';
-  const restoreSummary = [state?.restoreLastSelectedAsset ? 'asset memory on' : 'asset memory off', state?.restorePanelState ? 'panel restore on' : 'panel restore off'].join(' · ');
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const url = new URL(window.location.href);
-      const authStatus = url.searchParams.get('auth');
-      const authError = url.searchParams.get('error_description') || url.searchParams.get('error');
-      if (authStatus === 'signed-in') {
-        setFeedback('Magic link accepted. Your account session is live and your settings can sync across devices.');
-      } else if (authError) {
-        setFeedback(`Sign-in issue: ${String(authError).replace(/\+/g, ' ')}`);
-      }
-    } catch {
-      // no-op
-    }
-  }, []);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -58,23 +29,17 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
 
   return (
     <div className="panel stack account-panel">
-      <div className="row space-between wrap">
+      <div className="row space-between">
         <h2 className="section-title">Account & onboarding</h2>
         <span className="badge">{syncing ? 'Syncing…' : status}</span>
       </div>
 
       <div className="onboarding-summary">
         <div>
-          <div className="eyebrow">Account readiness</div>
+          <div className="eyebrow">Setup progress</div>
           <div className="value onboarding-progress">{setupCount}/3 complete</div>
         </div>
-        <div className="muted small">Sign in once, save your preferences, and keep your Midnight setup consistent across devices.</div>
-      </div>
-
-      <div className="account-mini-grid">
-        <MiniStat label="Session" value={user ? 'Signed in' : 'Local only'} detail={user ? user.email : 'This device only'} />
-        <MiniStat label="Watchlist" value={watchlistCount} detail={`Primary asset ${selectedAsset}`} />
-        <MiniStat label="Restore" value={state?.restoreLastSelectedAsset ? 'On' : 'Off'} detail={restoreSummary} />
+        <div className="muted small">Finish sync, acceptance, and billing setup from one place.</div>
       </div>
 
       <div className="setup-steps">
@@ -95,8 +60,8 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
           <div className="muted small">Last synced: {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : 'Not yet synced'}</div>
           <div className="muted small">Saved profiles in cloud: {profileCount}</div>
           <div className="muted small">Billing truth: {entitlement?.verified ? 'Verified Pro' : 'Free / unverified'}{entitlement?.status ? ` · ${String(entitlement.status).replace(/_/g, ' ')}` : ''}</div>
-          <div className="muted small">Preferences saved to account: mode, strategy, timeframe, watchlist, selected asset, alert rules, delivery memory, panel restore choices, and onboarding state.</div>
-          <div className="row wrap-gap">
+          <div className="muted small">Cloud sync carries your watchlist, onboarding state, saved profiles, alert rules, digest queue, and verified entitlement state.</div>
+          <div className="row">
             <button className="button" onClick={onRefresh} type="button">Pull latest cloud state</button>
             <button className="ghost-button" onClick={onSignOut} type="button">Sign out</button>
           </div>

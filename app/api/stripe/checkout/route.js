@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   const origin = request.nextUrl.origin;
-  const plan = request.nextUrl.searchParams.get('plan') || 'pro-founder';
-  const billingCycle = request.nextUrl.searchParams.get('billing_cycle') || 'monthly';
   const successUrl = `${origin}/success?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${origin}/cancel?checkout=canceled`;
 
@@ -26,19 +24,15 @@ export async function GET(request) {
       cancel_url: cancelUrl,
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      customer_creation: 'always',
-      metadata: {
-        product: 'midnight-signal-pro',
-        plan,
-        billingCycle,
-      },
       subscription_data: {
         metadata: {
           product: 'midnight-signal-pro',
-          plan,
-          billingCycle,
         },
       },
+      metadata: {
+        product: 'midnight-signal-pro',
+      },
+      customer_creation: 'always',
     });
 
     if (!session.url) {
