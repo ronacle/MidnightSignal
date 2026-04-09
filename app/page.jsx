@@ -1365,7 +1365,7 @@ const sinceLastVisitSummary = useMemo(() => {
             setAlertAsset(null);
             setControlOpen(true);
           }}
-
+        />
 
         <section className="top-grid lead-flow-grid">
           <LeadSignalPanel
