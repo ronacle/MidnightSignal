@@ -180,6 +180,22 @@ export default function LeadSignalPanel({
           <span className={`badge plan-status-badge tier-${planTier}`}>{planTier === 'pro' ? 'Pro' : 'Basic'}</span>
         </div>
 
+        <TopSignalCard
+          asset={asset}
+          state={{ ...(state || {}), planTier }}
+          marketSource={marketSource}
+          marketUpdatedAt={marketUpdatedAt}
+          marketReady={marketReady}
+          signalHistory={signalHistory}
+          validationSummary={validationSummary}
+          regimeSummary={regimeSummary}
+          forwardValidation={forwardValidation}
+          forwardScorecard={forwardScorecard}
+          adaptiveSummary={adaptiveSummary}
+          decisionLayer={decisionLayer}
+          title="Tonight's Top Signal"
+        />
+
         <TonightBrief
           asset={asset}
           timeframe={state?.timeframe}
@@ -258,7 +274,7 @@ export default function LeadSignalPanel({
               forwardScorecard={forwardScorecard}
               adaptiveSummary={adaptiveSummary}
               decisionLayer={decisionLayer}
-              title="Full Signal Breakdown"
+              title="Expanded Signal Breakdown"
               embedded
             />
           </div>

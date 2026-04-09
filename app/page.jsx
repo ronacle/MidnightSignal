@@ -1365,6 +1365,118 @@ const sinceLastVisitSummary = useMemo(() => {
             setAlertAsset(null);
             setControlOpen(true);
           }}
+
+
+        <section className="top-grid lead-flow-grid">
+          <LeadSignalPanel
+            asset={topSignal}
+            state={state}
+            setState={setState}
+            marketSource={marketSource}
+            marketUpdatedAt={marketUpdatedAt}
+            marketReady={marketReady}
+            signalHistory={signalHistory}
+            validationSummary={validationSummary}
+            regimeSummary={regimeSummary}
+            forwardValidation={forwardValidation}
+            forwardScorecard={forwardScorecard}
+            adaptiveSummary={adaptiveSummary}
+            decisionLayer={decisionLayer}
+          />
+        </section>
+
+        <SignalContextPanel
+          context={signalContext}
+          asset={topSignal}
+          planTier={state.planTier}
+        />
+
+        <section className="since-panel card" id="since-last-visit">
+          <div className="since-panel-head">
+            <div>
+              <div className="eyebrow">Return signal</div>
+              <h2 className="section-title">Since your last visit</h2>
+            </div>
+            <span className="badge since-badge">{lastVisitLabel}</span>
+          </div>
+
+          <div className="since-chip-row">
+            {sinceLastVisitSummary.map((item) => (
+              <div key={item} className="since-chip">{item}</div>
+            ))}
+          </div>
+
+          <div className="since-intel-grid">
+            <div className="since-intel-card">
+              <div className="since-intel-label">Important alerts</div>
+              <div className="since-intel-list">
+                {recentAlertEvents.length ? recentAlertEvents.slice(0, 3).map((item) => (
+                  <div key={item.id} className="since-intel-item">{item.symbol ? `${item.symbol}: ` : ''}{item.body || item.text}</div>
+                )) : <div className="since-intel-item muted">No important alerts since your last visit.</div>}
+              </div>
+            </div>
+            <div className="since-intel-card">
+              <div className="since-intel-label">What changed</div>
+              <div className="since-intel-list">
+                {visitIntelligence.highlights.map((item) => (
+                  <div key={item} className="since-intel-item">{item}</div>
+                ))}
+              </div>
+            </div>
+
+            <div className="since-intel-card">
+              <div className="since-intel-label">What improved</div>
+              <div className="since-intel-list">
+                {visitIntelligence.improved.length ? visitIntelligence.improved.map((item) => (
+                  <div key={item} className="since-intel-item">{item}</div>
+                )) : <div className="since-intel-item muted">No major strengthening moves yet.</div>}
+              </div>
+            </div>
+
+            <div className="since-intel-card">
+              <div className="since-intel-label">What weakened</div>
+              <div className="since-intel-list">
+                {visitIntelligence.weakened.length ? visitIntelligence.weakened.map((item) => (
+                  <div key={item} className="since-intel-item">{item}</div>
+                )) : <div className="since-intel-item muted">No major weakening moves yet.</div>}
+              </div>
+            </div>
+          </div>
+
+          <div className="since-takeaway">
+            <div className="since-intel-label">Tonight&apos;s takeaway</div>
+            <div className="since-takeaway-copy">{visitIntelligence.takeaway}</div>
+          </div>
+        </section>
+
+        <section className="market-grid market-grid-single" id="market-scan">
+          <div className="market-scan-header">
+            <div>
+              <div className="eyebrow">Next up</div>
+              <h2 className="section-title">Tonight&apos;s Board</h2>
+            </div>
+            <div className="muted small">
+              Scan the live field, open a name, and save favorites from the board.
+            </div>
+          </div>
+
+          <WatchlistPanel
+            state={state}
+            setState={setState}
+            onAssetOpen={setDetailAsset}
+            assets={rankedAssets}
+            recentAlertSymbols={recentAlertSymbols}
+          />
+
+          <Top20Grid
+            state={state}
+            setState={setState}
+            onAssetOpen={setDetailAsset}
+            assets={rankedAssets}
+            recentAlertSymbols={recentAlertSymbols}
+          />
+        </section>
+
         />
 
         {onboardingOpen ? (
@@ -1632,116 +1744,6 @@ const sinceLastVisitSummary = useMemo(() => {
         </section>
 
 
-        <section className="top-grid lead-flow-grid">
-          <LeadSignalPanel
-            asset={topSignal}
-            state={state}
-            setState={setState}
-            marketSource={marketSource}
-            marketUpdatedAt={marketUpdatedAt}
-            marketReady={marketReady}
-            signalHistory={signalHistory}
-            validationSummary={validationSummary}
-            regimeSummary={regimeSummary}
-            forwardValidation={forwardValidation}
-            forwardScorecard={forwardScorecard}
-            adaptiveSummary={adaptiveSummary}
-            decisionLayer={decisionLayer}
-          />
-        </section>
-
-        <SignalContextPanel
-          context={signalContext}
-          asset={topSignal}
-          planTier={state.planTier}
-        />
-
-        <section className="since-panel card" id="since-last-visit">
-          <div className="since-panel-head">
-            <div>
-              <div className="eyebrow">Return signal</div>
-              <h2 className="section-title">Since your last visit</h2>
-            </div>
-            <span className="badge since-badge">{lastVisitLabel}</span>
-          </div>
-
-          <div className="since-chip-row">
-            {sinceLastVisitSummary.map((item) => (
-              <div key={item} className="since-chip">{item}</div>
-            ))}
-          </div>
-
-          <div className="since-intel-grid">
-            <div className="since-intel-card">
-              <div className="since-intel-label">Important alerts</div>
-              <div className="since-intel-list">
-                {recentAlertEvents.length ? recentAlertEvents.slice(0, 3).map((item) => (
-                  <div key={item.id} className="since-intel-item">{item.symbol ? `${item.symbol}: ` : ''}{item.body || item.text}</div>
-                )) : <div className="since-intel-item muted">No important alerts since your last visit.</div>}
-              </div>
-            </div>
-            <div className="since-intel-card">
-              <div className="since-intel-label">What changed</div>
-              <div className="since-intel-list">
-                {visitIntelligence.highlights.map((item) => (
-                  <div key={item} className="since-intel-item">{item}</div>
-                ))}
-              </div>
-            </div>
-
-            <div className="since-intel-card">
-              <div className="since-intel-label">What improved</div>
-              <div className="since-intel-list">
-                {visitIntelligence.improved.length ? visitIntelligence.improved.map((item) => (
-                  <div key={item} className="since-intel-item">{item}</div>
-                )) : <div className="since-intel-item muted">No major strengthening moves yet.</div>}
-              </div>
-            </div>
-
-            <div className="since-intel-card">
-              <div className="since-intel-label">What weakened</div>
-              <div className="since-intel-list">
-                {visitIntelligence.weakened.length ? visitIntelligence.weakened.map((item) => (
-                  <div key={item} className="since-intel-item">{item}</div>
-                )) : <div className="since-intel-item muted">No major weakening moves yet.</div>}
-              </div>
-            </div>
-          </div>
-
-          <div className="since-takeaway">
-            <div className="since-intel-label">Tonight&apos;s takeaway</div>
-            <div className="since-takeaway-copy">{visitIntelligence.takeaway}</div>
-          </div>
-        </section>
-
-        <section className="market-grid market-grid-single" id="market-scan">
-          <div className="market-scan-header">
-            <div>
-              <div className="eyebrow">Next up</div>
-              <h2 className="section-title">Tonight&apos;s Board</h2>
-            </div>
-            <div className="muted small">
-              Scan the live field, open a name, and save favorites from the board.
-            </div>
-          </div>
-
-          <WatchlistPanel
-            state={state}
-            setState={setState}
-            onAssetOpen={setDetailAsset}
-            assets={rankedAssets}
-            recentAlertSymbols={recentAlertSymbols}
-          />
-
-          <Top20Grid
-            state={state}
-            setState={setState}
-            onAssetOpen={setDetailAsset}
-            assets={rankedAssets}
-            recentAlertSymbols={recentAlertSymbols}
-          />
-        </section>
-
         {upgradeNotice ? (
           <div className="upgrade-notice-banner">
             <span>{upgradeNotice}</span>
@@ -1756,7 +1758,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.75 · X / Cardano Midnight News automation bridge · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
+          Build v11.75.1 · Top Signal First / scroll compression hotfix · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 
