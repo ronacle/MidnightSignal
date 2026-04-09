@@ -835,14 +835,30 @@ const sinceLastVisitSummary = useMemo(() => {
     };
   }, []);
 
+  const priorityAlertCountSinceVisit = useMemo(() => (state?.recentAlertEvents || []).filter((alert) => {
+    const ts = alert?.triggeredAt ? new Date(alert.triggeredAt).getTime() : 0;
+    const visitTs = lastVisitAt ? new Date(lastVisitAt).getTime() : 0;
+    return ts && ts >= visitTs && (alert?.severity === 'Priority' || Number(alert?.priority || 0) >= 6);
+  }).length, [state?.recentAlertEvents, lastVisitAt]);
+
   const alertSummary = useMemo(() => ({
-    title: newAlertCountSinceVisit ? `${newAlertCountSinceVisit} important change${newAlertCountSinceVisit === 1 ? '' : 's'} since your last check` : 'Alert loop armed for tonight',
-    detail: newAlertCountSinceVisit
-      ? 'Watchlist assets and major signal shifts are being tracked so return visits feel instantly useful.'
-      : 'Signal changes will stack here as assets strengthen, weaken, or flip posture.',
-    badge: newAlertCountSinceVisit ? `${newAlertCountSinceVisit} new alerts` : 'Monitoring live',
+    title: priorityAlertCountSinceVisit
+      ? `${priorityAlertCountSinceVisit} priority alert${priorityAlertCountSinceVisit === 1 ? '' : 's'} tonight`
+      : newAlertCountSinceVisit
+        ? `${newAlertCountSinceVisit} meaningful change${newAlertCountSinceVisit === 1 ? '' : 's'} since your last check`
+        : 'No major changes tonight',
+    detail: priorityAlertCountSinceVisit
+      ? 'The sharpest posture flips, alignment shifts, and catalyst-backed moves are being surfaced first.'
+      : newAlertCountSinceVisit
+        ? 'Watchlist assets and bigger signal shifts are being tracked so return visits feel instantly useful.'
+        : 'The board is calm right now. Smaller moves are being suppressed until they become meaningful.',
+    badge: priorityAlertCountSinceVisit
+      ? `${priorityAlertCountSinceVisit} priority`
+      : newAlertCountSinceVisit
+        ? `${newAlertCountSinceVisit} new alerts`
+        : 'Calm session',
     watchlistLabel: `${state?.watchlist?.length || 0} watchlist names tracked`,
-  }), [newAlertCountSinceVisit, state?.watchlist]);
+  }), [newAlertCountSinceVisit, priorityAlertCountSinceVisit, state?.watchlist]);
 
 
   useEffect(() => {
@@ -1275,7 +1291,7 @@ const sinceLastVisitSummary = useMemo(() => {
                 <div className="eyebrow">Share tonight&apos;s signal</div>
                 <h2 className="section-title">Turn a strong read into a shareable signal card</h2>
               </div>
-              <span className="badge glow-badge">v11.71 stability pass</span>
+              <span className="badge glow-badge">v11.73 smarter alerts</span>
             </div>
             <div className="growth-loop-actions">
               <button type="button" className="primary-button" onClick={() => shareSignalCard(topSignal)}>Share Tonight&apos;s Signal 🌙</button>

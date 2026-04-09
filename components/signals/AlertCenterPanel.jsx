@@ -3,6 +3,7 @@
 import { formatTime } from '@/lib/utils';
 
 function getLevelLabel(alert) {
+  if (alert?.severity) return alert.severity;
   if (alert?.isWatchlist) return 'Watchlist priority';
   if (alert?.level === 'critical') return 'Critical';
   if (alert?.level === 'positive') return 'Positive';
@@ -17,7 +18,7 @@ export default function AlertCenterPanel({ alerts = [], newCount = 0, lastVisitL
         <div>
           <div className="eyebrow">Alert center</div>
           <h2 className="section-title">Important signal changes</h2>
-          <div className="muted small">Latest signal shifts, with watchlist names pushed to the front.</div>
+          <div className="muted small">Selective alerts only: posture flips, bigger confidence moves, alignment shifts, and catalyst-backed changes.</div>
         </div>
         <div className="row wrap">
           <span className="badge glow-badge">{newCount} new since {lastVisitLabel}</span>
@@ -39,6 +40,8 @@ export default function AlertCenterPanel({ alerts = [], newCount = 0, lastVisitL
                 </div>
                 <div className="alert-center-title">{alert.title}</div>
                 <div className="alert-center-body">{alert.body || alert.text}</div>
+                {alert?.whyNow ? <div className="muted small">Why now: {alert.whyNow}</div> : null}
+                {alert?.watchNext ? <div className="muted small">Watch next: {alert.watchNext}</div> : null}
               </div>
               {alert?.symbol ? (
                 <button type="button" className="ghost-button small" onClick={() => onOpenAsset?.(alert.symbol)}>
@@ -49,7 +52,7 @@ export default function AlertCenterPanel({ alerts = [], newCount = 0, lastVisitL
           ))}
         </div>
       ) : (
-        <div className="muted small">No meaningful signal changes yet. Once assets flip, strengthen, or weaken enough, they will show up here.</div>
+        <div className="muted small">No major changes tonight. Once posture flips, stronger alignment, or catalyst-backed moves appear, they will show up here.</div>
       )}
 
       {alerts.length ? (
