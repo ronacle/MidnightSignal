@@ -51,7 +51,12 @@ import {
 
 const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v1';
 
+
 const GROWTH_LOOP_STORAGE_KEY = 'midnight-signal-growth-loop-v1';
+
+function buildAlertSoundKey(alerts = []) {
+  return (alerts || []).map((item) => item?.id).filter(Boolean).slice(0, 4).join('|');
+}
 
 
 function safeText(value, fallback = '') {
@@ -784,7 +789,51 @@ const sinceLastVisitSummary = useMemo(() => {
     }).length;
   }, [state?.recentAlertEvents, lastVisitAt]);
 
+
   const recentAlertSymbols = useMemo(() => Array.from(new Set((state?.recentAlertEvents || []).map((alert) => alert?.symbol).filter(Boolean))).slice(0, 12), [state?.recentAlertEvents]);
+
+  const audioContextRef = useRef(null);
+  const audioUnlockedRef = useRef(false);
+  const lastPlayedAlertKeyRef = useRef('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return undefined;
+
+    let disposed = false;
+
+    const unlockAudio = async () => {
+      if (disposed) return;
+      try {
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioContextClass();
+        }
+        if (audioContextRef.current?.state === 'suspended') {
+          await audioContextRef.current.resume();
+        }
+        audioUnlockedRef.current = audioContextRef.current?.state === 'running';
+      } catch {
+        audioUnlockedRef.current = false;
+      }
+    };
+
+    const onGesture = () => {
+      void unlockAudio();
+    };
+
+    window.addEventListener('pointerdown', onGesture, { passive: true });
+    window.addEventListener('keydown', onGesture);
+    window.addEventListener('touchstart', onGesture, { passive: true });
+
+    return () => {
+      disposed = true;
+      window.removeEventListener('pointerdown', onGesture);
+      window.removeEventListener('keydown', onGesture);
+      window.removeEventListener('touchstart', onGesture);
+    };
+  }, []);
 
   const alertSummary = useMemo(() => ({
     title: newAlertCountSinceVisit ? `${newAlertCountSinceVisit} important change${newAlertCountSinceVisit === 1 ? '' : 's'} since your last check` : 'Alert loop armed for tonight',
@@ -839,19 +888,31 @@ const sinceLastVisitSummary = useMemo(() => {
           ].filter(Boolean).filter((alert, index, array) => array.findIndex((item) => item?.id === alert?.id) === index).slice(0, 12);
           setState((previous) => ({ ...previous, recentAlertEvents: recent }));
 
-          if (state?.signalSoundsEnabled && typeof window !== 'undefined' && window.AudioContext) {
-            try {
-              const context = new window.AudioContext();
-              const oscillator = context.createOscillator();
-              const gain = context.createGain();
-              oscillator.type = 'sine';
-              oscillator.frequency.value = 880;
-              gain.gain.value = 0.03;
-              oscillator.connect(gain);
-              gain.connect(context.destination);
-              oscillator.start();
-              oscillator.stop(context.currentTime + 0.12);
-            } catch {}
+          if (state?.signalSoundsEnabled) {
+            const nextSoundKey = buildAlertSoundKey(allAlerts);
+            const context = audioContextRef.current;
+            if (
+              nextSoundKey
+              && nextSoundKey !== lastPlayedAlertKeyRef.current
+              && audioUnlockedRef.current
+              && context
+              && context.state === 'running'
+            ) {
+              try {
+                const oscillator = context.createOscillator();
+                const gain = context.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, context.currentTime);
+                gain.gain.setValueAtTime(0.0001, context.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.03, context.currentTime + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.14);
+                oscillator.connect(gain);
+                gain.connect(context.destination);
+                oscillator.start(context.currentTime);
+                oscillator.stop(context.currentTime + 0.14);
+                lastPlayedAlertKeyRef.current = nextSoundKey;
+              } catch {}
+            }
           }
 
           if (state?.alertDeliveryEnabled && state?.alertDeliveryEmail) {
