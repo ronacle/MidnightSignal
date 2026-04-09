@@ -3732,3 +3732,107 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+
+.onboarding-shell,
+.guided-session {
+  margin-top: 18px;
+  padding: 20px;
+}
+
+.onboarding-head,
+.guided-session-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.onboarding-option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.onboarding-option-grid.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.onboarding-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 18px;
+  border: 1px solid rgba(139,168,255,.18);
+  background: rgba(9,17,32,.55);
+  color: inherit;
+  padding: 16px;
+  text-align: left;
+}
+
+.onboarding-option.is-active {
+  border-color: rgba(139,168,255,.55);
+  box-shadow: 0 0 0 1px rgba(139,168,255,.22) inset, 0 10px 30px rgba(12,24,44,.28);
+  background: rgba(18,30,54,.82);
+}
+
+.onboarding-option span,
+.guided-tip span {
+  color: rgba(226,232,240,.76);
+  font-size: .92rem;
+  line-height: 1.45;
+}
+
+.onboarding-summary {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(14,24,44,.66);
+  border: 1px solid rgba(139,168,255,.14);
+}
+
+.onboarding-summary-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.onboarding-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.guided-session-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.guided-tip {
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(9,17,32,.52);
+  border: 1px solid rgba(139,168,255,.14);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .onboarding-option-grid,
+  .onboarding-option-grid.compact,
+  .guided-session-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-head,
+  .guided-session-head,
+  .onboarding-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

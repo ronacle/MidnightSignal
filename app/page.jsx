@@ -53,6 +53,7 @@ const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v1';
 
 
 const GROWTH_LOOP_STORAGE_KEY = 'midnight-signal-growth-loop-v1';
+const INTRO_HINTS_STORAGE_KEY = 'midnight-signal-intro-hints-v1';
 
 function buildAlertSoundKey(alerts = []) {
   return (alerts || []).map((item) => item?.id).filter(Boolean).slice(0, 4).join('|');
@@ -109,6 +110,28 @@ function sanitizeGrowthLoopState(value) {
       : null,
     activeReferralHandled: Boolean(value.activeReferralHandled),
     lastSharedAt: value.lastSharedAt || null,
+  };
+}
+
+
+function sanitizeOnboardingProfile(value) {
+  const base = {
+    userType: 'Beginner',
+    goal: 'Learn',
+    completedAt: null,
+    hintsDismissed: false,
+  };
+
+  if (!value || typeof value !== 'object') return base;
+
+  const userType = ['Beginner', 'Active trader', 'Long-term'].includes(value.userType) ? value.userType : base.userType;
+  const goal = ['Learn', 'Track signals', 'Get alerts'].includes(value.goal) ? value.goal : base.goal;
+
+  return {
+    userType,
+    goal,
+    completedAt: value.completedAt || null,
+    hintsDismissed: Boolean(value.hintsDismissed),
   };
 }
 
@@ -186,7 +209,7 @@ function downloadSignalCard(asset, context, referralCode) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `midnight-signal-${asset.symbol.toLowerCase()}-v11.71.svg`;
+  link.download = `midnight-signal-${asset.symbol.toLowerCase()}-v11.74.svg`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -465,6 +488,14 @@ export default function HomePage() {
   const [growthLoop, setGrowthLoop] = useState(() => sanitizeGrowthLoopState(null));
   const [inviteBanner, setInviteBanner] = useState('');
   const [shareStatus, setShareStatus] = useState('');
+  const [onboardingProfile, setOnboardingProfile] = useState(() => sanitizeOnboardingProfile({
+    userType: state?.onboardingUserType || 'Beginner',
+    goal: state?.onboardingGoal || 'Learn',
+    completedAt: state?.onboardingCompletedAt || null,
+    hintsDismissed: false,
+  }));
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
   const entitlementRefreshRef = useRef(false);
 
   useEffect(() => {
@@ -472,6 +503,20 @@ export default function HomePage() {
     setForwardValidation(readForwardValidation());
     setAdaptiveWeights(readAdaptiveWeights());
   }, []);
+
+  useEffect(() => {
+    const next = sanitizeOnboardingProfile({
+      userType: state?.onboardingUserType || 'Beginner',
+      goal: state?.onboardingGoal || 'Learn',
+      completedAt: state?.onboardingCompletedAt || null,
+      hintsDismissed: typeof window !== 'undefined' ? window.localStorage.getItem(INTRO_HINTS_STORAGE_KEY) === 'dismissed' : false,
+    });
+    setOnboardingProfile(next);
+    if (!next.completedAt) {
+      setOnboardingOpen(true);
+      setOnboardingStep(1);
+    }
+  }, [state?.onboardingCompletedAt, state?.onboardingGoal, state?.onboardingUserType]);
 
   useEffect(() => {
     const localAlertMemory = readAlertMemory();
@@ -1205,6 +1250,38 @@ const sinceLastVisitSummary = useMemo(() => {
     }
   }
 
+
+  function applyOnboardingChoice(patch = {}) {
+    const next = sanitizeOnboardingProfile({ ...onboardingProfile, ...patch });
+    setOnboardingProfile(next);
+    return next;
+  }
+
+  function completeOnboarding() {
+    const completedAt = new Date().toISOString();
+    const profile = sanitizeOnboardingProfile({ ...onboardingProfile, completedAt });
+    setOnboardingProfile(profile);
+    setState((previous) => ({
+      ...previous,
+      mode: profile.userType === 'Beginner' ? 'Beginner' : 'Pro',
+      strategy: profile.userType === 'Long-term' ? 'Position' : profile.userType === 'Active trader' ? 'Scalp' : 'Swing',
+      timeframe: profile.userType === 'Active trader' ? '15M' : profile.userType === 'Long-term' ? '4H' : '1H',
+      preferredDashboardFocus: profile.goal === 'Get alerts' ? 'alerts' : profile.goal === 'Track signals' ? 'board' : 'top-signal',
+      onboardingCompletedAt: completedAt,
+      onboardingUserType: profile.userType,
+      onboardingGoal: profile.goal,
+    }));
+    setOnboardingOpen(false);
+    setOnboardingStep(1);
+  }
+
+  function dismissIntroHints() {
+    if (typeof window !== 'undefined') {
+      try { window.localStorage.setItem(INTRO_HINTS_STORAGE_KEY, 'dismissed'); } catch {}
+    }
+    setOnboardingProfile((previous) => ({ ...previous, hintsDismissed: true }));
+  }
+
   function jumpTo(id) {
     if (typeof document === 'undefined') return;
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1212,6 +1289,13 @@ const sinceLastVisitSummary = useMemo(() => {
 
   const signalContext = useMemo(() => buildSignalContext(topSignal, rankedAssets, state.watchlist, regimeSummary, { items: contextItems, meta: contextMeta }), [topSignal, rankedAssets, state.watchlist, regimeSummary, contextItems, contextMeta]);
   const ritualStatus = useMemo(() => buildDailyRitualStatus(lastVisitAt, marketUpdatedAt, topSignal, visitIntelligence), [lastVisitAt, marketUpdatedAt, topSignal, visitIntelligence]);
+
+  const onboardingSummary = useMemo(() => ({
+    title: onboardingProfile.goal === 'Get alerts' ? 'Track high-signal changes fast' : onboardingProfile.goal === 'Track signals' ? 'Scan the board with more confidence' : "Learn tonight's signal without the clutter",
+    detail: onboardingProfile.userType === 'Active trader' ? 'Faster timeframes and a tighter scan path are now favored.' : onboardingProfile.userType === 'Long-term' ? 'The app leans into calmer posture and bigger timeframe context.' : 'Beginner mode keeps the learning layer visible while you build rhythm.',
+  }), [onboardingProfile]);
+
+  const showIntroHints = Boolean(onboardingProfile.completedAt) && !onboardingProfile.hintsDismissed;
 
   return (
     <main className="page">
@@ -1283,6 +1367,81 @@ const sinceLastVisitSummary = useMemo(() => {
           }}
         />
 
+        {onboardingOpen ? (
+          <section className="onboarding-shell card" aria-label="First-time onboarding">
+            <div className="onboarding-head">
+              <div>
+                <div className="eyebrow">First-time setup</div>
+                <h2 className="section-title">Make Midnight Signal click in under a minute</h2>
+              </div>
+              <span className="badge glow-badge">Step {onboardingStep} of 2</span>
+            </div>
+            {onboardingStep === 1 ? (
+              <>
+                <p className="muted small">Choose the path that feels closest to how you actually use the market.</p>
+                <div className="onboarding-option-grid">
+                  {['Beginner', 'Active trader', 'Long-term'].map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`onboarding-option ${onboardingProfile.userType === option ? 'is-active' : ''}`}
+                      onClick={() => applyOnboardingChoice({ userType: option })}
+                    >
+                      <strong>{option}</strong>
+                      <span>{option === 'Beginner' ? 'Keep explanations visible and the flow calmer.' : option === 'Active trader' ? 'Prioritize quicker reads and tighter reaction loops.' : 'Bias toward steadier posture and bigger timeframe context.'}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="onboarding-actions">
+                  <button type="button" className="primary-button" onClick={() => setOnboardingStep(2)}>Continue</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="muted small">Now choose what you want Midnight Signal to do for you first.</p>
+                <div className="onboarding-option-grid compact">
+                  {['Learn', 'Track signals', 'Get alerts'].map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`onboarding-option ${onboardingProfile.goal === option ? 'is-active' : ''}`}
+                      onClick={() => applyOnboardingChoice({ goal: option })}
+                    >
+                      <strong>{option}</strong>
+                      <span>{option === 'Learn' ? 'Lead with plain-English guidance and why it matters.' : option === 'Track signals' ? 'Center the board, watchlist, and posture shifts.' : 'Surface the most meaningful changes and notification-ready moves.'}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="onboarding-summary">
+                  <div className="onboarding-summary-title">{onboardingSummary.title}</div>
+                  <div className="muted small">{onboardingSummary.detail}</div>
+                </div>
+                <div className="onboarding-actions">
+                  <button type="button" className="ghost-button" onClick={() => setOnboardingStep(1)}>Back</button>
+                  <button type="button" className="primary-button" onClick={completeOnboarding}>Start tonight&apos;s signal</button>
+                </div>
+              </>
+            )}
+          </section>
+        ) : null}
+
+        {showIntroHints ? (
+          <section className="guided-session card" aria-label="Guided first session">
+            <div className="guided-session-head">
+              <div>
+                <div className="eyebrow">Guided first session</div>
+                <h2 className="section-title">Start here, then let the deeper layers earn their place</h2>
+              </div>
+              <button type="button" className="ghost-button small" onClick={dismissIntroHints}>Hide tips</button>
+            </div>
+            <div className="guided-session-grid">
+              <div className="guided-tip"><strong>1. Tonight&apos;s Top Signal</strong><span>Use this as your anchor before scanning the rest of the board.</span></div>
+              <div className="guided-tip"><strong>2. Why it matters</strong><span>Open the context layer to see what may be driving the signal tonight.</span></div>
+              <div className="guided-tip"><strong>3. Since your last visit</strong><span>This is your habit loop — come back and compare what strengthened, weakened, or flipped.</span></div>
+            </div>
+          </section>
+        ) : null}
+
 
         <section className="growth-loop-grid" aria-label="Growth loop">
           <div className="growth-loop-card card">
@@ -1291,7 +1450,7 @@ const sinceLastVisitSummary = useMemo(() => {
                 <div className="eyebrow">Share tonight&apos;s signal</div>
                 <h2 className="section-title">Turn a strong read into a shareable signal card</h2>
               </div>
-              <span className="badge glow-badge">v11.73 smarter alerts</span>
+              <span className="badge glow-badge">v11.74 onboarding optimized</span>
             </div>
             <div className="growth-loop-actions">
               <button type="button" className="primary-button" onClick={() => shareSignalCard(topSignal)}>Share Tonight&apos;s Signal 🌙</button>
@@ -1597,7 +1756,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.71 · stabilization + deep polish · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
+          Build v11.74 · conversion + onboarding optimization · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 
