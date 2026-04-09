@@ -1477,7 +1477,6 @@ const sinceLastVisitSummary = useMemo(() => {
           />
         </section>
 
-        />
 
         {onboardingOpen ? (
           <section className="onboarding-shell card" aria-label="First-time onboarding">
