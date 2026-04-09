@@ -1313,6 +1313,7 @@ const sinceLastVisitSummary = useMemo(() => {
             setLearningAsset(null);
             setLearningOpen(true);
           }}
+        />
         {priorityAlerts.length ? (
           <section className="priority-alert-stack" aria-label="Signal alerts">
             {priorityAlerts.map((alert) => (
