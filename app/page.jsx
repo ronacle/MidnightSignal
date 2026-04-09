@@ -1314,6 +1314,8 @@ const sinceLastVisitSummary = useMemo(() => {
             setLearningOpen(true);
           }}
         />
+
+
         {priorityAlerts.length ? (
           <section className="priority-alert-stack" aria-label="Signal alerts">
             {priorityAlerts.map((alert) => (
@@ -1363,6 +1365,8 @@ const sinceLastVisitSummary = useMemo(() => {
             setAlertAsset(null);
             setControlOpen(true);
           }}
+        />
+
         <section className="top-grid lead-flow-grid">
           <LeadSignalPanel
             asset={topSignal}
@@ -1378,12 +1382,15 @@ const sinceLastVisitSummary = useMemo(() => {
             forwardScorecard={forwardScorecard}
             adaptiveSummary={adaptiveSummary}
             decisionLayer={decisionLayer}
+          />
         </section>
 
         <SignalContextPanel
           context={signalContext}
           asset={topSignal}
           planTier={state.planTier}
+        />
+
         <section className="since-panel card" id="since-last-visit">
           <div className="since-panel-head">
             <div>
@@ -1459,12 +1466,15 @@ const sinceLastVisitSummary = useMemo(() => {
             onAssetOpen={setDetailAsset}
             assets={rankedAssets}
             recentAlertSymbols={recentAlertSymbols}
+          />
+
           <Top20Grid
             state={state}
             setState={setState}
             onAssetOpen={setDetailAsset}
             assets={rankedAssets}
             recentAlertSymbols={recentAlertSymbols}
+          />
         </section>
 
 
@@ -1586,6 +1596,8 @@ const sinceLastVisitSummary = useMemo(() => {
           lastVisitLabel={lastVisitLabel}
           onOpenAsset={openAlertAsset}
           onDismissAll={() => setState((previous) => ({ ...previous, recentAlertEvents: [] }))}
+        />
+
         <section className="landing-command card" aria-label="Midnight Signal landing message">
           <div className="landing-command-copy">
             <div className="eyebrow">What&apos;s the signal tonight?</div>
@@ -1721,6 +1733,7 @@ const sinceLastVisitSummary = useMemo(() => {
               placeholder="you@example.com"
               value={waitlistEmail}
               onChange={(event) => setWaitlistEmail(event.target.value)}
+            />
             <div className="capture-actions">
               <button type="submit" className="primary-button">Get Early Access</button>
               <button type="button" className="ghost-button" onClick={() => jumpTo('since-last-visit')}>See the retention loop</button>
@@ -1763,11 +1776,15 @@ const sinceLastVisitSummary = useMemo(() => {
         supabaseReady={supabaseReady}
         alertAsset={alertAsset}
         onConsumeAlertAsset={() => setAlertAsset(null)}
+      />
+
       <LearningDrawer
         open={learningOpen}
         onClose={() => setLearningOpen(false)}
         state={state}
         focusAsset={learningAsset}
+      />
+
       <AssetDetailSheet
         asset={detailAsset || selected}
         open={Boolean(detailAsset)}
@@ -1788,6 +1805,7 @@ const sinceLastVisitSummary = useMemo(() => {
           setControlOpen(true);
         }}
         onShare={(asset) => shareSignalCard(asset)}
+      />
     </main>
   );
 }
