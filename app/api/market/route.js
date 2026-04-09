@@ -94,14 +94,18 @@ export async function GET() {
 
     const mapped = ordered.map((coin, index) => normalizeCoin(coin, index));
 
+    const fetchedAt = new Date().toISOString();
+
     return Response.json({
       ok: true,
       source: 'coingecko',
-      updatedAt: new Date().toISOString(),
+      updatedAt: fetchedAt,
+      fetchedAt,
       items: mapped,
       meta: {
         count: mapped.length,
         universe: 'top20-priority-blend',
+        staleAfterSec: 95,
       },
     });
   } catch (error) {
@@ -110,8 +114,12 @@ export async function GET() {
         ok: false,
         source: 'fallback',
         updatedAt: new Date().toISOString(),
+        fetchedAt: null,
         message: error?.message || 'Unable to load CoinGecko market data.',
         items: [],
+        meta: {
+          staleAfterSec: 95,
+        },
       },
       { status: 200 }
     );

@@ -3,7 +3,7 @@
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
 
-export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state }) {
+export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state, ritualStatus, alertSummary, growthSummary, inviteBanner, onShareSignal, onCopyReferral }) {
   const isLocalOnly = !user;
   const syncLabel = user ? (syncing ? 'Syncing…' : 'Sync Active') : 'Saved locally';
   const syncDetail = user
@@ -25,7 +25,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={118} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.57.3</div>
+            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.75</div>
             <h1>What’s the signal tonight?</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
@@ -33,7 +33,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             </p>
             <div className="hero-support-copy">
               <p>Start with Tonight’s Top Signal, open the why, then scan the Top 20 for broader posture.</p>
-              <p>The brand system now matches the beacon identity more closely: darker glass, cleaner hierarchy, softer glows, and a stronger premium feel.</p>
+              <p>The system is cleaner and safer now: tighter hierarchy, more reliable rendering, stronger mobile rhythm, and fewer fragile content paths.</p>
             </div>
           </div>
         </div>
@@ -42,8 +42,41 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           <span className="badge glow-badge">Beacon-guided signal flow</span>
           <span className="badge">Live market context</span>
           <span className="badge">Explainable signals</span>
+          <span className="badge">Account-synced ritual flow</span>
           <span className="badge">Not financial advice</span>
         </div>
+
+        <div className="hero-status-grid">
+          {ritualStatus ? (
+          <div className="ritual-checkin-card">
+            <div>
+              <div className="eyebrow">Daily ritual</div>
+              <div className="ritual-checkin-title">{ritualStatus.title}</div>
+              <div className="muted small">{ritualStatus.detail}</div>
+            </div>
+            <div className="row wrap">
+              <span className="badge">{ritualStatus.badge}</span>
+              <span className="badge">{ritualStatus.streakLabel}</span>
+            </div>
+          </div>
+        ) : null}
+
+          {alertSummary ? (
+            <div className="ritual-checkin-card alert-ritual-card">
+              <div>
+                <div className="eyebrow">Retention loop</div>
+                <div className="ritual-checkin-title">{alertSummary.title}</div>
+                <div className="muted small">{alertSummary.detail}</div>
+              </div>
+              <div className="row wrap">
+                <span className="badge glow-badge">{alertSummary.badge}</span>
+                <span className="badge">{alertSummary.watchlistLabel}</span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {inviteBanner ? <div className="invite-banner hero-invite-banner">{inviteBanner}</div> : null}
 
         <div className="hero-mobile-hint muted small">
           Mobile flow: start with Tonight’s Top Signal, tap any asset card for details, then use Controls for session changes.
@@ -54,8 +87,9 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <div className="eyebrow">Start here</div>
             <div className="hero-conversion-title">Read tonight’s signal in under a minute</div>
             <p className="muted small">Use the free flow first: Top Signal → Why it appears → Board scan → Watchlist.</p>
-            <div className="row">
+            <div className="row wrap">
               <button className="button" onClick={onOpenControls} type="button">Open control panel</button>
+              <button className="ghost-button" onClick={onShareSignal} type="button">Share Tonight&apos;s Signal</button>
               <span className="badge">{setupLabel}</span>
             </div>
           </div>
@@ -67,6 +101,11 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
               <li>Free mode stays useful before any upgrade pressure.</li>
               <li>The beacon visual language now carries from hero to board to breakdown.</li>
             </ul>
+            <div className="row wrap hero-growth-row">
+              <span className="badge glow-badge">Invite code {growthSummary?.inviteCode || 'MSCODE'}</span>
+              <span className="badge">{growthSummary?.rewardLabel || 'Invite 3 to unlock 7 days Pro'}</span>
+              <button className="ghost-button" onClick={onCopyReferral} type="button">Copy referral link</button>
+            </div>
           </div>
         </div>
       </div>

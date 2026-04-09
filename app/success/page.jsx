@@ -40,24 +40,26 @@ export default function SuccessPage() {
           };
 
           try {
-            const raw = window.localStorage.getItem('midnight-signal-local-state-v11.49')
-              || window.localStorage.getItem('midnight-signal-local-state-v11.48')
-              || window.localStorage.getItem('midnight-signal-local-state-v11.47')
-              || window.localStorage.getItem('midnight-signal-local-state-v11.45')
-              || window.localStorage.getItem('midnight-signal-local-state-v11.44')
-              || window.localStorage.getItem('midnight-signal-local-state-v11.43');
+            const raw =
+              window.localStorage.getItem('midnight-signal-local-state-v11.65') ||
+              window.localStorage.getItem('midnight-signal-local-state-v11.64') ||
+              window.localStorage.getItem('midnight-signal-local-state-v11.48') ||
+              window.localStorage.getItem('midnight-signal-local-state-v11.47') ||
+              window.localStorage.getItem('midnight-signal-local-state-v11.45') ||
+              window.localStorage.getItem('midnight-signal-local-state-v11.44') ||
+              window.localStorage.getItem('midnight-signal-local-state-v11.43');
             const parsed = raw ? JSON.parse(raw) : {};
             window.localStorage.setItem('midnight-signal-plan', 'pro');
             window.localStorage.setItem('midnight-signal-upgrade-success', new Date().toISOString());
             window.localStorage.setItem('midnight-signal-last-stripe-session', sessionId);
-            window.localStorage.setItem('midnight-signal-local-state-v11.49', JSON.stringify({
+            window.localStorage.setItem('midnight-signal-local-state-v11.65', JSON.stringify({
               ...parsed,
               ...stored,
             }));
           } catch {}
 
           setVerified(true);
-          setStatus('Pro verified — your entitlement is now tied to Stripe.');
+          setStatus('Pro verified — your entitlement is now tied to Stripe and ready on the dashboard.');
           return;
         }
 
@@ -86,7 +88,7 @@ export default function SuccessPage() {
       fontFamily: "Inter, system-ui, Arial, sans-serif"
     }}>
       <div style={{
-        maxWidth: 640,
+        maxWidth: 700,
         width: "100%",
         borderRadius: 28,
         padding: 30,
@@ -94,11 +96,17 @@ export default function SuccessPage() {
         border: "1px solid rgba(247,247,247,.1)",
         boxShadow: "0 20px 80px rgba(0,0,0,.35)"
       }}>
-        <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 10 }}>Midnight Signal Premium</div>
-        <h1 style={{ fontSize: 36, lineHeight: 1.05, margin: "0 0 12px" }}>{verified ? 'You’re verified.' : 'Checking your unlock.'}</h1>
-        <p style={{ color: "#cbd5e1", lineHeight: 1.7 }}>
-          {status}
-        </p>
+        <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 10 }}>Midnight Signal Pro · Founding access</div>
+        <h1 style={{ fontSize: 36, lineHeight: 1.05, margin: "0 0 12px" }}>{verified ? 'You’re in.' : 'Checking your unlock.'}</h1>
+        <p style={{ color: "#cbd5e1", lineHeight: 1.7 }}>{status}</p>
+
+        <div style={{ marginTop: 18, color: '#cbd5e1', lineHeight: 1.7 }}>
+          <strong style={{ color: '#fff' }}>What Pro opens now:</strong>
+          <div>• Full signal breakdown and validation layer</div>
+          <div>• Premium board access and deeper revisit context</div>
+          <div>• Email delivery tied to verified account state</div>
+        </div>
+
         <div style={{ marginTop: 20, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Link href="/" style={{
             display: "inline-flex",
@@ -112,7 +120,7 @@ export default function SuccessPage() {
             Return to Midnight Signal
           </Link>
           {!verified ? (
-            <Link href="/api/stripe/checkout" style={{
+            <Link href="/api/stripe/checkout?plan=pro-founder&billing_cycle=monthly" style={{
               display: "inline-flex",
               padding: "12px 16px",
               borderRadius: 14,

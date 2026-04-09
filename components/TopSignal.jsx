@@ -2,6 +2,27 @@
 
 import { formatCompactNumber, formatPct, formatPrice, formatTime, getConvictionTier } from '@/lib/utils';
 
+function formatRelativeTime(value) {
+  if (!value) return 'Awaiting refresh';
+  const diffMs = Date.now() - new Date(value).getTime();
+  if (!Number.isFinite(diffMs)) return 'Awaiting refresh';
+  const seconds = Math.max(0, Math.round(diffMs / 1000));
+  if (seconds < 10) return 'just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  return `${hours}h ago`;
+}
+
+function buildFreshnessState(updatedAt, ready) {
+  if (!ready || !updatedAt) return { label: 'Loading live market', tone: 'neutral' };
+  const seconds = Math.max(0, Math.round((Date.now() - new Date(updatedAt).getTime()) / 1000));
+  if (seconds >= 150) return { label: 'Feed stale', tone: 'bearish' };
+  if (seconds >= 75) return { label: 'Refresh soon', tone: 'neutral' };
+  return { label: 'Live', tone: 'bullish' };
+}
+
 export default function TopSignal({
   asset,
   state,
@@ -37,13 +58,13 @@ export default function TopSignal({
   const forwardRecent = forwardValidation.slice(0, 5);
   const tf = asset?.timeframe || {};
   const currentAdaptive = adaptiveSummary.find((entry) => entry.regime === (regimeSummary?.regime || asset?.marketRegime));
-  const topSignalMotion = Boolean(state?.livePulseEnabled);
-
   const conviction = asset.signalScore ?? asset.conviction ?? 0;
   const convictionTone = conviction >= 70 ? 'top-signal-strong' : conviction < 45 ? 'top-signal-cautious' : '';
+  const freshness = buildFreshnessState(marketUpdatedAt || asset?.lastUpdated, marketReady);
+  const updatedLabel = formatRelativeTime(marketUpdatedAt || asset?.lastUpdated);
 
   return (
-    <div className={`panel stack ${topSignalMotion ? 'top-signal-motion' : ''} ${embedded ? 'embedded-top-signal' : ''} ${convictionTone}`}>
+    <section className={`panel stack top-signal-card ${convictionTone}`}>
       <div className="row space-between">
         <h2 className="section-title">{title} <span className="signal-dot" aria-hidden="true" /></h2>
         <span className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</span>
@@ -63,31 +84,53 @@ export default function TopSignal({
         </div>
         <div className="row wrap">
           <span className="badge">{asset.signalScore ?? asset.conviction}% score</span>
-          <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
-          <span className="badge">Rank #{asset.rank ?? '—'}</span>
+          <span className="badge">Confidence {asset.confidenceScore ?? asset.signalScore ?? asset.conviction}%</span>
+          <span className="badge">{asset.timeframeAgreement || 'Mixed agreement'}</span>
+          <span className="badge">{asset.momentumState || 'Stable'} momentum</span>
+        </div>
+        <div className="row wrap">
+          <span className={`badge tone-${freshness.tone}`}>{freshness.label}</span>
+          <span className="badge">Updated {updatedLabel}</span>
+          <span className="badge">{marketSource === 'coingecko' ? 'CoinGecko live' : 'Fallback market'}</span>
           <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
-          <span className="badge">{asset.volumeToMarketCap ?? '—'}% turnover</span>
+          <span className="badge">24h range {Number(asset.priceRange24h || 0).toFixed(1)}%</span>
         </div>
         <div className="muted">{asset.story}</div>
-        {asset.signalReasons?.length ? (
-          <div className="factor-block">
-            <div className="eyebrow">Why this appears tonight</div>
-            <div className="history-stack">
-              {asset.signalReasons.slice(0, 3).map((reason) => (
-                <div className="history-row" key={reason}>
-                  <span>Reason</span>
-                  <span>{reason}</span>
-                </div>
-              ))}
+      </div>
+
+      <div className="factor-block">
+        <div className="eyebrow">Why now</div>
+        <div className="history-stack">
+          {(asset.signalDrivers || []).map((reason) => (
+            <div className="history-row" key={reason}>
+              <span>Now</span>
+              <span>{reason}</span>
             </div>
+          ))}
+          <div className="history-row">
+            <span>Posture</span>
+            <span>{asset.postureSummary || 'Balanced posture with mixed signal quality.'}</span>
           </div>
-        ) : null}
-        <div className="row wrap">
-          <span className="badge">{state.mode} mode</span>
-          <span className="badge">{state.strategy}</span>
-          <span className="badge">{marketSource === 'coingecko' ? 'Live market' : 'Fallback market'}</span>
+          <div className="history-row">
+            <span>Watch next</span>
+            <span>{asset.watchNext || 'Watch for the next refresh before leaning too hard on the move.'}</span>
+          </div>
         </div>
       </div>
+
+      {asset.signalReasons?.length ? (
+        <div className="factor-block">
+          <div className="eyebrow">Why this appears tonight</div>
+          <div className="history-stack">
+            {asset.signalReasons.slice(0, 3).map((reason) => (
+              <div className="history-row" key={reason}>
+                <span>Reason</span>
+                <span>{reason}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {decisionLayer ? (
         <div className="decision-card">
@@ -156,6 +199,11 @@ export default function TopSignal({
           <div className="factor-chip"><span>15m</span><strong>{tf.tf15m ?? '—'}</strong></div>
           <div className="factor-chip"><span>1h</span><strong>{tf.tf1h ?? '—'}</strong></div>
           <div className="factor-chip"><span>MTF Momentum</span><strong>{tf.mtfMomentum ?? '—'}</strong></div>
+        </div>
+        <div className="row wrap" style={{ marginTop: 10 }}>
+          <span className="badge">Agreement {asset.timeframeAgreementScore ?? '—'}%</span>
+          <span className="badge">Momentum {asset.momentumState || 'Stable'}</span>
+          <span className="badge">Volatility {asset.volatilityState || 'Balanced'}</span>
         </div>
         {beginner ? <div className="muted small">This blends short and medium views together so the app is not overreacting to only one moment.</div> : null}
       </div>
@@ -241,18 +289,7 @@ export default function TopSignal({
           </div>
         </div>
         </>
-      ) : (
-        <div className="factor-block factor-block-gated">
-          <div className="eyebrow">Pro Insight</div>
-          <div className="muted small">Free covers the current setup. Pro adds validation, performance tracking, and forward signal logs.</div>
-        </div>
-      )}
-
-      <div className="row">
-        <div className="muted small">
-          {marketReady ? `Source: ${marketSource} · Updated ${formatTime(marketUpdatedAt)}` : 'Loading signal engine…'}
-        </div>
-      </div>
-    </div>
+      ) : null}
+    </section>
   );
 }

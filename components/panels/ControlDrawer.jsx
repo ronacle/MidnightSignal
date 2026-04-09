@@ -139,8 +139,14 @@ function BillingPanel({ state, setState, user, onRefresh }) {
       <div className="muted small">
         {planTier === 'pro'
           ? 'Your Pro access is verified from Stripe on this account. Use the billing center below to refresh Stripe truth, manage payment details, or schedule cancellation.'
-          : 'You are on the free plan. Free keeps the board scan, watchlist, learning flow, and alerts available. Upgrade from Top Signal only if you want deeper validation, forward tracking, and synced Pro access after Stripe verification.'}
+          : 'You are on the free plan. Free keeps the board preview, watchlist, learning flow, and alerts available. Upgrade when you want the full Top 20 board, deeper validation, forward tracking, and synced Pro access after Stripe verification.'}
       </div>
+
+      {planTier !== 'pro' ? (
+        <div className="billing-next-step">
+          <strong>Founding offer:</strong> Midnight Signal Pro is live at <strong>$9/month</strong> with secure Stripe checkout and cancel-anytime billing.
+        </div>
+      ) : null}
 
       <div className="list-item stack">
         <div><strong>Billing status:</strong> {verified ? 'Verified' : 'Not verified'} · {statusLabel}</div>
@@ -159,6 +165,11 @@ function BillingPanel({ state, setState, user, onRefresh }) {
       </div>
 
       <div className="row wrap-gap">
+        {planTier !== 'pro' ? (
+          <a className="button" href="/api/stripe/checkout?plan=pro-founder&billing_cycle=monthly">
+            Upgrade to Pro
+          </a>
+        ) : null}
         <button className="button" type="button" onClick={handleRefreshEntitlement} disabled={busy === 'refresh'}>
           {busy === 'refresh' ? 'Refreshing…' : 'Refresh billing status'}
         </button>
@@ -274,6 +285,7 @@ export default function ControlDrawer({ open, onClose, state, setState, user, st
             profileCount={(state?.savedProfiles || []).filter(Boolean).length}
             entitlement={state?.entitlement || {}}
             acceptedDisclaimer={Boolean(state?.acceptedDisclaimer)}
+            state={state}
           />
           <SettingsPanel state={state} setState={setState} />
           <BillingPanel state={state} setState={setState} user={user} onRefresh={onRefresh} />

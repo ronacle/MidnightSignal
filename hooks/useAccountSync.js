@@ -5,10 +5,26 @@ import { DEFAULT_STATE } from '@/lib/default-state';
 import { derivePlanTier, normalizeEntitlement } from '@/lib/entitlements';
 import { mergeState } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase-browser';
-import { readAlertMemory, readDigestMemory, writeAlertMemory, writeDigestMemory } from '@/lib/alert-engine';
+import {
+  readAlertMemory,
+  readDigestMemory,
+  readEmailDeliveryMemory,
+  writeAlertMemory,
+  writeDigestMemory,
+  writeEmailDeliveryMemory,
+} from '@/lib/alert-engine';
 
-const STORAGE_KEY = 'midnight-signal-local-state-v11.49';
-const LEGACY_STORAGE_KEYS = ['midnight-signal-local-state-v11.48', 'midnight-signal-local-state-v11.47', 'midnight-signal-local-state-v11.46', 'midnight-signal-local-state-v11.45', 'midnight-signal-local-state-v11.44', 'midnight-signal-local-state-v11.43'];
+const STORAGE_KEY = 'midnight-signal-local-state-v11.65';
+const LEGACY_STORAGE_KEYS = [
+  'midnight-signal-local-state-v11.64',
+  'midnight-signal-local-state-v11.49',
+  'midnight-signal-local-state-v11.48',
+  'midnight-signal-local-state-v11.47',
+  'midnight-signal-local-state-v11.46',
+  'midnight-signal-local-state-v11.45',
+  'midnight-signal-local-state-v11.44',
+  'midnight-signal-local-state-v11.43',
+];
 const POLL_INTERVAL_MS = 60000;
 
 function deriveDeviceLabel() {
@@ -31,12 +47,14 @@ function readLocalState() {
       deviceLabel: parsed?.deviceLabel || deriveDeviceLabel(),
       alertMemory: readAlertMemory(),
       alertDigestMemory: readDigestMemory(),
+      alertEmailDeliveryMemory: readEmailDeliveryMemory(),
     });
   } catch {
     return mergeState(DEFAULT_STATE, {
       deviceLabel: deriveDeviceLabel(),
       alertMemory: readAlertMemory(),
       alertDigestMemory: readDigestMemory(),
+      alertEmailDeliveryMemory: readEmailDeliveryMemory(),
     });
   }
 }
@@ -67,10 +85,12 @@ export function useAccountSync() {
       planTier: derivePlanTier(normalizedEntitlement, next?.planTier || DEFAULT_STATE.planTier),
       alertMemory: next?.alertMemory || readAlertMemory(),
       alertDigestMemory: next?.alertDigestMemory || readDigestMemory(),
+      alertEmailDeliveryMemory: next?.alertEmailDeliveryMemory || readEmailDeliveryMemory(),
       deviceLabel: next?.deviceLabel || deriveDeviceLabel(),
     });
     writeAlertMemory(enriched.alertMemory);
     writeDigestMemory(enriched.alertDigestMemory);
+    writeEmailDeliveryMemory(enriched.alertEmailDeliveryMemory);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched));
     window.localStorage.setItem('midnight-signal-plan', enriched.planTier || 'basic');
   }, []);
@@ -97,6 +117,7 @@ export function useAccountSync() {
           deviceLabel: draftState?.deviceLabel || deriveDeviceLabel(),
           alertMemory: draftState?.alertMemory || readAlertMemory(),
           alertDigestMemory: draftState?.alertDigestMemory || readDigestMemory(),
+          alertEmailDeliveryMemory: draftState?.alertEmailDeliveryMemory || readEmailDeliveryMemory(),
           updatedAt: timestamp,
         }),
         updated_at: timestamp
@@ -165,6 +186,7 @@ export function useAccountSync() {
       });
       writeAlertMemory(remoteState.alertMemory || {});
       writeDigestMemory(remoteState.alertDigestMemory || {});
+      writeEmailDeliveryMemory(remoteState.alertEmailDeliveryMemory || {});
       const remoteStamp = new Date(remoteState.updatedAt || data.updated_at || 0).getTime();
       const localStamp = new Date(localState.updatedAt || 0).getTime();
 
@@ -204,6 +226,10 @@ export function useAccountSync() {
         deviceLabel: resolved?.deviceLabel || previous?.deviceLabel || deriveDeviceLabel(),
         alertMemory: resolved?.alertMemory || previous?.alertMemory || readAlertMemory(),
         alertDigestMemory: resolved?.alertDigestMemory || previous?.alertDigestMemory || readDigestMemory(),
+        alertEmailDeliveryMemory: resolved?.alertEmailDeliveryMemory || previous?.alertEmailDeliveryMemory || readEmailDeliveryMemory(),
+        onboardingCompletedAt: resolved?.acceptedDisclaimer
+          ? (resolved?.onboardingCompletedAt || previous?.onboardingCompletedAt || now)
+          : previous?.onboardingCompletedAt || null,
         updatedAt: now,
         lastViewedAt: now
       });
@@ -241,7 +267,7 @@ export function useAccountSync() {
     persistLocal(local);
     setStatus('Saved locally');
     setSyncing(false);
-  }, [supabase]);
+  }, [supabase, persistLocal]);
 
   const refreshFromCloud = useCallback(async () => {
     const currentUser = userRef.current;

@@ -142,7 +142,7 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
             symbol: 'TEST',
             posture: 'Delivery path check',
             confidence: 100,
-            text: 'This is a Midnight Signal test email from v11.65.'
+            text: 'This is a Midnight Signal test email from v11.49.'
           }]
         })
       });
@@ -278,18 +278,6 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
           </div>
 
           <div className="field">
-            <label>Delivery scope</label>
-            <select
-              className="select"
-              value={state.alertDeliveryScope || 'watchlist'}
-              onChange={(e) => updateStateField('alertDeliveryScope', e.target.value)}
-            >
-              <option value="watchlist">Watchlist priority only</option>
-              <option value="all">All meaningful alerts</option>
-            </select>
-          </div>
-
-          <div className="field">
             <label>Digest cadence</label>
             <select
               className="select"
@@ -341,27 +329,6 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
           <div className="list-item muted small">No alerts yet. Open an asset and tap <strong>Set alert</strong> to prefill one here.</div>
         )}
       </div>
-
-      <div className="stack">
-        <div className="row space-between">
-          <strong>Recent Email Deliveries</strong>
-          <span className="badge">{(state.recentEmailDeliveries || []).length} sent</span>
-        </div>
-
-        {(state.recentEmailDeliveries || []).length ? (state.recentEmailDeliveries || []).slice(0, 5).map((event) => (
-          <div key={event.id} className="list-item stack">
-            <div className="row space-between">
-              <strong>{event.symbol || 'Market'}</strong>
-              <span className="badge">{event.channel === 'mock' ? 'Mock route' : 'Email sent'}</span>
-            </div>
-            <div className="muted small">{event.body || event.title}</div>
-            <div className="muted small">{formatTimestamp(event.sentAt)}</div>
-          </div>
-        )) : (
-          <div className="list-item muted small">No email deliveries yet. Once alerts fire, sent emails will show here so you can verify what went out.</div>
-        )}
-      </div>
-
 
       <div className="stack">
         <div className="row space-between">
