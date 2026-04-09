@@ -209,7 +209,7 @@ function downloadSignalCard(asset, context, referralCode) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `midnight-signal-${asset.symbol.toLowerCase()}-v11.74.svg`;
+  link.download = `midnight-signal-${asset.symbol.toLowerCase()}-v11.75.svg`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -1450,7 +1450,7 @@ const sinceLastVisitSummary = useMemo(() => {
                 <div className="eyebrow">Share tonight&apos;s signal</div>
                 <h2 className="section-title">Turn a strong read into a shareable signal card</h2>
               </div>
-              <span className="badge glow-badge">v11.74 onboarding optimized</span>
+              <span className="badge glow-badge">v11.75 X bridge armed</span>
             </div>
             <div className="growth-loop-actions">
               <button type="button" className="primary-button" onClick={() => shareSignalCard(topSignal)}>Share Tonight&apos;s Signal 🌙</button>
@@ -1756,7 +1756,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.74 · conversion + onboarding optimization · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
+          Build v11.75 · X / Cardano Midnight News automation bridge · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 

@@ -5,6 +5,6 @@ export async function GET() {
     ok: true,
     app: 'midnight-signal',
     version: VERSION,
-    build: 'conversion-onboarding-optimization',
+    build: 'x-cardano-midnight-news-automation-bridge',
   });
 }

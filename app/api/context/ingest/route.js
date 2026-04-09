@@ -1,9 +1,9 @@
 import { ingestContextItems, listContextItems } from '@/lib/context-ingestion';
 
 const INGEST_SCHEMA = {
-  accepts: ['x', 'rss', 'manual', 'newsletter'],
+  accepts: ['x', 'rss', 'manual', 'newsletter', 'nightly'],
   requiredShape: ['title or headline', 'body or summary', 'source', 'publishedAt/timestamp'],
-  optionalShape: ['url', 'assetMentions', 'sentimentHint', 'catalystType', 'sourceHandle', 'sourceNetwork', 'topicBucket', 'externalId', 'imageUrl'],
+  optionalShape: ['url', 'assetMentions', 'sentimentHint', 'catalystType', 'sourceHandle', 'sourceNetwork', 'topicBucket', 'externalId', 'imageUrl', 'createdAt', 'format'],
 };
 
 export async function GET(request) {

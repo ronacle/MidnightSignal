@@ -3,12 +3,15 @@
 function formatSourceType(value = '') {
   if (value === 'x') return 'X';
   if (value === 'article') return 'Article';
+  if (value === 'newsletter') return 'Newsletter';
+  if (value === 'brief') return 'Nightly brief';
   return 'Note';
 }
 
 function formatSourceNetwork(value = '') {
   if (value === 'x') return 'X';
   if (value === 'rss') return 'RSS';
+  if (value === 'newsletter') return 'Newsletter';
   return 'Manual';
 }
 
@@ -99,6 +102,44 @@ export default function SignalContextPanel({ context, asset, planTier = 'basic' 
 
       <div className="signal-context-grid" style={{ marginTop: 16 }}>
         <div className="signal-context-card">
+          <div className="signal-context-label">Cardano Midnight brief</div>
+          <div className="signal-context-list">
+            {(context.nightlyBrief?.developments || []).map((item, idx) => (
+              <div key={`${safeText(item.headline, 'Brief item')}-${idx}`} className="signal-context-item">
+                <div className="signal-context-item-title">{safeText(item.headline, 'Brief item')}</div>
+                <div className="muted small">{safeText(item.detail, 'Detail unavailable.')}</div>
+              </div>
+            ))}
+            <div className="signal-context-item">
+              <div className="signal-context-item-title">Signal watch</div>
+              <div className="muted small">{safeText(context.nightlyBrief?.signalWatch, 'Signal watch is forming.')}</div>
+            </div>
+            <div className="signal-context-item">
+              <div className="signal-context-item-title">Market watch</div>
+              <div className="muted small">{safeText(context.nightlyBrief?.marketWatch, 'Market watch is forming.')}</div>
+            </div>
+            <div className="signal-context-item">
+              <div className="signal-context-item-title">Community pulse</div>
+              <div className="muted small">{safeText(context.nightlyBrief?.communityPulse, 'Community pulse is quiet for now.')}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="signal-context-card">
+          <div className="signal-context-label">Cardano / Midnight context tonight</div>
+          <div className="signal-context-list">
+            {(context.nightlyBrief?.ecosystemFocus || []).map((item, idx) => (
+              <div key={`${safeText(item.headline, 'Ecosystem item')}-${idx}`} className="signal-context-item">
+                <div className="signal-context-item-title">{safeText(item.headline, 'Ecosystem item')}</div>
+                <div className="muted small">{safeText(item.detail, 'Ecosystem detail unavailable.')}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="signal-context-grid" style={{ marginTop: 16 }}>
+        <div className="signal-context-card">
           <div className="signal-context-label">Catalyst match</div>
           <div className="signal-context-item">
             <div className="signal-context-item-title">{safeText(context.catalystMatch?.label, 'No clear catalyst detected')}</div>
@@ -118,7 +159,7 @@ export default function SignalContextPanel({ context, asset, planTier = 'basic' 
                 </div>
                 <div className="muted small">{safeText(item.body, 'Context detail unavailable.')}</div>
                 <div className="muted small" style={{ marginTop: 8 }}>
-                  {formatSourceType(item.sourceType)} · {formatSourceNetwork(item.sourceNetwork)} · {item.sourceHandle ? `${safeText(item.sourceHandle)} · ` : ''}{safeText(item.source, 'Source')} · {safeText(item.matchLabel, 'context match')}
+                  {formatSourceType(item.sourceType)} · {formatSourceNetwork(item.sourceNetwork)} · {item.sourceHandle ? `${safeText(item.sourceHandle)} · ` : ''}{safeText(item.source, 'Source')} · {safeText(item.matchLabel, 'context match')} · {safeText(item.freshnessLabel, 'recent')}
                 </div>
               {item.url ? <div className="muted small" style={{ marginTop: 4, wordBreak: 'break-all' }}>{safeText(item.url, '')}</div> : null}
               </div>
