@@ -6,26 +6,74 @@ function formatSourceType(value = '') {
   return 'Note';
 }
 
+function ContextBadges({ context, asset }) {
+  return (
+    <>
+      <span className={`badge tone-${asset.sentiment || 'neutral'}`}>{asset.signalLabel || 'Balanced signal posture'}</span>
+      <span className="badge">{context?.meta?.live ? 'Scored live context' : 'Narrative fallback active'}</span>
+    </>
+  );
+}
+
 export default function SignalContextPanel({ context, asset, collapsed = false, onToggleCollapse }) {
   if (!context || !asset) return null;
 
   const sourceTypes = context?.meta?.sourceTypes || {};
 
+  if (collapsed) {
+    return (
+      <section className="signal-context-panel signal-context-panel-collapsed card" id="signal-context">
+        <div className="signal-context-collapsed-shell">
+          <div className="signal-context-collapsed-top">
+            <div className="signal-context-collapsed-titleblock">
+              <div className="eyebrow">Signal context</div>
+              <h2 className="section-title">News + X context layer</h2>
+            </div>
+            <div className="signal-context-collapsed-actions">
+              <ContextBadges context={context} asset={asset} />
+              {onToggleCollapse ? (
+                <button
+                  type="button"
+                  className="ghost-button small section-collapse-toggle is-collapsed"
+                  onClick={onToggleCollapse}
+                  aria-expanded={false}
+                  aria-label="Expand signal context panel"
+                >
+                  Expand
+                </button>
+              ) : null}
+            </div>
+          </div>
+          <div className="signal-context-collapsed-summary muted small">
+            Signal context hidden. Expand to review narrative cues, X watch, and related asset mentions.
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className={`signal-context-panel card ${collapsed ? 'is-collapsed' : ''}`} id="signal-context">
+    <section className="signal-context-panel card" id="signal-context">
       <div className="signal-context-head section-collapse-head">
         <div>
           <div className="eyebrow">Signal context</div>
           <h2 className="section-title">News + X context layer</h2>
         </div>
         <div className="stack section-collapse-actions" style={{ alignItems: 'flex-end', gap: 8 }}>
-          <span className={`badge tone-${asset.sentiment || 'neutral'}`}>{asset.signalLabel || 'Balanced signal posture'}</span>
-          <span className="badge">{context?.meta?.live ? 'Scored live context' : 'Narrative fallback active'}</span>
-          {onToggleCollapse ? (<button type="button" className={`ghost-button small section-collapse-toggle ${collapsed ? 'is-collapsed' : 'is-open'}`} onClick={onToggleCollapse} aria-expanded={!collapsed} aria-label={collapsed ? 'Expand signal context panel' : 'Collapse signal context panel'}>{collapsed ? 'Expand' : 'Collapse'}</button>) : null}
+          <ContextBadges context={context} asset={asset} />
+          {onToggleCollapse ? (
+            <button
+              type="button"
+              className="ghost-button small section-collapse-toggle is-open"
+              onClick={onToggleCollapse}
+              aria-expanded={true}
+              aria-label="Collapse signal context panel"
+            >
+              Collapse
+            </button>
+          ) : null}
         </div>
       </div>
-
-      {!collapsed ? (<>
 
       <div className="signal-context-hero">
         <div className="signal-context-title">{context.headline}</div>
@@ -123,9 +171,6 @@ export default function SignalContextPanel({ context, asset, collapsed = false, 
           </div>
         </div>
       </div>
-      </>) : (
-        <div className="section-collapse-summary muted small">Signal context hidden. Expand to review narrative cues, X watch, and related asset mentions.</div>
-      )}
     </section>
   );
 }
