@@ -990,7 +990,8 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         {experience.showSinceLastVisit ? (
-        <section className={`since-panel card ${experience.modeClass} ${experience.intentClass}`} id="since-last-visit">
+        <section className={`since-panel card ${experience.modeClass} ${experience.intentClass} ${panelState.sinceLastVisit ? '' : 'since-panel-collapsed'}`} id="since-last-visit">
+          {panelState.sinceLastVisit ? (<>
           <div className="since-panel-head">
             <div>
               <div className="eyebrow">{experience.sinceEyebrow}</div>
@@ -998,11 +999,10 @@ function handleOnboardingComplete(payload) {
             </div>
             <div className="section-collapse-actions">
               <span className="badge since-badge">{lastVisitLabel}</span>
-              <button type="button" className={`ghost-button small section-collapse-toggle ${panelState.sinceLastVisit ? 'is-open' : 'is-collapsed'}`} onClick={() => togglePanel('sinceLastVisit')} aria-expanded={panelState.sinceLastVisit} aria-label={panelState.sinceLastVisit ? 'Collapse since last visit panel' : 'Expand since last visit panel'}>{panelState.sinceLastVisit ? 'Collapse' : 'Expand'}</button>
+              <button type="button" className="ghost-button small section-collapse-toggle is-open" onClick={() => togglePanel('sinceLastVisit')} aria-expanded={true} aria-label="Collapse since last visit panel">Collapse</button>
             </div>
           </div>
 
-          {panelState.sinceLastVisit ? (<>
           <div className="since-chip-row">
             {sinceLastVisitSummary.map((item) => (
               <div key={item} className="since-chip">{item}</div>
@@ -1042,7 +1042,21 @@ function handleOnboardingComplete(payload) {
             <div className="since-intel-label">Tonight&apos;s takeaway</div>
             <div className="since-takeaway-copy">{visitIntelligence.takeaway}</div>
           </div>
-          </>) : (<div className="section-collapse-summary muted small">Since-last-visit intel hidden. Expand to compare leadership changes, improvements, and tonight&apos;s takeaway.</div>)}
+          </>) : (
+            <div className="section-collapse-compact-shell">
+              <div className="section-collapse-compact-top">
+                <div className="section-collapse-compact-titleblock">
+                  <div className="eyebrow">{experience.sinceEyebrow}</div>
+                  <h2 className="section-title">{experience.sinceTitle}</h2>
+                </div>
+                <div className="section-collapse-actions">
+                  <span className="badge since-badge">{lastVisitLabel}</span>
+                  <button type="button" className="ghost-button small section-collapse-toggle is-collapsed" onClick={() => togglePanel('sinceLastVisit')} aria-expanded={false} aria-label="Expand since last visit panel">Expand</button>
+                </div>
+              </div>
+              <div className="section-collapse-summary muted small">Since-last-visit intel hidden. Expand to compare leadership changes, improvements, and tonight&apos;s takeaway.</div>
+            </div>
+          )}
         </section>
         ) : null}
 
@@ -1090,7 +1104,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.80 · Full mode differentiation · source: {marketSource}
+          Build v11.80.5 · Collapsible panel consistency pass · source: {marketSource}
         </div>
       </div>
 

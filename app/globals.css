@@ -3417,3 +3417,70 @@ html {
     max-width: none;
   }
 }
+
+
+/* v11.80.5 collapsible panel consistency pass */
+.section-collapse-compact-shell {
+  display: grid;
+  gap: 10px;
+}
+
+.section-collapse-compact-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.section-collapse-compact-titleblock {
+  min-width: 0;
+}
+
+.section-collapse-compact-titleblock .eyebrow {
+  margin-bottom: 3px;
+}
+
+.section-collapse-compact-titleblock .section-title {
+  margin: 0;
+  line-height: 1.1;
+}
+
+.premium-board-shell-collapsed,
+.since-panel-collapsed,
+.signal-context-panel-collapsed {
+  padding: 18px 22px;
+}
+
+.premium-board-shell-collapsed .section-collapse-summary,
+.since-panel-collapsed .section-collapse-summary,
+.signal-context-panel-collapsed .section-collapse-summary {
+  margin: 0;
+  padding: 0;
+  color: #b8c9e6;
+  line-height: 1.45;
+  max-width: 80ch;
+}
+
+.since-panel-collapsed .since-badge,
+.premium-board-shell-collapsed .glow-badge {
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .section-collapse-compact-top {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+}
+
+@media (max-width: 720px) {
+  .premium-board-shell-collapsed,
+  .since-panel-collapsed,
+  .signal-context-panel-collapsed {
+    padding: 16px 18px;
+  }
+
+  .section-collapse-compact-shell {
+    gap: 8px;
+  }
+}
