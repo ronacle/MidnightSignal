@@ -2,6 +2,7 @@
 
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { formatCompactNumber, formatPct, formatPrice, getConvictionTier } from '@/lib/utils';
+import { deriveExperienceProfile } from '@/lib/mode-engine';
 
 const FALLBACK_ASSETS = [
   ...MARKET_FIXTURES,
@@ -24,18 +25,20 @@ const FALLBACK_ASSETS = [
 
 export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS }) {
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
+  const experience = deriveExperienceProfile(state);
+  const visibleAssets = (assets?.length ? assets : FALLBACK_ASSETS).slice(0, experience.boardAssetCount);
 
   return (
     <div className="panel stack premium-board-shell">
       <div className="row space-between">
         <div>
-          <h2 className="section-title">Top 20</h2>
-          <div className="muted small">{planTier === 'pro' ? 'Pro view active: board scan + full breakdown access.' : "Free view active: board scan, Tonight's Brief, watchlist, and alert setup remain available."}</div>
+          <h2 className="section-title">{experience.boardTitle}</h2>
+          <div className="muted small">{planTier === 'pro' ? `${experience.boardAssetCount}-asset scan with full breakdown access.` : `Free view active: ${experience.boardAssetCount}-asset scan, Tonight's Brief, watchlist, and alert setup remain available.`}</div>
         </div>
         <span className="badge glow-badge">Ranked signal scan</span>
       </div>
       <div className="top20-grid">
-        {assets.map((asset) => (
+        {visibleAssets.map((asset) => (
           <button
             key={asset.symbol}
             type="button"

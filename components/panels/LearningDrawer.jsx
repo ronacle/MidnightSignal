@@ -1,5 +1,7 @@
 'use client';
 
+import { deriveExperienceProfile } from '@/lib/mode-engine';
+
 const GLOSSARY = [
   { term: 'Top Signal', beginner: 'The system-selected asset that currently ranks highest after the engine scores all tracked assets.', pro: 'Highest-ranked asset in the current model pass.' },
   { term: 'Top Signal Brief', beginner: 'A plain-English explanation of why the top signal is leading right now.', pro: 'Narrative summary of current signal leadership.' },
@@ -18,7 +20,8 @@ const GLOSSARY = [
 ];
 
 export default function LearningDrawer({ open, onClose, state, focusAsset }) {
-  const beginner = (state?.mode || 'Beginner') === 'Beginner';
+  const experience = deriveExperienceProfile(state);
+  const beginner = experience.learningTone;
 
   return (
     <div className={`drawer-root ${open ? 'open' : ''}`} aria-hidden={!open}>
@@ -31,7 +34,7 @@ export default function LearningDrawer({ open, onClose, state, focusAsset }) {
       <aside className="drawer drawer-right learning-drawer" role="dialog" aria-modal="true" aria-label="Learning Panel">
         <div className="drawer-header">
           <div>
-            <div className="eyebrow">Learning Panel</div>
+            <div className="eyebrow">Learning Panel · {experience.userType}</div>
             <h2 className="section-title" style={{ marginTop: 6 }}>Understand the signal system</h2>
           </div>
           <button type="button" className="ghost-button" onClick={onClose}>Close</button>

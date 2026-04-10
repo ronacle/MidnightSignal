@@ -17,6 +17,7 @@ import { shouldRefreshEntitlement } from '@/lib/entitlements';
 import { rankAssets, buildSignalSnapshot, detectMarketRegime } from '@/lib/signal-engine';
 import { appendSignalSnapshot, buildValidationSummary, readSignalHistory } from '@/lib/signal-history';
 import { buildSignalContext } from '@/lib/news-context';
+import { applyModePreset, deriveExperienceProfile, normalizeIntent, normalizeUserType } from '@/lib/mode-engine';
 import {
   buildForwardScorecard,
   readForwardValidation,
@@ -484,6 +485,11 @@ useEffect(() => {
     [signalHistory]
   );
 
+  const experience = useMemo(
+    () => deriveExperienceProfile(state),
+    [state]
+  );
+
   const watchlistHighlights = useMemo(() => {
     const watchSymbols = Array.isArray(state?.watchlist) ? state.watchlist : [];
     return rankedAssets
@@ -763,6 +769,26 @@ const sinceLastVisitSummary = useMemo(() => {
 
   const signalContext = useMemo(() => buildSignalContext(topSignal, rankedAssets, state.watchlist, regimeSummary, { items: contextItems, meta: contextMeta }), [topSignal, rankedAssets, state.watchlist, regimeSummary, contextItems, contextMeta]);
 
+useEffect(() => {
+  if (typeof window === 'undefined') return;
+  try {
+    const rawProfile = window.localStorage.getItem('ms_onboarding_profile');
+    if (!rawProfile) return;
+    const parsed = JSON.parse(rawProfile);
+    const localUserType = normalizeUserType(parsed?.userType || state.userType || state.mode);
+    const localIntent = normalizeIntent(parsed?.goal || state.intent || state.onboardingGoal);
+    if (state.userType === localUserType && state.intent === localIntent && state.modeEngineVersion === '11.79') return;
+    setState((previous) => applyModePreset({
+      ...previous,
+      userType: localUserType,
+      intent: localIntent,
+      onboardingGoal: localIntent,
+      onboardingCompletedAt: previous.onboardingCompletedAt || parsed?.completedAt || new Date().toISOString(),
+    }));
+  } catch {
+    // no-op
+  }
+}, [setState, state.intent, state.mode, state.modeEngineVersion, state.onboardingGoal, state.onboardingCompletedAt, state.userType]);
 
 useEffect(() => {
   if (typeof window === 'undefined') return;
@@ -794,33 +820,38 @@ function handleDisclaimerAccept() {
 }
 
 function handleOnboardingComplete(payload) {
-  const userType = payload?.userType || 'Beginner';
-  const goal = payload?.goal || 'learn';
-  const dashboardFocus = goal === 'alerts' ? 'watchlist' : goal === 'track' ? 'board' : 'signals';
-  const nextTimeframe = goal === 'alerts' ? '15M' : goal === 'track' ? '1H' : state.timeframe;
+  const userType = normalizeUserType(payload?.userType || 'Beginner');
+  const intent = normalizeIntent(payload?.goal || 'learn');
+  const completedAt = new Date().toISOString();
+  const preset = applyModePreset(state, {
+    userType,
+    intent,
+    onboardingGoal: intent,
+    onboardingCompletedAt: completedAt,
+  });
 
   try {
     window.localStorage.setItem('ms_onboarded', 'true');
     window.localStorage.setItem('ms_onboarding_profile', JSON.stringify({
       userType,
-      goal,
-      dashboardFocus,
-      completedAt: new Date().toISOString(),
+      goal: intent,
+      dashboardFocus: preset.dashboardFocus,
+      completedAt,
     }));
   } catch {
     // no-op
   }
 
-  setState((previous) => ({
+  setState((previous) => applyModePreset({
     ...previous,
-    mode: userType,
-    timeframe: nextTimeframe,
-    dashboardFocus,
-    onboardingGoal: goal,
-    onboardingCompletedAt: new Date().toISOString(),
+    userType,
+    intent,
+    onboardingGoal: intent,
+    onboardingCompletedAt: completedAt,
   }));
   setShowOnboardingGate(false);
 }
+
 
   return (
     <main className="page">
@@ -933,11 +964,14 @@ function handleOnboardingComplete(payload) {
           />
         </section>
 
-        <SignalContextPanel
-          context={signalContext}
-          asset={topSignal}
-        />
+        {experience.showContextPanel && experience.contextFirst ? (
+          <SignalContextPanel
+            context={signalContext}
+            asset={topSignal}
+          />
+        ) : null}
 
+        {experience.showSinceLastVisit ? (
         <section className="since-panel card" id="since-last-visit">
           <div className="since-panel-head">
             <div>
@@ -987,15 +1021,16 @@ function handleOnboardingComplete(payload) {
             <div className="since-takeaway-copy">{visitIntelligence.takeaway}</div>
           </div>
         </section>
+        ) : null}
 
         <section className="market-grid market-grid-single" id="market-scan">
           <div className="market-scan-header">
             <div>
               <div className="eyebrow">Next up</div>
-              <h2 className="section-title">Tonight&apos;s Board</h2>
+              <h2 className="section-title">{experience.boardTitle}</h2>
             </div>
             <div className="muted small">
-              Scan the live field, open a name, and save favorites from the board.
+              {experience.boardSubtitle}
             </div>
           </div>
 
@@ -1006,6 +1041,13 @@ function handleOnboardingComplete(payload) {
             assets={rankedAssets}
           />
         </section>
+
+        {experience.showContextPanel && !experience.contextFirst ? (
+          <SignalContextPanel
+            context={signalContext}
+            asset={topSignal}
+          />
+        ) : null}
 
         {upgradeNotice ? (
           <div className="upgrade-notice-banner">
@@ -1021,7 +1063,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.78.3 · Full onboarding restore · source: {marketSource}
+          Build v11.79 · Mode engine activation · source: {marketSource}
         </div>
       </div>
 

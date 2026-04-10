@@ -2,6 +2,7 @@
 
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
+import { deriveExperienceProfile } from '@/lib/mode-engine';
 
 export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state }) {
   const isLocalOnly = !user;
@@ -10,6 +11,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
     ? (lastSyncedAt ? `Last synced ${formatTime(lastSyncedAt)}` : 'Your settings follow you across devices.')
     : 'Saved locally on this device.';
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
+  const experience = deriveExperienceProfile(state);
   const disclaimerAccepted = Boolean(state?.acceptedDisclaimer);
   const setupCount = [Boolean(user), disclaimerAccepted, planTier === 'pro'].filter(Boolean).length;
   const setupLabel = `${setupCount}/3 setup steps complete`;
@@ -25,23 +27,23 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
             <BeaconLogo size={118} animated />
           </div>
           <div className="brand-copy">
-            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.57.3</div>
-            <h1>What’s the signal tonight?</h1>
+            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.79</div>
+            <h1>{experience.heroTitle}</h1>
             <p>
               Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.
-              Learn the setup, understand the why, and move with calmer market awareness.
+              {` ${experience.heroSubtitle}`}
             </p>
             <div className="hero-support-copy">
-              <p>Start with Tonight’s Top Signal, open the why, then scan the Top 20 for broader posture.</p>
-              <p>The brand system now matches the beacon identity more closely: darker glass, cleaner hierarchy, softer glows, and a stronger premium feel.</p>
+              <p>{experience.heroSupport}</p>
+              <p>{experience.userType} mode with a {experience.intent === 'track' ? 'track signals' : experience.intent === 'alerts' ? 'get alerts' : 'learn'} focus is active.</p>
             </div>
           </div>
         </div>
 
         <div className="hero-pill-row premium-pill-row">
-          <span className="badge glow-badge">Beacon-guided signal flow</span>
+          <span className="badge glow-badge">{experience.userType} mode</span>
           <span className="badge">Live market context</span>
-          <span className="badge">Explainable signals</span>
+          <span className="badge">{experience.intent === 'track' ? 'Board-first scan' : experience.intent === 'alerts' ? 'Alert-aware flow' : 'Explainable signals'}</span>
           <span className="badge">Not financial advice</span>
         </div>
 
