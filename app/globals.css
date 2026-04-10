@@ -3333,3 +3333,64 @@ html {
 .section-collapse-toggle { min-width:92px; }
 .section-collapse-summary { padding:14px 2px 2px; }
 @media (max-width: 860px) { .section-collapse-actions { justify-content:flex-start; } }
+
+
+/* v11.80.3 signal context collapsed styling fix */
+.signal-context-panel.is-collapsed {
+  gap: 10px;
+  padding-top: 18px;
+  padding-bottom: 16px;
+}
+
+.signal-context-panel.is-collapsed .signal-context-head {
+  align-items: center;
+  gap: 16px;
+}
+
+.signal-context-panel.is-collapsed .signal-context-head > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.signal-context-panel.is-collapsed .section-title {
+  margin-bottom: 0;
+}
+
+.signal-context-panel.is-collapsed .section-collapse-actions {
+  align-items: center;
+  gap: 8px;
+}
+
+.signal-context-panel.is-collapsed .section-collapse-summary {
+  padding: 0;
+  margin: 0;
+  color: #b8c9e6;
+  max-width: 78ch;
+  line-height: 1.5;
+}
+
+.signal-context-panel.is-collapsed .badge {
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .signal-context-panel.is-collapsed .signal-context-head {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .signal-context-panel.is-collapsed {
+    gap: 8px;
+  }
+
+  .signal-context-panel.is-collapsed .section-collapse-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .signal-context-panel.is-collapsed .section-collapse-summary {
+    max-width: none;
+  }
+}
