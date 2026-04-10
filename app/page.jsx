@@ -8,6 +8,7 @@ import LeadSignalPanel from '@/components/signals/LeadSignalPanel';
 import SignalContextPanel from '@/components/signals/SignalContextPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
+import AlertCenterScaffold from '@/components/panels/AlertCenterScaffold';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
 import DisclaimerModal from '@/components/modals/DisclaimerModal';
 import OnboardingModal from '@/components/modals/OnboardingModal';
@@ -780,7 +781,7 @@ useEffect(() => {
     const parsed = JSON.parse(rawProfile);
     const localUserType = normalizeUserType(parsed?.userType || state.userType || state.mode);
     const localIntent = normalizeIntent(parsed?.goal || state.intent || state.onboardingGoal);
-    if (state.userType === localUserType && state.intent === localIntent && state.modeEngineVersion === '11.80') return;
+    if (state.userType === localUserType && state.intent === localIntent && state.modeEngineVersion === '11.81') return;
     setState((previous) => applyModePreset({
       ...previous,
       userType: localUserType,
@@ -989,6 +990,21 @@ function handleOnboardingComplete(payload) {
           />
         ) : null}
 
+        {experience.highlightAlerts ? (
+          <AlertCenterScaffold
+            state={state}
+            setState={setState}
+            experience={experience}
+            topSignal={topSignal}
+            watchlistHighlights={watchlistHighlights}
+            onOpenControls={() => {
+              setAlertAsset(null);
+              setControlOpen(true);
+            }}
+            onOpenAsset={(symbol) => openAlertAsset(symbol)}
+          />
+        ) : null}
+
         {experience.showSinceLastVisit ? (
         <section className={`since-panel card ${experience.modeClass} ${experience.intentClass} ${panelState.sinceLastVisit ? '' : 'since-panel-collapsed'}`} id="since-last-visit">
           {panelState.sinceLastVisit ? (<>
@@ -1104,7 +1120,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.80.5 · Collapsible panel consistency pass · source: {marketSource}
+          Build v11.81 · Alert center scaffolding · source: {marketSource}
         </div>
       </div>
 
