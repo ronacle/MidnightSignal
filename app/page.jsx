@@ -3,9 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
-import DisclaimerModal from '@/components/DisclaimerModal';
-import OnboardingModal from '@/components/OnboardingModal';
-import CollapsiblePanel from '@/components/CollapsiblePanel';
 import Top20Grid from '@/components/signals/Top20Grid';
 import LeadSignalPanel from '@/components/signals/LeadSignalPanel';
 import SignalContextPanel from '@/components/signals/SignalContextPanel';
@@ -515,16 +512,11 @@ export default function HomePage() {
       hintsDismissed: typeof window !== 'undefined' ? window.localStorage.getItem(INTRO_HINTS_STORAGE_KEY) === 'dismissed' : false,
     });
     setOnboardingProfile(next);
-    if (!state?.acceptedDisclaimer) {
-      setOnboardingOpen(false);
-      setOnboardingStep(1);
-      return;
-    }
     if (!next.completedAt) {
       setOnboardingOpen(true);
       setOnboardingStep(1);
     }
-  }, [state?.acceptedDisclaimer, state?.onboardingCompletedAt, state?.onboardingGoal, state?.onboardingUserType]);
+  }, [state?.onboardingCompletedAt, state?.onboardingGoal, state?.onboardingUserType]);
 
   useEffect(() => {
     const localAlertMemory = readAlertMemory();
@@ -1308,23 +1300,6 @@ const sinceLastVisitSummary = useMemo(() => {
   return (
     <main className="page">
       <div className="shell">
-        {!state?.acceptedDisclaimer ? (
-          <DisclaimerModal
-            onAccept={() => setState((previous) => ({ ...previous, acceptedDisclaimer: true }))}
-          />
-        ) : null}
-
-        {state?.acceptedDisclaimer && onboardingOpen ? (
-          <OnboardingModal
-            onboardingStep={onboardingStep}
-            onboardingProfile={onboardingProfile}
-            onboardingSummary={onboardingSummary}
-            onApplyChoice={applyOnboardingChoice}
-            onNext={() => setOnboardingStep(2)}
-            onBack={() => setOnboardingStep(1)}
-            onComplete={completeOnboarding}
-          />
-        ) : null}
         <TopNav
           state={state}
           user={user}
@@ -1410,18 +1385,11 @@ const sinceLastVisitSummary = useMemo(() => {
           />
         </section>
 
-        <CollapsiblePanel
-          title="Signal Context"
-          subtitle="Open the why behind tonight's signal"
-          defaultOpen={false}
-          className="section-collapse signal-context-collapse"
-        >
-          <SignalContextPanel
-            context={signalContext}
-            asset={topSignal}
-            planTier={state.planTier}
-          />
-        </CollapsiblePanel>
+        <SignalContextPanel
+          context={signalContext}
+          asset={topSignal}
+          planTier={state.planTier}
+        />
 
         <section className="since-panel card" id="since-last-visit">
           <div className="since-panel-head">
@@ -1508,6 +1476,66 @@ const sinceLastVisitSummary = useMemo(() => {
             recentAlertSymbols={recentAlertSymbols}
           />
         </section>
+
+
+        {onboardingOpen ? (
+          <section className="onboarding-shell card" aria-label="First-time onboarding">
+            <div className="onboarding-head">
+              <div>
+                <div className="eyebrow">First-time setup</div>
+                <h2 className="section-title">Make Midnight Signal click in under a minute</h2>
+              </div>
+              <span className="badge glow-badge">Step {onboardingStep} of 2</span>
+            </div>
+            {onboardingStep === 1 ? (
+              <>
+                <p className="muted small">Choose the path that feels closest to how you actually use the market.</p>
+                <div className="onboarding-option-grid">
+                  {['Beginner', 'Active trader', 'Long-term'].map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`onboarding-option ${onboardingProfile.userType === option ? 'is-active' : ''}`}
+                      onClick={() => applyOnboardingChoice({ userType: option })}
+                    >
+                      <strong>{option}</strong>
+                      <span>{option === 'Beginner' ? 'Keep explanations visible and the flow calmer.' : option === 'Active trader' ? 'Prioritize quicker reads and tighter reaction loops.' : 'Bias toward steadier posture and bigger timeframe context.'}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="onboarding-actions">
+                  <button type="button" className="primary-button" onClick={() => setOnboardingStep(2)}>Continue</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="muted small">Now choose what you want Midnight Signal to do for you first.</p>
+                <div className="onboarding-option-grid compact">
+                  {['Learn', 'Track signals', 'Get alerts'].map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`onboarding-option ${onboardingProfile.goal === option ? 'is-active' : ''}`}
+                      onClick={() => applyOnboardingChoice({ goal: option })}
+                    >
+                      <strong>{option}</strong>
+                      <span>{option === 'Learn' ? 'Lead with plain-English guidance and why it matters.' : option === 'Track signals' ? 'Center the board, watchlist, and posture shifts.' : 'Surface the most meaningful changes and notification-ready moves.'}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="onboarding-summary">
+                  <div className="onboarding-summary-title">{onboardingSummary.title}</div>
+                  <div className="muted small">{onboardingSummary.detail}</div>
+                </div>
+                <div className="onboarding-actions">
+                  <button type="button" className="ghost-button" onClick={() => setOnboardingStep(1)}>Back</button>
+                  <button type="button" className="primary-button" onClick={completeOnboarding}>Start tonight&apos;s signal</button>
+                </div>
+              </>
+            )}
+          </section>
+        ) : null}
+
         {showIntroHints ? (
           <section className="guided-session card" aria-label="Guided first session">
             <div className="guided-session-head">
@@ -1526,8 +1554,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
 
-        <CollapsiblePanel title="Share & Growth" subtitle="Signal cards, referrals, and invite tools" defaultOpen={false} className="section-collapse growth-collapse">
-          <section className="growth-loop-grid" aria-label="Growth loop">
+        <section className="growth-loop-grid" aria-label="Growth loop">
           <div className="growth-loop-card card">
             <div className="growth-loop-head">
               <div>
@@ -1561,26 +1588,17 @@ const sinceLastVisitSummary = useMemo(() => {
             <div className="growth-referral-note">{growthSummary.rewardLabel}</div>
             <div className="muted small">{growthSummary.referralLabel}. Invite 3 and unlock a 7-day Pro reward path for founding users.</div>
           </div>
-          </section>
-        </CollapsiblePanel>
+        </section>
 
-        <CollapsiblePanel
-          title="Alert Center"
-          subtitle={alertSummary?.badge || 'Meaningful changes only'}
-          defaultOpen={false}
-          className="section-collapse alert-center-collapse"
-        >
-          <AlertCenterPanel
-            alerts={recentAlertEvents}
-            newCount={newAlertCountSinceVisit}
-            lastVisitLabel={lastVisitLabel}
-            onOpenAsset={openAlertAsset}
-            onDismissAll={() => setState((previous) => ({ ...previous, recentAlertEvents: [] }))}
-          />
-        </CollapsiblePanel>
+        <AlertCenterPanel
+          alerts={recentAlertEvents}
+          newCount={newAlertCountSinceVisit}
+          lastVisitLabel={lastVisitLabel}
+          onOpenAsset={openAlertAsset}
+          onDismissAll={() => setState((previous) => ({ ...previous, recentAlertEvents: [] }))}
+        />
 
-        <CollapsiblePanel title="Learn More & Upgrade" subtitle="Preview the product, plans, and early access path" defaultOpen={false} className="section-collapse marketing-collapse">
-          <section className="landing-command card" aria-label="Midnight Signal landing message">
+        <section className="landing-command card" aria-label="Midnight Signal landing message">
           <div className="landing-command-copy">
             <div className="eyebrow">What&apos;s the signal tonight?</div>
             {inviteBanner ? <div className="invite-banner">{inviteBanner}</div> : null}
@@ -1723,7 +1741,7 @@ const sinceLastVisitSummary = useMemo(() => {
             <div className="capture-status muted small">{waitlistStatus || 'We use your email for magic-link access and account-based signal memory.'}</div>
           </form>
         </section>
-        </CollapsiblePanel>
+
 
         {upgradeNotice ? (
           <div className="upgrade-notice-banner">
@@ -1739,7 +1757,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.77 · Modal onboarding + collapsible panels · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
+          Build v11.75.1 · Top Signal First / scroll compression hotfix · source: {marketSource} · updated {marketUpdatedAt ? new Date(marketUpdatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'pending'}
         </div>
       </div>
 
