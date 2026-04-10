@@ -5,9 +5,11 @@ import { MARKET_FIXTURES } from '@/lib/default-state';
 
 const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
 
-export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [] }) {
+export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [], orderedSymbols = [], personalization = [], priorityLabel = 'Your prioritized assets' }) {
   const [newSymbol, setNewSymbol] = useState('LINK');
   const assetPool = useMemo(() => (assets?.length ? assets : MARKET_FIXTURES), [assets]);
+  const personalizationMap = useMemo(() => new Map((personalization || []).map((entry) => [entry.symbol, entry])), [personalization]);
+  const visibleSymbols = orderedSymbols.length ? orderedSymbols : state.watchlist;
 
   function addSymbol() {
     if (state.watchlist.includes(newSymbol)) return;
@@ -42,7 +44,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
       <div className="row space-between">
         <div>
           <h2 className="section-title compact-title">Watchlist</h2>
-          <div className="muted small">Your prioritized assets</div>
+          <div className="muted small">{priorityLabel}</div>
         </div>
         <span className="badge">Synced</span>
       </div>
@@ -55,7 +57,8 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
       </div>
 
       <div className="watchlist-rail-grid">
-        {state.watchlist.map((symbol) => {
+        {visibleSymbols.map((symbol) => {
+          const meta = personalizationMap.get(symbol);
           const asset = assetPool.find((item) => item.symbol === symbol) || {
             symbol,
             name: symbol,
@@ -95,6 +98,12 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
               </div>
 
               <div className="watchlist-rail-name" title={asset.name}>{asset.name}</div>
+              <div className="watchlist-rail-meta">
+                {meta?.alertLevel ? <span className={`watchlist-meta-pill watchlist-meta-pill--${meta.alertLevel}`}>{meta.alertLevel} alert</span> : null}
+                {!meta?.alertLevel && meta?.direction === 'up' ? <span className="watchlist-meta-pill watchlist-meta-pill--up">strengthening</span> : null}
+                {!meta?.alertLevel && meta?.direction === 'down' ? <span className="watchlist-meta-pill watchlist-meta-pill--down">cooling</span> : null}
+                {meta?.postureChanged ? <span className="watchlist-meta-pill">posture shift</span> : null}
+              </div>
             </div>
           );
         })}

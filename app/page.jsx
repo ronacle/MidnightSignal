@@ -178,6 +178,29 @@ function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
   };
 }
 
+
+function buildWatchlistPriority({ symbol, asset, previousAsset, alertLevel }) {
+  const conviction = Math.round(Number(asset?.conviction ?? asset?.signalScore ?? 0));
+  const previousConviction = Math.round(Number(previousAsset?.conviction ?? 0));
+  const delta = conviction - previousConviction;
+  const postureChanged = Boolean(previousAsset?.signalLabel && asset?.signalLabel && previousAsset.signalLabel !== asset.signalLabel);
+  const alertWeightMap = { priority: 400, high: 300, medium: 200, low: 100 };
+  const alertWeight = alertWeightMap[String(alertLevel || '').toLowerCase()] || 0;
+  const deltaWeight = Math.min(Math.abs(delta), 25) * 4;
+  const convictionWeight = conviction;
+  const score = alertWeight + deltaWeight + convictionWeight + (postureChanged ? 80 : 0);
+  const direction = delta > 2 ? 'up' : delta < -2 ? 'down' : 'flat';
+  return {
+    symbol,
+    score,
+    delta,
+    conviction,
+    direction,
+    postureChanged,
+    alertLevel: alertLevel || null,
+  };
+}
+
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
   { symbol: 'AVAX', name: 'Avalanche', conviction: 44, sentiment: 'bearish', story: 'Weak follow-through is keeping conviction lower.' },
@@ -491,6 +514,41 @@ useEffect(() => {
   }, [rankedAssets, state?.watchlist]);
 
 
+  const watchlistPersonalization = useMemo(() => {
+    const watchSymbols = Array.isArray(state?.watchlist) ? state.watchlist : [];
+    const alertMap = new Map(
+      (priorityAlerts || [])
+        .filter((alert) => alert?.symbol)
+        .map((alert) => [String(alert.symbol).toUpperCase(), alert.level || 'medium'])
+    );
+    const previousWatchMap = new Map((previousSessionSnapshot?.watchlist || []).map((asset) => [asset.symbol, asset]));
+
+    const entries = watchSymbols.map((symbol) => {
+      const asset = rankedAssets.find((item) => item.symbol === symbol) || MARKET_FIXTURES.find((item) => item.symbol === symbol) || { symbol, conviction: 52, signalScore: 52 };
+      const previousAsset = previousWatchMap.get(symbol);
+      return buildWatchlistPriority({
+        symbol,
+        asset,
+        previousAsset,
+        alertLevel: alertMap.get(symbol),
+      });
+    });
+
+    entries.sort((a, b) => b.score - a.score || b.conviction - a.conviction || a.symbol.localeCompare(b.symbol));
+    return entries;
+  }, [state?.watchlist, rankedAssets, priorityAlerts, previousSessionSnapshot]);
+
+  const orderedWatchlistSymbols = useMemo(
+    () => watchlistPersonalization.map((entry) => entry.symbol),
+    [watchlistPersonalization]
+  );
+
+  const watchlistSignalMoments = useMemo(
+    () => watchlistPersonalization.filter((entry) => entry.alertLevel || entry.postureChanged || Math.abs(entry.delta) >= 4).slice(0, 3),
+    [watchlistPersonalization]
+  );
+
+
 const currentSessionSnapshot = useMemo(
   () => createSessionSnapshot({
     topSignal,
@@ -536,6 +594,31 @@ const sinceLastVisitSummary = useMemo(() => {
       ? fallbackBits.slice(0, 3)
       : [`Top signal remains ${topSignal?.symbol || 'the same'} with ${topSignal?.conviction ?? '--'}% conviction`];
 }, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary, visitIntelligence]);
+
+
+  const personalizedVisitFocus = useMemo(() => {
+    const mode = String(state?.mode || 'Beginner').toLowerCase();
+    const priority = watchlistSignalMoments[0];
+    if (priority?.alertLevel) {
+      return `${priority.symbol} is your priority tonight — ${priority.alertLevel} alert strength with ${priority.conviction}% confidence.`;
+    }
+    if (priority?.postureChanged) {
+      return `${priority.symbol} changed posture since your last visit, so it deserves the first personal check.`;
+    }
+    if (mode === 'beginner') {
+      return `Start with ${topSignal?.symbol || 'the lead asset'}, then glance at your watchlist for the strongest shift.`;
+    }
+    if (mode === 'active') {
+      return `Your fastest edge tonight is ${topSignal?.symbol || 'the leader'} first, then the highest-priority watchlist name.`;
+    }
+    return `Focus on trend quality first: ${topSignal?.symbol || 'the lead asset'} sets the tone, while your watchlist tracks follow-through.`;
+  }, [state?.mode, watchlistSignalMoments, topSignal]);
+
+  const personalizationBadge = useMemo(() => {
+    const mode = String(state?.mode || 'Beginner');
+    const intent = state?.dashboardFocus || state?.onboardingGoal || 'Track signals';
+    return `${mode} · ${intent}`;
+  }, [state?.mode, state?.dashboardFocus, state?.onboardingGoal]);
 
 
   const lastVisitLabel = useMemo(() => {
@@ -852,12 +935,13 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
 
-{showStickyWatchlist && state.watchlist.length ? (
+{showStickyWatchlist && orderedWatchlistSymbols.length ? (
   <section className="sticky-watchlist-shell" aria-label="Sticky watchlist">
     <div className="sticky-watchlist-row">
       <div className="sticky-watchlist-label">Watchlist</div>
       <div className="sticky-watchlist-scroller">
-        {state.watchlist.map((symbol) => {
+        {orderedWatchlistSymbols.map((symbol) => {
+          const watchMeta = watchlistPersonalization.find((entry) => entry.symbol === symbol);
           const asset = rankedAssets.find((item) => item.symbol === symbol) || MARKET_FIXTURES.find((item) => item.symbol === symbol) || { symbol, signalScore: 52, conviction: 52, sentiment: 'neutral' };
           const confidence = Math.round(asset.signalScore ?? asset.conviction ?? 0);
           const tone = confidence >= 70 ? 'bullish' : confidence < 45 ? 'bearish' : 'neutral';
@@ -870,6 +954,7 @@ const sinceLastVisitSummary = useMemo(() => {
             >
               <span className="sticky-watch-symbol">{symbol}</span>
               <span className="sticky-watch-confidence">{confidence}%</span>
+              {watchMeta?.alertLevel ? <span className={`sticky-watch-indicator sticky-watch-indicator--${watchMeta.alertLevel}`}>●</span> : watchMeta?.direction === 'up' ? <span className="sticky-watch-indicator sticky-watch-indicator--up">↑</span> : watchMeta?.direction === 'down' ? <span className="sticky-watch-indicator sticky-watch-indicator--down">↓</span> : null}
             </button>
           );
         })}
@@ -966,7 +1051,7 @@ const sinceLastVisitSummary = useMemo(() => {
               <div className="eyebrow">Return signal</div>
               <h2 className="section-title">Since your last visit</h2>
             </div>
-            <span className="badge since-badge">{lastVisitLabel}</span>
+            <div className="since-badge-stack"><span className="badge since-badge">{lastVisitLabel}</span><span className="badge since-badge since-badge--profile">{personalizationBadge}</span></div>
           </div>
 
           <div className="since-chip-row">
@@ -1008,6 +1093,11 @@ const sinceLastVisitSummary = useMemo(() => {
             <div className="since-intel-label">Tonight&apos;s takeaway</div>
             <div className="since-takeaway-copy">{visitIntelligence.takeaway}</div>
           </div>
+
+          <div className="since-takeaway since-takeaway--personal">
+            <div className="since-intel-label">Your focus tonight</div>
+            <div className="since-takeaway-copy">{personalizedVisitFocus}</div>
+          </div>
         </section>
 
 
@@ -1017,6 +1107,9 @@ const sinceLastVisitSummary = useMemo(() => {
     setState={setState}
     onAssetOpen={setDetailAsset}
     assets={rankedAssets}
+    orderedSymbols={orderedWatchlistSymbols}
+    personalization={watchlistPersonalization}
+    priorityLabel={watchlistSignalMoments[0] ? `${watchlistSignalMoments[0].symbol} deserves first attention tonight` : 'Smart order reflects alerts, posture shifts, and conviction changes'}
   />
 </section>
 
@@ -1053,7 +1146,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.77.5 · Sticky watchlist + collapsible merge · source: {marketSource}
+          Build v11.78 · Personalization layer · source: {marketSource}
         </div>
       </div>
 

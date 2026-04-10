@@ -3334,3 +3334,76 @@ html {
 .collapsible-panel--alerts .collapsible-body {
   margin-top: 0;
 }
+
+
+.since-badge-stack {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.since-badge--profile {
+  opacity: 0.9;
+}
+
+.since-takeaway--personal {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 12px;
+}
+
+.watchlist-rail-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.watchlist-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+}
+
+.watchlist-meta-pill--priority,
+.watchlist-meta-pill--high {
+  background: rgba(255, 96, 96, 0.14);
+  border-color: rgba(255, 96, 96, 0.35);
+}
+
+.watchlist-meta-pill--medium {
+  background: rgba(255, 187, 92, 0.14);
+  border-color: rgba(255, 187, 92, 0.35);
+}
+
+.watchlist-meta-pill--low,
+.watchlist-meta-pill--up {
+  background: rgba(88, 200, 150, 0.14);
+  border-color: rgba(88, 200, 150, 0.35);
+}
+
+.watchlist-meta-pill--down {
+  background: rgba(106, 140, 255, 0.14);
+  border-color: rgba(106, 140, 255, 0.35);
+}
+
+.sticky-watch-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 12px;
+  margin-left: 6px;
+  font-size: 11px;
+}
+
+.sticky-watch-indicator--priority,
+.sticky-watch-indicator--high { color: #ff6f6f; }
+.sticky-watch-indicator--medium { color: #ffbb5c; }
+.sticky-watch-indicator--low,
+.sticky-watch-indicator--up { color: #69d6a6; }
+.sticky-watch-indicator--down { color: #8aa2ff; }
