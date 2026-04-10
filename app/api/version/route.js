@@ -1,10 +1,8 @@
-import { VERSION } from '@/lib/version';
-
 export async function GET() {
   return Response.json({
     ok: true,
-    app: 'midnight-signal',
-    version: VERSION,
-    build: 'top-signal-first-scroll-compression-hotfix',
+    app: "midnight-signal",
+    version: "11.51",
+    build: "context-scoring-polish",
   });
 }

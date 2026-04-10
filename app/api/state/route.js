@@ -3,13 +3,13 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    version: '11.65',
-    feature: 'auth-account-polish',
+    version: '11.47',
+    feature: 'billing-account-center-manage-cancel-flow',
     includes: [
-      'magic-link-account-center',
-      'cross-device-settings-sync',
-      'restore-last-asset-and-panel-state',
-      'verified-stripe-success-flow'
+      'verified-stripe-success-flow',
+      'server-side-session-verification',
+      'subscription-status-refresh',
+      'stripe-webhook-sync'
     ]
   });
 }

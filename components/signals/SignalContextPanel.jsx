@@ -1,64 +1,122 @@
 'use client';
 
-import { safeText } from '@/lib/safeText';
+function formatSourceType(value = '') {
+  if (value === 'x') return 'X';
+  if (value === 'article') return 'Article';
+  return 'Note';
+}
 
-export default function SignalContextPanel({ context, asset, planTier = 'basic' }) {
-  const catalysts = (context?.relatedCatalysts || []).slice(0, planTier === 'pro' ? 3 : 2);
-const whyNow =
-  safeText(context?.whyThisIsHappening) ||
-  asset?.whyNow ||
-  asset?.postureSummary ||
-  "Signal context is tracking the strongest drivers behind tonight's lead asset.";  const whatChanged = safeText(context?.whatChanged) || context?.statusLabel || 'No major structural shift since the last evaluation.';
-  const watchNext = safeText(context?.watchNext) || asset?.watchNext || 'Watch for the next confirmation cycle before leaning too hard on the move.';
-  const marketNote = safeText(context?.marketContext) || 'Broader market context is available when you want more depth.';
+export default function SignalContextPanel({ context, asset }) {
+  if (!context || !asset) return null;
+
+  const sourceTypes = context?.meta?.sourceTypes || {};
 
   return (
-    <section className="panel signal-context-panel" aria-label="Signal context">
+    <section className="signal-context-panel card" id="signal-context">
       <div className="signal-context-head">
         <div>
-          <div className="eyebrow">Signal Context</div>
-          <h2 className="section-title signal-context-title">Open the why behind tonight&apos;s signal</h2>
+          <div className="eyebrow">Signal context</div>
+          <h2 className="section-title">News + X context layer</h2>
         </div>
-        <span className="badge">{catalysts.length ? `${catalysts.length} catalyst${catalysts.length === 1 ? '' : 's'}` : 'Context ready'}</span>
+        <div className="stack" style={{ alignItems: 'flex-end', gap: 8 }}>
+          <span className={`badge tone-${asset.sentiment || 'neutral'}`}>{asset.signalLabel || 'Balanced signal posture'}</span>
+          <span className="badge">{context?.meta?.live ? 'Scored live context' : 'Narrative fallback active'}</span>
+        </div>
       </div>
 
       <div className="signal-context-hero">
-        <div className="signal-context-hero-grid">
-          <div className="signal-context-detail-card">
-            <div className="signal-context-label">Why this signal</div>
-            <div className="signal-context-detail-copy">{whyNow}</div>
-          </div>
-          <div className="signal-context-detail-card signal-context-detail-card--accent">
-            <div className="signal-context-label">What to watch</div>
-            <div className="signal-context-detail-copy">{watchNext}</div>
-          </div>
-        </div>
+        <div className="signal-context-title">{context.headline}</div>
+        <div className="muted small">{context.subhead}</div>
+        <p className="signal-context-setup">{context.setup}</p>
+      </div>
+
+      <div className="since-chip-row" style={{ marginBottom: 16 }}>
+        <div className="since-chip">Articles: {sourceTypes.article || 0}</div>
+        <div className="since-chip">X items: {sourceTypes.x || 0}</div>
+        <div className="since-chip">Crowd tone: {context?.meta?.crowdTone || context?.crowdTone || 'mixed'}</div>
+        <div className="since-chip">{context?.meta?.updatedAt ? `Updated ${new Date(context.meta.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Awaiting live feed items'}</div>
       </div>
 
       <div className="signal-context-grid">
         <div className="signal-context-card">
-          <div className="signal-context-label">Related catalysts</div>
+          <div className="signal-context-label">Narrative cues</div>
           <div className="signal-context-list">
-            {catalysts.length ? catalysts.map((item, index) => (
-              <div key={`${item?.headline || 'catalyst'}-${index}`} className="signal-context-item">
-                <div className="signal-context-item-title">{safeText(item?.headline || item) || 'Catalyst item'}</div>
-                {safeText(item?.detail || item?.summary) ? <div className="muted small">{safeText(item?.detail || item?.summary)}</div> : null}
+            {context.newsCues.map((item, idx) => (
+              <div key={`${item.title}-${idx}`} className="signal-context-item">
+                <div className="signal-context-item-title">{item.title}</div>
+                {item.headline ? <div className="muted small" style={{ marginBottom: 4 }}>{item.headline}</div> : null}
+                <div className="muted small">{item.body}</div>
               </div>
-            )) : <div className="signal-context-item muted small">No clear catalyst detected yet.</div>}
+            ))}
           </div>
         </div>
 
         <div className="signal-context-card">
-          <div className="signal-context-label">Context snapshot</div>
+          <div className="signal-context-label">X watch</div>
           <div className="signal-context-list">
-            <div className="signal-context-item">
-              <div className="signal-context-item-title">What changed</div>
-              <div className="muted small">{whatChanged}</div>
-            </div>
-            <div className="signal-context-item">
-              <div className="signal-context-item-title">Market note</div>
-              <div className="muted small">{marketNote}</div>
-            </div>
+            {context.xAngles.map((item, idx) => (
+              <div key={`${item}-${idx}`} className="signal-context-item">
+                <div className="signal-context-item-title">{item}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="signal-context-grid" style={{ marginTop: 16 }}>
+        <div className="signal-context-card">
+          <div className="signal-context-label">Narrative pressure</div>
+          <div className="signal-context-item">
+            <div className="signal-context-item-title">{context.narrativePressure}</div>
+            <div className="muted small">Crowd tone right now reads as {context.crowdTone || 'mixed'}.</div>
+          </div>
+        </div>
+
+        <div className="signal-context-card">
+          <div className="signal-context-label">Related assets</div>
+          <div className="signal-context-list">
+            {context.assetMentions?.length ? context.assetMentions.map((item) => (
+              <div key={item.symbol} className="signal-context-item">
+                <div className="signal-context-item-title">{item.symbol}{item.isPrimary ? ' · primary focus' : ''}</div>
+                <div className="muted small">{item.count} context mention{item.count === 1 ? '' : 's'}</div>
+              </div>
+            )) : (
+              <div className="signal-context-item">
+                <div className="signal-context-item-title">Awaiting symbol mentions</div>
+                <div className="muted small">Incoming items that mention ADA, BTC, SOL, Cardano, Bitcoin, Ethereum, or Midnight will be surfaced here.</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="signal-context-grid" style={{ marginTop: 16 }}>
+        <div className="signal-context-card">
+          <div className="signal-context-label">Recent context</div>
+          <div className="signal-context-list">
+            {context.recentItems?.length ? context.recentItems.map((item) => (
+              <div key={item.id} className="signal-context-item">
+                <div className="signal-context-item-title">{item.title}</div>
+                <div className="muted small">
+                  {formatSourceType(item.sourceType)} · {item.source}
+                  {item.assetMentions?.length ? ` · ${item.assetMentions.join(', ')}` : ''}
+                  {item.relevanceScore ? ` · score ${item.relevanceScore}` : ''}
+                </div>
+              </div>
+            )) : (
+              <div className="signal-context-item">
+                <div className="signal-context-item-title">No ingested items yet</div>
+                <div className="muted small">This panel will switch to scored live context as soon as article, RSS, or X payloads are posted into the ingestion route.</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="signal-context-card">
+          <div className="signal-context-label">Scoring notes</div>
+          <div className="signal-context-item">
+            <div className="signal-context-item-title">What gets prioritized</div>
+            <div className="muted small">Fresh items, stronger asset matches, clearer crowd tone, and lower-duplicate coverage now rank higher than generic or repeated mentions.</div>
           </div>
         </div>
       </div>
