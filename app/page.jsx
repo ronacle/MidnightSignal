@@ -258,6 +258,8 @@ export default function HomePage() {
   const [liveItems, setLiveItems] = useState([]);
   const [marketSource, setMarketSource] = useState('fallback');
   const [marketUpdatedAt, setMarketUpdatedAt] = useState(null);
+  const [showStickyWatchlist, setShowStickyWatchlist] = useState(false);
+  const watchlistTriggerRef = useRef(null);
   const [marketReady, setMarketReady] = useState(false);
   const [signalHistory, setSignalHistory] = useState([]);
   const [forwardValidation, setForwardValidation] = useState([]);
@@ -859,6 +861,34 @@ function handleOnboardingComplete(payload) {
 
 
   useEffect(() => {
+    if (typeof window === 'undefined' || !watchlistTriggerRef.current) return;
+
+    const node = watchlistTriggerRef.current;
+    const updateSticky = (isIntersecting) => {
+      setShowStickyWatchlist(!isIntersecting && window.innerWidth > 1080 && (state.watchlist?.length || 0) > 0);
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => updateSticky(entry.isIntersecting),
+      { rootMargin: '-96px 0px 0px 0px', threshold: 0 }
+    );
+
+    observer.observe(node);
+
+    const onResize = () => {
+      if (window.innerWidth <= 1080) {
+        setShowStickyWatchlist(false);
+      }
+    };
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', onResize);
+    };
+  }, [state.watchlist]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const saved = window.localStorage.getItem(COLLAPSIBLE_PANELS_KEY);
@@ -1088,18 +1118,8 @@ function handleOnboardingComplete(payload) {
             </div>
           </div>
 
-          <div className="board-watchlist-layout">
-            <div className="board-watchlist-main">
-              <Top20Grid
-                state={state}
-                setState={setState}
-                onAssetOpen={setDetailAsset}
-                assets={rankedAssets}
-                collapsed={!panelState.marketScan}
-                onToggleCollapse={() => togglePanel('marketScan')}
-              />
-            </div>
-            <div className="board-watchlist-side">
+          <div className="board-watchlist-flow">
+            <div ref={watchlistTriggerRef} className="watchlist-inline-anchor">
               <WatchlistPanel
                 state={state}
                 setState={setState}
@@ -1110,7 +1130,34 @@ function handleOnboardingComplete(payload) {
                 experience={experience}
               />
             </div>
+
+            <div className="board-watchlist-main">
+              <Top20Grid
+                state={state}
+                setState={setState}
+                onAssetOpen={setDetailAsset}
+                assets={rankedAssets}
+                collapsed={!panelState.marketScan}
+                onToggleCollapse={() => togglePanel('marketScan')}
+              />
+            </div>
           </div>
+
+          {showStickyWatchlist ? (
+            <div className="floating-sticky-watchlist-shell">
+              <WatchlistPanel
+                state={state}
+                setState={setState}
+                onAssetOpen={setDetailAsset}
+                assets={rankedAssets}
+                user={user}
+                status={status}
+                experience={experience}
+                compact
+                sticky
+              />
+            </div>
+          ) : null}
         </section>
 
         {experience.showContextPanel && !experience.contextFirst ? (
@@ -1136,7 +1183,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.81 · Alert center scaffolding · source: {marketSource}
+          Build v11.81.2 · Sticky watchlist restore · source: {marketSource}
         </div>
       </div>
 

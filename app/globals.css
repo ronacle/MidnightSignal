@@ -3667,19 +3667,25 @@ html {
 }
 
 
-.board-watchlist-layout {
+.board-watchlist-flow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 18px;
-  align-items: start;
 }
 
 .board-watchlist-main {
   min-width: 0;
 }
 
-.board-watchlist-side {
+.watchlist-inline-anchor {
   min-width: 0;
+}
+
+.floating-sticky-watchlist-shell {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 45;
+  width: min(360px, calc(100vw - 32px));
 }
 
 .watchlist-auth-note {
@@ -3688,11 +3694,56 @@ html {
 }
 
 @media (max-width: 1080px) {
-  .board-watchlist-layout {
-    grid-template-columns: 1fr;
+  .floating-sticky-watchlist-shell {
+    display: none;
   }
+}
 
-  .board-watchlist-side {
-    order: -1;
-  }
+
+.watchlist-rail.is-sticky-floating {
+  position: static;
+  top: auto;
+  border-radius: 18px;
+  background: rgba(8, 12, 24, 0.92);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+}
+
+.watchlist-rail.is-compact {
+  gap: 10px;
+  padding: 12px;
+}
+
+.watchlist-rail-grid.is-compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.watchlist-rail-card.is-compact {
+  padding: 8px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.watchlist-rail-card.is-compact .watchlist-rail-top {
+  align-items: flex-start;
+}
+
+.watchlist-rail-card.is-compact .watchlist-rail-identity {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.watchlist-rail-card.is-compact .watchlist-rail-symbol {
+  font-size: 0.9rem;
+}
+
+.watchlist-rail-card.is-compact .watchlist-rail-confidence {
+  font-size: 0.68rem;
+  padding: 3px 6px;
+}
+
+.watchlist-rail-card.is-compact .rail-icon-action {
+  width: 22px;
+  height: 22px;
 }

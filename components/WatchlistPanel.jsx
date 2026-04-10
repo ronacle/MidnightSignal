@@ -5,7 +5,7 @@ import { MARKET_FIXTURES } from '@/lib/default-state';
 
 const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
 
-export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [], user, status, experience }) {
+export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [], user, status, experience, compact = false, sticky = false }) {
   const [newSymbol, setNewSymbol] = useState('LINK');
   const assetPool = useMemo(() => (assets?.length ? assets : MARKET_FIXTURES), [assets]);
 
@@ -38,10 +38,10 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
   }
 
   return (
-    <aside className="panel stack watchlist-rail compact-watchlist-panel">
+    <aside className={`panel stack watchlist-rail compact-watchlist-panel ${compact ? 'is-compact' : ''} ${sticky ? 'is-sticky-floating' : ''}`}>
       <div className="row space-between">
         <div>
-          <h2 className="section-title compact-title">Watchlist</h2>
+          <h2 className="section-title compact-title">{compact ? 'Quick Watchlist' : 'Watchlist'}</h2>
           <div className="muted small">{user ? 'Your prioritized assets across sessions' : experience?.intent === 'alerts' ? 'Local alert candidates until you sign in' : 'Your prioritized assets on this device'}</div>
         </div>
         <span className="badge">{user ? 'Synced' : 'Local watchlist'}</span>
@@ -49,20 +49,22 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
 
 
 
-      {!user ? (
+      {!compact && !user ? (
         <div className="muted small watchlist-auth-note">
           Watchlist is available on Free without an account. Sign in later to sync it across devices.
         </div>
       ) : null}
 
+      {!compact ? (
       <div className="watchlist-add-row">
         <select className="select compact-select" value={newSymbol} onChange={(e) => setNewSymbol(e.target.value)}>
           {AVAILABLE.map((symbol) => <option key={symbol}>{symbol}</option>)}
         </select>
         <button className="button compact-action" onClick={addSymbol}>Add</button>
       </div>
+      ) : null}
 
-      <div className="watchlist-rail-grid">
+      <div className={`watchlist-rail-grid ${compact ? 'is-compact' : ''}`}>
         {state.watchlist.map((symbol) => {
           const asset = assetPool.find((item) => item.symbol === symbol) || {
             symbol,
@@ -73,7 +75,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
           };
 
           return (
-            <div className="watchlist-rail-card" key={symbol}>
+            <div className={`watchlist-rail-card ${compact ? 'is-compact' : ''}`} key={symbol}>
               <div className="watchlist-rail-top">
                 <div className="watchlist-rail-identity">
                   <span className="watchlist-rail-symbol">{asset.symbol}</span>
@@ -102,7 +104,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
                 </div>
               </div>
 
-              <div className="watchlist-rail-name" title={asset.name}>{asset.name}</div>
+              {!compact ? <div className="watchlist-rail-name" title={asset.name}>{asset.name}</div> : null}
             </div>
           );
         })}
