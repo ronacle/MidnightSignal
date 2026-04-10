@@ -1,42 +1,62 @@
+'use client';
+
+function getConfidence(asset) {
+  return Number(asset?.confidenceScore ?? asset?.signalScore ?? asset?.conviction ?? 0);
+}
+
+function getSummaryBits(asset) {
+  return [
+    asset?.momentumState || 'Momentum stabilizing',
+    asset?.timeframeAgreement || asset?.alignmentState || 'Mixed timeframe alignment',
+    asset?.volatilityState || 'Volatility stable',
+  ].filter(Boolean);
+}
+
 export default function LeadSignalPanel({ asset }) {
-  const confidence = asset?.confidence ?? asset?.score ?? 0;
-  const posture = asset?.signalLabel || asset?.posture || 'Balanced signal posture';
-  const whyNow = asset?.whyNow || 'Momentum and structure are defining the current posture.';
-  const watchNext = asset?.watchNext || 'Watch next cycle for confirmation.';
-  const momentum = asset?.momentumState || 'Momentum stabilizing';
-  const alignment = asset?.alignmentState || 'Mixed timeframe alignment';
-  const volatility = asset?.volatilityState || 'Volatility stable';
+  if (!asset) return null;
+
+  const confidence = getConfidence(asset);
+  const summaryBits = getSummaryBits(asset);
 
   return (
-    <div className="lead-signal-shell card">
-      <div className="lead-signal-core">
-        <div className="lead-signal-kicker eyebrow">Tonight's top signal</div>
-        <div className="lead-signal-asset-row">
-          <div>
-            <div className="lead-signal-asset">{asset?.symbol || '—'}</div>
-            <div className="lead-signal-posture">{posture}</div>
-          </div>
-          <div className="lead-signal-confidence-pill">{confidence}%</div>
+    <section className="panel top-signal-shell" aria-label="Tonight's top signal">
+      <div className="top-signal-shell-head row space-between">
+        <div>
+          <div className="eyebrow">Tonight&apos;s Top Signal</div>
+          <h2 className="section-title top-signal-shell-title">{asset.symbol}</h2>
         </div>
-        <div className="lead-signal-copy-grid">
-          <div className="lead-signal-copy-card">
-            <div className="lead-signal-copy-label">Why now</div>
-            <div className="lead-signal-copy">{whyNow}</div>
+        <div className="top-signal-score-pill">{confidence}%</div>
+      </div>
+
+      <div className="top-signal-main-card">
+        <div className="top-signal-main-row">
+          <div>
+            <div className="top-signal-posture">{asset.signalLabel || 'Balanced signal posture'}</div>
+            <div className="top-signal-story">{asset.story || 'Momentum and structure are defining the current posture.'}</div>
           </div>
-          <div className="lead-signal-copy-card">
-            <div className="lead-signal-copy-label">Watch next</div>
-            <div className="lead-signal-copy">{watchNext}</div>
+          <div className="top-signal-meta-stack">
+            <span className={`sentiment ${asset.sentiment || 'neutral'}`}>{asset.sentiment || 'neutral'}</span>
+            <span className="badge">{asset.name || asset.symbol}</span>
+          </div>
+        </div>
+
+        <div className="top-signal-detail-grid">
+          <div className="top-signal-detail-card">
+            <div className="top-signal-detail-label">Why now</div>
+            <div className="top-signal-detail-copy">{asset.whyNow || asset.postureSummary || 'Momentum and structure are defining the current posture.'}</div>
+          </div>
+          <div className="top-signal-detail-card top-signal-detail-card--accent">
+            <div className="top-signal-detail-label">Watch next</div>
+            <div className="top-signal-detail-copy">{asset.watchNext || 'Watch whether short-term momentum stabilizes before chasing strength.'}</div>
           </div>
         </div>
       </div>
 
-      <div className="signal-summary lead-signal-summary muted small">
-        <span>{momentum}</span>
-        <span className="signal-summary-dot">•</span>
-        <span>{alignment}</span>
-        <span className="signal-summary-dot">•</span>
-        <span>{volatility}</span>
+      <div className="signal-summary-strip">
+        {summaryBits.map((item) => (
+          <span key={item} className="signal-summary-pill">{item}</span>
+        ))}
       </div>
-    </div>
+    </section>
   );
 }
