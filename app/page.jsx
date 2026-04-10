@@ -287,6 +287,11 @@ export default function HomePage() {
   const watchlistSectionRef = useRef(null);
   const [showStickyWatchlist, setShowStickyWatchlist] = useState(false);
 
+const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
+const [showSetupModal, setShowSetupModal] = useState(false);
+const [setupMode, setSetupMode] = useState('Beginner');
+const [setupGoal, setSetupGoal] = useState('Track signals');
+
   useEffect(() => {
     setSignalHistory(readSignalHistory());
     setForwardValidation(readForwardValidation());
@@ -866,6 +871,142 @@ const sinceLastVisitSummary = useMemo(() => {
     };
   }, [state.watchlist, rankedAssets.length]);
 
+
+useEffect(() => {
+  if (typeof window === 'undefined') return;
+  const accepted = Boolean(state?.acceptedDisclaimer) || window.localStorage.getItem('ms_disclaimer') === 'true';
+  const onboarded = window.localStorage.getItem('ms_onboarded') === 'true';
+
+  setSetupMode(state?.mode || 'Beginner');
+  setSetupGoal(state?.onboardingGoal || state?.dashboardFocus || 'Track signals');
+
+  if (!accepted) {
+    setShowDisclaimerModal(true);
+    setShowSetupModal(false);
+    return;
+  }
+
+  setShowDisclaimerModal(false);
+  if (!onboarded) {
+    setShowSetupModal(true);
+  }
+}, [state?.acceptedDisclaimer, state?.mode, state?.onboardingGoal, state?.dashboardFocus]);
+
+function acceptDisclaimer() {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('ms_disclaimer', 'true');
+  }
+  setState((previous) => ({ ...previous, acceptedDisclaimer: true }));
+  setShowDisclaimerModal(false);
+  if (typeof window !== 'undefined' && window.localStorage.getItem('ms_onboarded') !== 'true') {
+    setShowSetupModal(true);
+  }
+}
+
+function completeFirstTimeSetup() {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('ms_onboarded', 'true');
+  }
+  setState((previous) => ({
+    ...previous,
+    mode: setupMode,
+    onboardingGoal: setupGoal,
+    dashboardFocus: setupGoal,
+  }));
+  setShowSetupModal(false);
+}
+
+function skipFirstTimeSetup() {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('ms_onboarded', 'true');
+  }
+  setShowSetupModal(false);
+}
+
+function resetAgreementGate() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem('ms_disclaimer');
+  window.localStorage.removeItem('ms_onboarded');
+  setState((previous) => ({ ...previous, acceptedDisclaimer: false }));
+  setShowSetupModal(false);
+  setShowDisclaimerModal(true);
+}
+
+function SetupOption({ active, label, onClick, helper }) {
+  return (
+    <button type="button" className={`gate-option ${active ? 'gate-option--active' : ''}`} onClick={onClick}>
+      <span className="gate-option-label">{label}</span>
+      <span className="gate-option-helper">{helper}</span>
+    </button>
+  );
+}
+
+function FirstVisitGate() {
+  const [boxOne, setBoxOne] = useState(false);
+  const [boxTwo, setBoxTwo] = useState(false);
+
+  if (showDisclaimerModal) {
+    return (
+      <div className="gate-modal-shell" role="dialog" aria-modal="true" aria-labelledby="agreement-gate-title">
+        <div className="gate-modal-card">
+          <div className="eyebrow">Agreement of Understanding</div>
+          <h2 id="agreement-gate-title" className="section-title">Before you enter Midnight Signal</h2>
+          <p className="muted small">Midnight Signal is built for education, context, and guidance. It is not financial advice, and you remain responsible for your own decisions.</p>
+          <label className="gate-check">
+            <input type="checkbox" checked={boxOne} onChange={() => setBoxOne((value) => !value)} />
+            <span>I understand this dashboard is educational and informational.</span>
+          </label>
+          <label className="gate-check">
+            <input type="checkbox" checked={boxTwo} onChange={() => setBoxTwo((value) => !value)} />
+            <span>I understand Midnight Signal does not provide financial advice.</span>
+          </label>
+          <div className="gate-actions">
+            <button type="button" className="ghost-button" onClick={() => setControlOpen(true)}>Learn more first</button>
+            <button type="button" className="btn-strong gate-enter" disabled={!(boxOne && boxTwo)} onClick={acceptDisclaimer}>Agree and Enter</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showSetupModal) {
+    return (
+      <div className="gate-modal-shell" role="dialog" aria-modal="true" aria-labelledby="setup-gate-title">
+        <div className="gate-modal-card gate-modal-card--setup">
+          <div className="eyebrow">Quick setup</div>
+          <h2 id="setup-gate-title" className="section-title">Set your signal style</h2>
+          <p className="muted small">Pick the setup that best matches how you want Midnight Signal to explain the market on this device.</p>
+
+          <div className="gate-group">
+            <div className="gate-group-label">How do you approach the market?</div>
+            <div className="gate-grid">
+              <SetupOption active={setupMode === 'Beginner'} label="Beginner" helper="More explanation, cleaner learning cues." onClick={() => setSetupMode('Beginner')} />
+              <SetupOption active={setupMode === 'Active'} label="Active trader" helper="More signal focus, quicker posture reads." onClick={() => setSetupMode('Active')} />
+              <SetupOption active={setupMode === 'Long-term'} label="Long-term" helper="More trend framing and patience cues." onClick={() => setSetupMode('Long-term')} />
+            </div>
+          </div>
+
+          <div className="gate-group">
+            <div className="gate-group-label">What matters most tonight?</div>
+            <div className="gate-grid gate-grid--goals">
+              <SetupOption active={setupGoal === 'Learn'} label="Learn" helper="Understand what the signal means." onClick={() => setSetupGoal('Learn')} />
+              <SetupOption active={setupGoal === 'Track signals'} label="Track signals" helper="See the strongest read fast." onClick={() => setSetupGoal('Track signals')} />
+              <SetupOption active={setupGoal === 'Get alerts'} label="Get alerts" helper="Prioritize movement and revisit cues." onClick={() => setSetupGoal('Get alerts')} />
+            </div>
+          </div>
+
+          <div className="gate-actions">
+            <button type="button" className="ghost-button" onClick={skipFirstTimeSetup}>Skip for now</button>
+            <button type="button" className="btn-strong gate-enter" onClick={completeFirstTimeSetup}>Start with this setup</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
   function jumpTo(id) {
     if (typeof document === 'undefined') return;
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -875,6 +1016,7 @@ const sinceLastVisitSummary = useMemo(() => {
 
   return (
     <main className="page">
+      <FirstVisitGate />
       <div className="shell">
         <TopNav
           state={state}
@@ -1146,7 +1288,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.78 · Personalization layer · source: {marketSource}
+          Build v11.78.1 · Modal restore · source: {marketSource}
         </div>
       </div>
 
