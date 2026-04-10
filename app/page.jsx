@@ -9,7 +9,8 @@ import SignalContextPanel from '@/components/signals/SignalContextPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
-import WatchlistPanel from '@/components/WatchlistPanel';
+import DisclaimerModal from '@/components/modals/DisclaimerModal';
+import OnboardingModal from '@/components/modals/OnboardingModal';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { useAccountSync } from '@/hooks/useAccountSync';
 import { shouldRefreshEntitlement } from '@/lib/entitlements';
@@ -178,29 +179,6 @@ function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
   };
 }
 
-
-function buildWatchlistPriority({ symbol, asset, previousAsset, alertLevel }) {
-  const conviction = Math.round(Number(asset?.conviction ?? asset?.signalScore ?? 0));
-  const previousConviction = Math.round(Number(previousAsset?.conviction ?? 0));
-  const delta = conviction - previousConviction;
-  const postureChanged = Boolean(previousAsset?.signalLabel && asset?.signalLabel && previousAsset.signalLabel !== asset.signalLabel);
-  const alertWeightMap = { priority: 400, high: 300, medium: 200, low: 100 };
-  const alertWeight = alertWeightMap[String(alertLevel || '').toLowerCase()] || 0;
-  const deltaWeight = Math.min(Math.abs(delta), 25) * 4;
-  const convictionWeight = conviction;
-  const score = alertWeight + deltaWeight + convictionWeight + (postureChanged ? 80 : 0);
-  const direction = delta > 2 ? 'up' : delta < -2 ? 'down' : 'flat';
-  return {
-    symbol,
-    score,
-    delta,
-    conviction,
-    direction,
-    postureChanged,
-    alertLevel: alertLevel || null,
-  };
-}
-
 const EXTRA_SCAN_ASSETS = [
   { symbol: 'LINK', name: 'Chainlink', conviction: 62, sentiment: 'neutral', story: 'Quiet accumulation behavior with improving structure.' },
   { symbol: 'AVAX', name: 'Avalanche', conviction: 44, sentiment: 'bearish', story: 'Weak follow-through is keeping conviction lower.' },
@@ -282,15 +260,11 @@ export default function HomePage() {
   const [previousSessionSnapshot, setPreviousSessionSnapshot] = useState(null);
   const [priorityAlerts, setPriorityAlerts] = useState([]);
   const [contextItems, setContextItems] = useState([]);
+  const [gateReady, setGateReady] = useState(false);
+  const [showDisclaimerGate, setShowDisclaimerGate] = useState(false);
+  const [showOnboardingGate, setShowOnboardingGate] = useState(false);
   const [contextMeta, setContextMeta] = useState({ live: false, sourceTypes: { article: 0, x: 0, note: 0 }, updatedAt: null });
   const entitlementRefreshRef = useRef(false);
-  const watchlistSectionRef = useRef(null);
-  const [showStickyWatchlist, setShowStickyWatchlist] = useState(false);
-
-const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
-const [showSetupModal, setShowSetupModal] = useState(false);
-const [setupMode, setSetupMode] = useState('Beginner');
-const [setupGoal, setSetupGoal] = useState('Track signals');
 
   useEffect(() => {
     setSignalHistory(readSignalHistory());
@@ -519,41 +493,6 @@ useEffect(() => {
   }, [rankedAssets, state?.watchlist]);
 
 
-  const watchlistPersonalization = useMemo(() => {
-    const watchSymbols = Array.isArray(state?.watchlist) ? state.watchlist : [];
-    const alertMap = new Map(
-      (priorityAlerts || [])
-        .filter((alert) => alert?.symbol)
-        .map((alert) => [String(alert.symbol).toUpperCase(), alert.level || 'medium'])
-    );
-    const previousWatchMap = new Map((previousSessionSnapshot?.watchlist || []).map((asset) => [asset.symbol, asset]));
-
-    const entries = watchSymbols.map((symbol) => {
-      const asset = rankedAssets.find((item) => item.symbol === symbol) || MARKET_FIXTURES.find((item) => item.symbol === symbol) || { symbol, conviction: 52, signalScore: 52 };
-      const previousAsset = previousWatchMap.get(symbol);
-      return buildWatchlistPriority({
-        symbol,
-        asset,
-        previousAsset,
-        alertLevel: alertMap.get(symbol),
-      });
-    });
-
-    entries.sort((a, b) => b.score - a.score || b.conviction - a.conviction || a.symbol.localeCompare(b.symbol));
-    return entries;
-  }, [state?.watchlist, rankedAssets, priorityAlerts, previousSessionSnapshot]);
-
-  const orderedWatchlistSymbols = useMemo(
-    () => watchlistPersonalization.map((entry) => entry.symbol),
-    [watchlistPersonalization]
-  );
-
-  const watchlistSignalMoments = useMemo(
-    () => watchlistPersonalization.filter((entry) => entry.alertLevel || entry.postureChanged || Math.abs(entry.delta) >= 4).slice(0, 3),
-    [watchlistPersonalization]
-  );
-
-
 const currentSessionSnapshot = useMemo(
   () => createSessionSnapshot({
     topSignal,
@@ -599,31 +538,6 @@ const sinceLastVisitSummary = useMemo(() => {
       ? fallbackBits.slice(0, 3)
       : [`Top signal remains ${topSignal?.symbol || 'the same'} with ${topSignal?.conviction ?? '--'}% conviction`];
 }, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary, visitIntelligence]);
-
-
-  const personalizedVisitFocus = useMemo(() => {
-    const mode = String(state?.mode || 'Beginner').toLowerCase();
-    const priority = watchlistSignalMoments[0];
-    if (priority?.alertLevel) {
-      return `${priority.symbol} is your priority tonight — ${priority.alertLevel} alert strength with ${priority.conviction}% confidence.`;
-    }
-    if (priority?.postureChanged) {
-      return `${priority.symbol} changed posture since your last visit, so it deserves the first personal check.`;
-    }
-    if (mode === 'beginner') {
-      return `Start with ${topSignal?.symbol || 'the lead asset'}, then glance at your watchlist for the strongest shift.`;
-    }
-    if (mode === 'active') {
-      return `Your fastest edge tonight is ${topSignal?.symbol || 'the leader'} first, then the highest-priority watchlist name.`;
-    }
-    return `Focus on trend quality first: ${topSignal?.symbol || 'the lead asset'} sets the tone, while your watchlist tracks follow-through.`;
-  }, [state?.mode, watchlistSignalMoments, topSignal]);
-
-  const personalizationBadge = useMemo(() => {
-    const mode = String(state?.mode || 'Beginner');
-    const intent = state?.dashboardFocus || state?.onboardingGoal || 'Track signals';
-    return `${mode} · ${intent}`;
-  }, [state?.mode, state?.dashboardFocus, state?.onboardingGoal]);
 
 
   const lastVisitLabel = useMemo(() => {
@@ -833,12 +747,6 @@ const sinceLastVisitSummary = useMemo(() => {
     }
   }
 
-  function openWatchlistAsset(symbol) {
-    const asset = rankedAssets.find((item) => item.symbol === symbol) || MARKET_FIXTURES.find((item) => item.symbol === symbol) || { symbol, name: symbol };
-    setState((previous) => ({ ...previous, selectedAsset: symbol }));
-    setDetailAsset(asset);
-  }
-
   function toggleWatchlist(symbol) {
     setState((previous) => ({
       ...previous,
@@ -848,165 +756,6 @@ const sinceLastVisitSummary = useMemo(() => {
     }));
   }
 
-  useEffect(() => {
-    const handleStickyWatchlist = () => {
-      if (typeof window === 'undefined') return;
-      const node = watchlistSectionRef.current;
-      if (!node || !state.watchlist?.length) {
-        setShowStickyWatchlist(false);
-        return;
-      }
-      const rect = node.getBoundingClientRect();
-      const pastTop = rect.bottom < 76;
-      const beforeFooter = window.innerHeight + 160 < document.documentElement.scrollHeight;
-      setShowStickyWatchlist(pastTop && beforeFooter);
-    };
-
-    handleStickyWatchlist();
-    window.addEventListener('scroll', handleStickyWatchlist, { passive: true });
-    window.addEventListener('resize', handleStickyWatchlist);
-    return () => {
-      window.removeEventListener('scroll', handleStickyWatchlist);
-      window.removeEventListener('resize', handleStickyWatchlist);
-    };
-  }, [state.watchlist, rankedAssets.length]);
-
-
-useEffect(() => {
-  if (typeof window === 'undefined') return;
-  const accepted = Boolean(state?.acceptedDisclaimer) || window.localStorage.getItem('ms_disclaimer') === 'true';
-  const onboarded = window.localStorage.getItem('ms_onboarded') === 'true';
-
-  setSetupMode(state?.mode || 'Beginner');
-  setSetupGoal(state?.onboardingGoal || state?.dashboardFocus || 'Track signals');
-
-  if (!accepted) {
-    setShowDisclaimerModal(true);
-    setShowSetupModal(false);
-    return;
-  }
-
-  setShowDisclaimerModal(false);
-  if (!onboarded) {
-    setShowSetupModal(true);
-  }
-}, [state?.acceptedDisclaimer, state?.mode, state?.onboardingGoal, state?.dashboardFocus]);
-
-function acceptDisclaimer() {
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem('ms_disclaimer', 'true');
-  }
-  setState((previous) => ({ ...previous, acceptedDisclaimer: true }));
-  setShowDisclaimerModal(false);
-  if (typeof window !== 'undefined' && window.localStorage.getItem('ms_onboarded') !== 'true') {
-    setShowSetupModal(true);
-  }
-}
-
-function completeFirstTimeSetup() {
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem('ms_onboarded', 'true');
-  }
-  setState((previous) => ({
-    ...previous,
-    mode: setupMode,
-    onboardingGoal: setupGoal,
-    dashboardFocus: setupGoal,
-  }));
-  setShowSetupModal(false);
-}
-
-function skipFirstTimeSetup() {
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem('ms_onboarded', 'true');
-  }
-  setShowSetupModal(false);
-}
-
-function resetAgreementGate() {
-  if (typeof window === 'undefined') return;
-  window.localStorage.removeItem('ms_disclaimer');
-  window.localStorage.removeItem('ms_onboarded');
-  setState((previous) => ({ ...previous, acceptedDisclaimer: false }));
-  setShowSetupModal(false);
-  setShowDisclaimerModal(true);
-}
-
-function SetupOption({ active, label, onClick, helper }) {
-  return (
-    <button type="button" className={`gate-option ${active ? 'gate-option--active' : ''}`} onClick={onClick}>
-      <span className="gate-option-label">{label}</span>
-      <span className="gate-option-helper">{helper}</span>
-    </button>
-  );
-}
-
-function FirstVisitGate() {
-  const [boxOne, setBoxOne] = useState(false);
-  const [boxTwo, setBoxTwo] = useState(false);
-
-  if (showDisclaimerModal) {
-    return (
-      <div className="gate-modal-shell" role="dialog" aria-modal="true" aria-labelledby="agreement-gate-title">
-        <div className="gate-modal-card">
-          <div className="eyebrow">Agreement of Understanding</div>
-          <h2 id="agreement-gate-title" className="section-title">Before you enter Midnight Signal</h2>
-          <p className="muted small">Midnight Signal is built for education, context, and guidance. It is not financial advice, and you remain responsible for your own decisions.</p>
-          <label className="gate-check">
-            <input type="checkbox" checked={boxOne} onChange={() => setBoxOne((value) => !value)} />
-            <span>I understand this dashboard is educational and informational.</span>
-          </label>
-          <label className="gate-check">
-            <input type="checkbox" checked={boxTwo} onChange={() => setBoxTwo((value) => !value)} />
-            <span>I understand Midnight Signal does not provide financial advice.</span>
-          </label>
-          <div className="gate-actions">
-            <button type="button" className="ghost-button" onClick={() => setControlOpen(true)}>Learn more first</button>
-            <button type="button" className="btn-strong gate-enter" disabled={!(boxOne && boxTwo)} onClick={acceptDisclaimer}>Agree and Enter</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (showSetupModal) {
-    return (
-      <div className="gate-modal-shell" role="dialog" aria-modal="true" aria-labelledby="setup-gate-title">
-        <div className="gate-modal-card gate-modal-card--setup">
-          <div className="eyebrow">Quick setup</div>
-          <h2 id="setup-gate-title" className="section-title">Set your signal style</h2>
-          <p className="muted small">Pick the setup that best matches how you want Midnight Signal to explain the market on this device.</p>
-
-          <div className="gate-group">
-            <div className="gate-group-label">How do you approach the market?</div>
-            <div className="gate-grid">
-              <SetupOption active={setupMode === 'Beginner'} label="Beginner" helper="More explanation, cleaner learning cues." onClick={() => setSetupMode('Beginner')} />
-              <SetupOption active={setupMode === 'Active'} label="Active trader" helper="More signal focus, quicker posture reads." onClick={() => setSetupMode('Active')} />
-              <SetupOption active={setupMode === 'Long-term'} label="Long-term" helper="More trend framing and patience cues." onClick={() => setSetupMode('Long-term')} />
-            </div>
-          </div>
-
-          <div className="gate-group">
-            <div className="gate-group-label">What matters most tonight?</div>
-            <div className="gate-grid gate-grid--goals">
-              <SetupOption active={setupGoal === 'Learn'} label="Learn" helper="Understand what the signal means." onClick={() => setSetupGoal('Learn')} />
-              <SetupOption active={setupGoal === 'Track signals'} label="Track signals" helper="See the strongest read fast." onClick={() => setSetupGoal('Track signals')} />
-              <SetupOption active={setupGoal === 'Get alerts'} label="Get alerts" helper="Prioritize movement and revisit cues." onClick={() => setSetupGoal('Get alerts')} />
-            </div>
-          </div>
-
-          <div className="gate-actions">
-            <button type="button" className="ghost-button" onClick={skipFirstTimeSetup}>Skip for now</button>
-            <button type="button" className="btn-strong gate-enter" onClick={completeFirstTimeSetup}>Start with this setup</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-}
-
   function jumpTo(id) {
     if (typeof document === 'undefined') return;
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1014,9 +763,73 @@ function FirstVisitGate() {
 
   const signalContext = useMemo(() => buildSignalContext(topSignal, rankedAssets, state.watchlist, regimeSummary, { items: contextItems, meta: contextMeta }), [topSignal, rankedAssets, state.watchlist, regimeSummary, contextItems, contextMeta]);
 
+
+useEffect(() => {
+  if (typeof window === 'undefined') return;
+  try {
+    const hasAcceptedDisclaimer = window.localStorage.getItem('ms_disclaimer') === 'true';
+    const hasOnboarded = window.localStorage.getItem('ms_onboarded') === 'true';
+    setShowDisclaimerGate(!hasAcceptedDisclaimer);
+    setShowOnboardingGate(hasAcceptedDisclaimer && !hasOnboarded);
+    if (hasAcceptedDisclaimer && state.acceptedDisclaimer !== true) {
+      setState((previous) => ({ ...previous, acceptedDisclaimer: true }));
+    }
+  } catch {
+    setShowDisclaimerGate(true);
+    setShowOnboardingGate(false);
+  } finally {
+    setGateReady(true);
+  }
+}, [setState, state.acceptedDisclaimer]);
+
+function handleDisclaimerAccept() {
+  try {
+    window.localStorage.setItem('ms_disclaimer', 'true');
+  } catch {
+    // no-op
+  }
+  setState((previous) => ({ ...previous, acceptedDisclaimer: true }));
+  setShowDisclaimerGate(false);
+  setShowOnboardingGate(true);
+}
+
+function handleOnboardingComplete(payload) {
+  const userType = payload?.userType || 'Beginner';
+  const goal = payload?.goal || 'learn';
+  const dashboardFocus = goal === 'alerts' ? 'watchlist' : goal === 'track' ? 'board' : 'signals';
+  const nextTimeframe = goal === 'alerts' ? '15M' : goal === 'track' ? '1H' : state.timeframe;
+
+  try {
+    window.localStorage.setItem('ms_onboarded', 'true');
+    window.localStorage.setItem('ms_onboarding_profile', JSON.stringify({
+      userType,
+      goal,
+      dashboardFocus,
+      completedAt: new Date().toISOString(),
+    }));
+  } catch {
+    // no-op
+  }
+
+  setState((previous) => ({
+    ...previous,
+    mode: userType,
+    timeframe: nextTimeframe,
+    dashboardFocus,
+    onboardingGoal: goal,
+    onboardingCompletedAt: new Date().toISOString(),
+  }));
+  setShowOnboardingGate(false);
+}
+
   return (
     <main className="page">
-      <FirstVisitGate />
+      {gateReady && showDisclaimerGate ? (
+        <DisclaimerModal onAccept={handleDisclaimerAccept} />
+      ) : null}
+      {gateReady && !showDisclaimerGate && showOnboardingGate ? (
+        <OnboardingModal onComplete={handleOnboardingComplete} />
+      ) : null}
       <div className="shell">
         <TopNav
           state={state}
@@ -1035,75 +848,35 @@ function FirstVisitGate() {
 
 
         {priorityAlerts.length ? (
-          <details className="collapsible-panel collapsible-panel--alerts">
-            <summary className="collapsible-summary">
-              <div>
-                <div className="eyebrow">Alert Center</div>
-                <div className="collapsible-title">Important signal changes</div>
+          <section className="priority-alert-stack" aria-label="Signal alerts">
+            {priorityAlerts.map((alert) => (
+              <div key={alert.id} className={`priority-alert priority-alert--${alert.level}`}>
+                <div className="priority-alert-copy">
+                  <div className="priority-alert-title">{alert.title}</div>
+                  <div className="priority-alert-body">{alert.body}</div>
+                </div>
+                <div className="priority-alert-actions">
+                  {alert.symbol ? (
+                    <button
+                      type="button"
+                      className="ghost-button small"
+                      onClick={() => openAlertAsset(alert.symbol)}
+                    >
+                      Open
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="ghost-button small"
+                    onClick={() => dismissPriorityAlert(alert.id)}
+                  >
+                    Dismiss
+                  </button>
+                </div>
               </div>
-              <span className="muted small">{priorityAlerts.length} active</span>
-            </summary>
-            <div className="collapsible-body">
-              <section className="priority-alert-stack" aria-label="Signal alerts">
-                {priorityAlerts.map((alert) => (
-                  <div key={alert.id} className={`priority-alert priority-alert--${alert.level}`}>
-                    <div className="priority-alert-copy">
-                      <div className="priority-alert-title">{alert.title}</div>
-                      <div className="priority-alert-body">{alert.body}</div>
-                    </div>
-                    <div className="priority-alert-actions">
-                      {alert.symbol ? (
-                        <button
-                          type="button"
-                          className="ghost-button small"
-                          onClick={() => openAlertAsset(alert.symbol)}
-                        >
-                          Open
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="ghost-button small"
-                        onClick={() => dismissPriorityAlert(alert.id)}
-                      >
-                        Dismiss
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </section>
-            </div>
-          </details>
+            ))}
+          </section>
         ) : null}
-
-
-{showStickyWatchlist && orderedWatchlistSymbols.length ? (
-  <section className="sticky-watchlist-shell" aria-label="Sticky watchlist">
-    <div className="sticky-watchlist-row">
-      <div className="sticky-watchlist-label">Watchlist</div>
-      <div className="sticky-watchlist-scroller">
-        {orderedWatchlistSymbols.map((symbol) => {
-          const watchMeta = watchlistPersonalization.find((entry) => entry.symbol === symbol);
-          const asset = rankedAssets.find((item) => item.symbol === symbol) || MARKET_FIXTURES.find((item) => item.symbol === symbol) || { symbol, signalScore: 52, conviction: 52, sentiment: 'neutral' };
-          const confidence = Math.round(asset.signalScore ?? asset.conviction ?? 0);
-          const tone = confidence >= 70 ? 'bullish' : confidence < 45 ? 'bearish' : 'neutral';
-          return (
-            <button
-              key={symbol}
-              type="button"
-              className={`sticky-watch-chip sticky-watch-chip--${tone}`}
-              onClick={() => openWatchlistAsset(symbol)}
-            >
-              <span className="sticky-watch-symbol">{symbol}</span>
-              <span className="sticky-watch-confidence">{confidence}%</span>
-              {watchMeta?.alertLevel ? <span className={`sticky-watch-indicator sticky-watch-indicator--${watchMeta.alertLevel}`}>●</span> : watchMeta?.direction === 'up' ? <span className="sticky-watch-indicator sticky-watch-indicator--up">↑</span> : watchMeta?.direction === 'down' ? <span className="sticky-watch-indicator sticky-watch-indicator--down">↓</span> : null}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  </section>
-) : null}
 
         <HeroSection
           selected={topSignal}
@@ -1119,38 +892,27 @@ function FirstVisitGate() {
           }}
         />
 
-        <details className="collapsible-panel collapsible-panel--learnmore">
-          <summary className="collapsible-summary">
-            <div>
-              <div className="eyebrow">Learn More</div>
-              <div className="collapsible-title">Why Midnight Signal</div>
-            </div>
-            <span className="muted small">Open</span>
-          </summary>
-          <div className="collapsible-body">
-            <section className="conversion-strip card" aria-label="Why Midnight Signal">
-              <div className="conversion-intro">
-                <div className="eyebrow">Why Midnight Signal</div>
-                <h2 className="section-title">A clearer path from market noise to market wisdom</h2>
-                <p className="muted small">Midnight Signal is designed to teach what the signal means, show why it appears, and let users stay useful on Free before deciding whether Pro depth is worth it.</p>
-              </div>
-              <div className="conversion-grid">
-                <div className="conversion-card">
-                  <div className="conversion-card-title">Learn first</div>
-                  <p className="muted small">Tonight’s Top Signal and the board are built to explain posture in plain language, not just throw numbers around.</p>
-                </div>
-                <div className="conversion-card">
-                  <div className="conversion-card-title">Trust the setup</div>
-                  <p className="muted small">Disclaimer-first onboarding, optional cloud sync, and verified billing flow keep the experience more trustworthy.</p>
-                </div>
-                <div className="conversion-card">
-                  <div className="conversion-card-title">Upgrade only if it fits</div>
-                  <p className="muted small">Free covers the read, scan, and watchlist flow. Pro adds validation, forward tracking, and deeper breakdowns.</p>
-                </div>
-              </div>
-            </section>
+        <section className="conversion-strip card" aria-label="Why Midnight Signal">
+          <div className="conversion-intro">
+            <div className="eyebrow">Why Midnight Signal</div>
+            <h2 className="section-title">A clearer path from market noise to market wisdom</h2>
+            <p className="muted small">Midnight Signal is designed to teach what the signal means, show why it appears, and let users stay useful on Free before deciding whether Pro depth is worth it.</p>
           </div>
-        </details>
+          <div className="conversion-grid">
+            <div className="conversion-card">
+              <div className="conversion-card-title">Learn first</div>
+              <p className="muted small">Tonight’s Top Signal and the board are built to explain posture in plain language, not just throw numbers around.</p>
+            </div>
+            <div className="conversion-card">
+              <div className="conversion-card-title">Trust the setup</div>
+              <p className="muted small">Disclaimer-first onboarding, optional cloud sync, and verified billing flow keep the experience more trustworthy.</p>
+            </div>
+            <div className="conversion-card">
+              <div className="conversion-card-title">Upgrade only if it fits</div>
+              <p className="muted small">Free covers the read, scan, and watchlist flow. Pro adds validation, forward tracking, and deeper breakdowns.</p>
+            </div>
+          </div>
+        </section>
 
 
         <section className="top-grid lead-flow-grid">
@@ -1171,21 +933,10 @@ function FirstVisitGate() {
           />
         </section>
 
-        <details className="collapsible-panel collapsible-panel--context">
-          <summary className="collapsible-summary">
-            <div>
-              <div className="eyebrow">Signal Context</div>
-              <div className="collapsible-title">Why this signal is leading tonight</div>
-            </div>
-            <span className="muted small">Open</span>
-          </summary>
-          <div className="collapsible-body">
-            <SignalContextPanel
-              context={signalContext}
-              asset={topSignal}
-            />
-          </div>
-        </details>
+        <SignalContextPanel
+          context={signalContext}
+          asset={topSignal}
+        />
 
         <section className="since-panel card" id="since-last-visit">
           <div className="since-panel-head">
@@ -1193,7 +944,7 @@ function FirstVisitGate() {
               <div className="eyebrow">Return signal</div>
               <h2 className="section-title">Since your last visit</h2>
             </div>
-            <div className="since-badge-stack"><span className="badge since-badge">{lastVisitLabel}</span><span className="badge since-badge since-badge--profile">{personalizationBadge}</span></div>
+            <span className="badge since-badge">{lastVisitLabel}</span>
           </div>
 
           <div className="since-chip-row">
@@ -1235,25 +986,7 @@ function FirstVisitGate() {
             <div className="since-intel-label">Tonight&apos;s takeaway</div>
             <div className="since-takeaway-copy">{visitIntelligence.takeaway}</div>
           </div>
-
-          <div className="since-takeaway since-takeaway--personal">
-            <div className="since-intel-label">Your focus tonight</div>
-            <div className="since-takeaway-copy">{personalizedVisitFocus}</div>
-          </div>
         </section>
-
-
-<section className="watchlist-section" id="watchlist" ref={watchlistSectionRef}>
-  <WatchlistPanel
-    state={state}
-    setState={setState}
-    onAssetOpen={setDetailAsset}
-    assets={rankedAssets}
-    orderedSymbols={orderedWatchlistSymbols}
-    personalization={watchlistPersonalization}
-    priorityLabel={watchlistSignalMoments[0] ? `${watchlistSignalMoments[0].symbol} deserves first attention tonight` : 'Smart order reflects alerts, posture shifts, and conviction changes'}
-  />
-</section>
 
         <section className="market-grid market-grid-single" id="market-scan">
           <div className="market-scan-header">
@@ -1288,7 +1021,7 @@ function FirstVisitGate() {
         ) : null}
 
         <div className="footer-note">
-          Build v11.78.1 · Modal restore · source: {marketSource}
+          Build v11.78.3 · Full onboarding restore · source: {marketSource}
         </div>
       </div>
 

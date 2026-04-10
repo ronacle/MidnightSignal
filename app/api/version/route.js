@@ -1,3 +1,8 @@
 export async function GET() {
-  return Response.json({ version: '11.77.4', build: 'sticky-watchlist' });
+  return Response.json({
+    ok: true,
+    app: "midnight-signal",
+    version: "11.51",
+    build: "context-scoring-polish",
+  });
 }
