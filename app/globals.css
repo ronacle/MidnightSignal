@@ -3276,3 +3276,61 @@ html {
     display: none;
   }
 }
+
+
+.collapsible-panel {
+  margin-top: 16px;
+  border: 1px solid rgba(122, 146, 255, 0.16);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(10, 16, 30, 0.88), rgba(8, 12, 24, 0.92));
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.24);
+}
+
+.collapsible-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+.collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f5f7ff;
+}
+
+.collapsible-summary::after {
+  content: '+';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(122, 146, 255, 0.22);
+  color: #dbe4ff;
+  flex-shrink: 0;
+}
+
+.collapsible-panel[open] > .collapsible-summary::after {
+  content: '−';
+}
+
+.collapsible-body {
+  padding: 0 18px 18px;
+}
+
+.collapsible-panel--context .collapsible-body .signal-context-panel,
+.collapsible-panel--context .collapsible-body > section,
+.collapsible-panel--learnmore .collapsible-body > section,
+.collapsible-panel--alerts .collapsible-body {
+  margin-top: 0;
+}

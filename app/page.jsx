@@ -810,34 +810,45 @@ const sinceLastVisitSummary = useMemo(() => {
 
 
         {priorityAlerts.length ? (
-          <section className="priority-alert-stack" aria-label="Signal alerts">
-            {priorityAlerts.map((alert) => (
-              <div key={alert.id} className={`priority-alert priority-alert--${alert.level}`}>
-                <div className="priority-alert-copy">
-                  <div className="priority-alert-title">{alert.title}</div>
-                  <div className="priority-alert-body">{alert.body}</div>
-                </div>
-                <div className="priority-alert-actions">
-                  {alert.symbol ? (
-                    <button
-                      type="button"
-                      className="ghost-button small"
-                      onClick={() => openAlertAsset(alert.symbol)}
-                    >
-                      Open
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="ghost-button small"
-                    onClick={() => dismissPriorityAlert(alert.id)}
-                  >
-                    Dismiss
-                  </button>
-                </div>
+          <details className="collapsible-panel collapsible-panel--alerts">
+            <summary className="collapsible-summary">
+              <div>
+                <div className="eyebrow">Alert Center</div>
+                <div className="collapsible-title">Important signal changes</div>
               </div>
-            ))}
-          </section>
+              <span className="muted small">{priorityAlerts.length} active</span>
+            </summary>
+            <div className="collapsible-body">
+              <section className="priority-alert-stack" aria-label="Signal alerts">
+                {priorityAlerts.map((alert) => (
+                  <div key={alert.id} className={`priority-alert priority-alert--${alert.level}`}>
+                    <div className="priority-alert-copy">
+                      <div className="priority-alert-title">{alert.title}</div>
+                      <div className="priority-alert-body">{alert.body}</div>
+                    </div>
+                    <div className="priority-alert-actions">
+                      {alert.symbol ? (
+                        <button
+                          type="button"
+                          className="ghost-button small"
+                          onClick={() => openAlertAsset(alert.symbol)}
+                        >
+                          Open
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="ghost-button small"
+                        onClick={() => dismissPriorityAlert(alert.id)}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </section>
+            </div>
+          </details>
         ) : null}
 
 
@@ -881,27 +892,38 @@ const sinceLastVisitSummary = useMemo(() => {
           }}
         />
 
-        <section className="conversion-strip card" aria-label="Why Midnight Signal">
-          <div className="conversion-intro">
-            <div className="eyebrow">Why Midnight Signal</div>
-            <h2 className="section-title">A clearer path from market noise to market wisdom</h2>
-            <p className="muted small">Midnight Signal is designed to teach what the signal means, show why it appears, and let users stay useful on Free before deciding whether Pro depth is worth it.</p>
+        <details className="collapsible-panel collapsible-panel--learnmore">
+          <summary className="collapsible-summary">
+            <div>
+              <div className="eyebrow">Learn More</div>
+              <div className="collapsible-title">Why Midnight Signal</div>
+            </div>
+            <span className="muted small">Open</span>
+          </summary>
+          <div className="collapsible-body">
+            <section className="conversion-strip card" aria-label="Why Midnight Signal">
+              <div className="conversion-intro">
+                <div className="eyebrow">Why Midnight Signal</div>
+                <h2 className="section-title">A clearer path from market noise to market wisdom</h2>
+                <p className="muted small">Midnight Signal is designed to teach what the signal means, show why it appears, and let users stay useful on Free before deciding whether Pro depth is worth it.</p>
+              </div>
+              <div className="conversion-grid">
+                <div className="conversion-card">
+                  <div className="conversion-card-title">Learn first</div>
+                  <p className="muted small">Tonight’s Top Signal and the board are built to explain posture in plain language, not just throw numbers around.</p>
+                </div>
+                <div className="conversion-card">
+                  <div className="conversion-card-title">Trust the setup</div>
+                  <p className="muted small">Disclaimer-first onboarding, optional cloud sync, and verified billing flow keep the experience more trustworthy.</p>
+                </div>
+                <div className="conversion-card">
+                  <div className="conversion-card-title">Upgrade only if it fits</div>
+                  <p className="muted small">Free covers the read, scan, and watchlist flow. Pro adds validation, forward tracking, and deeper breakdowns.</p>
+                </div>
+              </div>
+            </section>
           </div>
-          <div className="conversion-grid">
-            <div className="conversion-card">
-              <div className="conversion-card-title">Learn first</div>
-              <p className="muted small">Tonight’s Top Signal and the board are built to explain posture in plain language, not just throw numbers around.</p>
-            </div>
-            <div className="conversion-card">
-              <div className="conversion-card-title">Trust the setup</div>
-              <p className="muted small">Disclaimer-first onboarding, optional cloud sync, and verified billing flow keep the experience more trustworthy.</p>
-            </div>
-            <div className="conversion-card">
-              <div className="conversion-card-title">Upgrade only if it fits</div>
-              <p className="muted small">Free covers the read, scan, and watchlist flow. Pro adds validation, forward tracking, and deeper breakdowns.</p>
-            </div>
-          </div>
-        </section>
+        </details>
 
 
         <section className="top-grid lead-flow-grid">
@@ -922,10 +944,21 @@ const sinceLastVisitSummary = useMemo(() => {
           />
         </section>
 
-        <SignalContextPanel
-          context={signalContext}
-          asset={topSignal}
-        />
+        <details className="collapsible-panel collapsible-panel--context">
+          <summary className="collapsible-summary">
+            <div>
+              <div className="eyebrow">Signal Context</div>
+              <div className="collapsible-title">Why this signal is leading tonight</div>
+            </div>
+            <span className="muted small">Open</span>
+          </summary>
+          <div className="collapsible-body">
+            <SignalContextPanel
+              context={signalContext}
+              asset={topSignal}
+            />
+          </div>
+        </details>
 
         <section className="since-panel card" id="since-last-visit">
           <div className="since-panel-head">
@@ -1020,7 +1053,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.77.4 · Sticky watchlist bar · source: {marketSource}
+          Build v11.77.5 · Sticky watchlist + collapsible merge · source: {marketSource}
         </div>
       </div>
 
