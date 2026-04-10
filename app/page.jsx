@@ -1119,16 +1119,18 @@ function handleOnboardingComplete(payload) {
           </div>
 
           <div className="board-watchlist-flow">
-            <div ref={watchlistTriggerRef} className="watchlist-inline-anchor">
-              <WatchlistPanel
-                state={state}
-                setState={setState}
-                onAssetOpen={setDetailAsset}
-                assets={rankedAssets}
-                user={user}
-                status={status}
-                experience={experience}
-              />
+            <div className="watchlist-inline-fullbleed">
+              <div ref={watchlistTriggerRef} className="watchlist-inline-anchor">
+                <WatchlistPanel
+                  state={state}
+                  setState={setState}
+                  onAssetOpen={setDetailAsset}
+                  assets={rankedAssets}
+                  user={user}
+                  status={status}
+                  experience={experience}
+                />
+              </div>
             </div>
 
             <div className="board-watchlist-main">

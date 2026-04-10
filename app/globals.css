@@ -3761,3 +3761,33 @@ html {
   width: 22px;
   height: 22px;
 }
+
+
+/* v11.81.4 watchlist real full-width */
+.watchlist-inline-fullbleed {
+  width: min(1360px, calc(100vw - 40px));
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.watchlist-inline-anchor {
+  min-width: 0;
+  width: 100%;
+}
+
+.watchlist-inline-fullbleed .watchlist-rail {
+  width: 100%;
+  max-width: none;
+}
+
+.watchlist-inline-fullbleed .watchlist-rail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+}
+
+@media (max-width: 960px) {
+  .watchlist-inline-fullbleed {
+    width: 100%;
+    margin-left: 0;
+    transform: none;
+  }
+}
