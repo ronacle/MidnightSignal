@@ -4,8 +4,11 @@ import { safeText } from '@/lib/safeText';
 
 export default function SignalContextPanel({ context, asset, planTier = 'basic' }) {
   const catalysts = (context?.relatedCatalysts || []).slice(0, planTier === 'pro' ? 3 : 2);
-  const whyNow = safeText(context?.whyThisIsHappening) || asset?.whyNow || asset?.postureSummary || 'Signal context is tracking the strongest drivers behind tonight's lead asset.';
-  const whatChanged = safeText(context?.whatChanged) || context?.statusLabel || 'No major structural shift since the last evaluation.';
+const whyNow =
+  safeText(context?.whyThisIsHappening) ||
+  asset?.whyNow ||
+  asset?.postureSummary ||
+  "Signal context is tracking the strongest drivers behind tonight's lead asset.";  const whatChanged = safeText(context?.whatChanged) || context?.statusLabel || 'No major structural shift since the last evaluation.';
   const watchNext = safeText(context?.watchNext) || asset?.watchNext || 'Watch for the next confirmation cycle before leaning too hard on the move.';
   const marketNote = safeText(context?.marketContext) || 'Broader market context is available when you want more depth.';
 
