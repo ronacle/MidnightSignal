@@ -46,6 +46,8 @@ import {
 
 
 const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v1';
+const COLLAPSIBLE_PANELS_KEY = 'midnight-signal-collapsible-panels-v1';
+const DEFAULT_PANEL_STATE = { sinceLastVisit: true, marketScan: true, signalContext: true };
 
 function normalizeSignalLabel(label = '') {
   return String(label || '')
@@ -247,6 +249,7 @@ export default function HomePage() {
   const [controlOpen, setControlOpen] = useState(false);
   const [learningOpen, setLearningOpen] = useState(false);
   const [detailAsset, setDetailAsset] = useState(null);
+  const [panelState, setPanelState] = useState(DEFAULT_PANEL_STATE);
   const [learningAsset, setLearningAsset] = useState(null);
   const [alertAsset, setAlertAsset] = useState(null);
   const [upgradeNotice, setUpgradeNotice] = useState('');
@@ -853,6 +856,25 @@ function handleOnboardingComplete(payload) {
 }
 
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = window.localStorage.getItem(COLLAPSIBLE_PANELS_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved);
+      setPanelState((previous) => ({ ...previous, ...parsed }));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem(COLLAPSIBLE_PANELS_KEY, JSON.stringify(panelState)); } catch {}
+  }, [panelState]);
+
+  function togglePanel(panelKey) {
+    setPanelState((previous) => ({ ...previous, [panelKey]: !previous[panelKey] }));
+  }
+
   return (
     <main className={`page ${experience.modeClass} ${experience.intentClass}`}>
       {gateReady && showDisclaimerGate ? (
@@ -962,6 +984,8 @@ function handleOnboardingComplete(payload) {
           <SignalContextPanel
             context={signalContext}
             asset={topSignal}
+            collapsed={!panelState.signalContext}
+            onToggleCollapse={() => togglePanel('signalContext')}
           />
         ) : null}
 
@@ -972,9 +996,13 @@ function handleOnboardingComplete(payload) {
               <div className="eyebrow">{experience.sinceEyebrow}</div>
               <h2 className="section-title">{experience.sinceTitle}</h2>
             </div>
-            <span className="badge since-badge">{lastVisitLabel}</span>
+            <div className="section-collapse-actions">
+              <span className="badge since-badge">{lastVisitLabel}</span>
+              <button type="button" className={`ghost-button small section-collapse-toggle ${panelState.sinceLastVisit ? 'is-open' : 'is-collapsed'}`} onClick={() => togglePanel('sinceLastVisit')} aria-expanded={panelState.sinceLastVisit} aria-label={panelState.sinceLastVisit ? 'Collapse since last visit panel' : 'Expand since last visit panel'}>{panelState.sinceLastVisit ? 'Collapse' : 'Expand'}</button>
+            </div>
           </div>
 
+          {panelState.sinceLastVisit ? (<>
           <div className="since-chip-row">
             {sinceLastVisitSummary.map((item) => (
               <div key={item} className="since-chip">{item}</div>
@@ -1014,6 +1042,7 @@ function handleOnboardingComplete(payload) {
             <div className="since-intel-label">Tonight&apos;s takeaway</div>
             <div className="since-takeaway-copy">{visitIntelligence.takeaway}</div>
           </div>
+          </>) : (<div className="section-collapse-summary muted small">Since-last-visit intel hidden. Expand to compare leadership changes, improvements, and tonight&apos;s takeaway.</div>)}
         </section>
         ) : null}
 
@@ -1033,6 +1062,8 @@ function handleOnboardingComplete(payload) {
             setState={setState}
             onAssetOpen={setDetailAsset}
             assets={rankedAssets}
+            collapsed={!panelState.marketScan}
+            onToggleCollapse={() => togglePanel('marketScan')}
           />
         </section>
 
@@ -1040,6 +1071,8 @@ function handleOnboardingComplete(payload) {
           <SignalContextPanel
             context={signalContext}
             asset={topSignal}
+            collapsed={!panelState.signalContext}
+            onToggleCollapse={() => togglePanel('signalContext')}
           />
         ) : null}
 

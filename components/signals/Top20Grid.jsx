@@ -29,14 +29,14 @@ function getSummaryLine(asset, experience) {
   return asset.signalLabel || 'Trend posture snapshot with less focus on short-term noise.';
 }
 
-export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS }) {
+export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS, collapsed = false, onToggleCollapse }) {
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
   const experience = deriveExperienceProfile(state);
   const visibleAssets = (assets?.length ? assets : FALLBACK_ASSETS).slice(0, experience.boardAssetCount);
   return (
-    <div className={`panel stack premium-board-shell ${experience.boardCardStyle}`}>
-      <div className="row space-between"><div><h2 className="section-title">{experience.boardTitle}</h2><div className="muted small">{planTier === 'pro' ? `${experience.boardAssetCount}-asset scan with full breakdown access.` : `Free view active: ${experience.boardAssetCount}-asset scan, Tonight's Brief, watchlist, and alert setup remain available.`}</div><div className="muted small top20-mode-hint">{experience.boardHint}</div></div><span className="badge glow-badge">{experience.boardBadge}</span></div>
-      <div className={`top20-grid ${experience.boardColumnsClass}`}>
+    <div className={`panel stack premium-board-shell ${experience.boardCardStyle} ${collapsed ? 'is-collapsed' : ''}`}>
+      <div className="row space-between section-collapse-head"><div><h2 className="section-title">{experience.boardTitle}</h2><div className="muted small">{planTier === 'pro' ? `${experience.boardAssetCount}-asset scan with full breakdown access.` : `Free view active: ${experience.boardAssetCount}-asset scan, Tonight's Brief, watchlist, and alert setup remain available.`}</div><div className="muted small top20-mode-hint">{experience.boardHint}</div></div><div className="section-collapse-actions"><span className="badge glow-badge">{experience.boardBadge}</span>{onToggleCollapse ? (<button type="button" className={`ghost-button small section-collapse-toggle ${collapsed ? 'is-collapsed' : 'is-open'}`} onClick={onToggleCollapse} aria-expanded={!collapsed} aria-label={collapsed ? 'Expand market scan panel' : 'Collapse market scan panel'}>{collapsed ? 'Expand' : 'Collapse'}</button>) : null}</div></div>
+      {!collapsed ? (<div className={`top20-grid ${experience.boardColumnsClass}`}>
         {visibleAssets.map((asset) => (
           <button key={asset.symbol} type="button" className={`top20-card premium-top20-card ${experience.boardCardStyle} ${state.selectedAsset === asset.symbol ? 'active' : ''}`} onClick={() => { setState((prev) => ({ ...prev, selectedAsset: asset.symbol })); onAssetOpen?.(asset); }}>
             <div className="row space-between"><div><div className="asset-name">{asset.symbol}</div><div className="asset-meta">{asset.name}</div></div><div className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</div></div>
@@ -46,7 +46,7 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
             <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : experience.intent === 'alerts' ? 'Tap for watchlist context, detail, and future alert setup.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
           </button>
         ))}
-      </div>
+      </div>) : (<div className="section-collapse-summary muted small">{visibleAssets.length}-asset scan hidden. Expand to view the board and open detail cards.</div>)}
     </div>
   );
 }
