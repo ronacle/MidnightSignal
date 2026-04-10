@@ -1183,7 +1183,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.81.2 · Sticky watchlist restore · source: {marketSource}
+          Build v11.81.3 · Full-width watchlist · source: {marketSource}
         </div>
       </div>
 

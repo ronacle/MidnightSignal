@@ -3670,14 +3670,28 @@ html {
 .board-watchlist-flow {
   display: grid;
   gap: 18px;
+  width: 100%;
 }
 
 .board-watchlist-main {
   min-width: 0;
+  width: 100%;
 }
 
 .watchlist-inline-anchor {
   min-width: 0;
+  width: 100%;
+}
+
+.watchlist-inline-anchor .watchlist-rail {
+  position: static;
+  top: auto;
+  width: 100%;
+  max-width: none;
+}
+
+.watchlist-inline-anchor .watchlist-rail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .floating-sticky-watchlist-shell {
