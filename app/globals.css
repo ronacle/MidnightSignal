@@ -3184,59 +3184,95 @@ html {
 }
 
 
-.collapsible-panel {
-  margin-top: 16px;
-  border: 1px solid rgba(122, 146, 255, 0.16);
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(10, 16, 30, 0.88), rgba(8, 12, 24, 0.92));
-  overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.24);
+/* v11.77.4 sticky watchlist */
+.watchlist-section {
+  display: grid;
+  gap: 12px;
 }
 
-.collapsible-summary {
-  list-style: none;
-  cursor: pointer;
+.sticky-watchlist-shell {
+  position: sticky;
+  top: 10px;
+  z-index: 35;
+}
+
+.sticky-watchlist-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 18px;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(8, 12, 22, 0.86);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.22);
 }
 
-.collapsible-summary::-webkit-details-marker {
+.sticky-watchlist-label {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sticky-watchlist-scroller {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-width: 0;
+}
+
+.sticky-watchlist-scroller::-webkit-scrollbar {
   display: none;
 }
 
-.collapsible-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #f5f7ff;
-}
-
-.collapsible-summary::after {
-  content: '+';
+.sticky-watch-chip {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
+  gap: 8px;
   border-radius: 999px;
-  border: 1px solid rgba(122, 146, 255, 0.22);
-  color: #dbe4ff;
-  flex-shrink: 0;
+  border: 1px solid var(--line);
+  padding: 7px 10px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  cursor: pointer;
 }
 
-.collapsible-panel[open] > .collapsible-summary::after {
-  content: '−';
+.sticky-watch-chip:hover {
+  background: rgba(255,255,255,0.07);
 }
 
-.collapsible-body {
-  padding: 0 18px 18px;
+.sticky-watch-chip--bullish {
+  border-color: rgba(90, 204, 149, 0.35);
 }
 
-.collapsible-panel--context .collapsible-body .signal-context-panel,
-.collapsible-panel--context .collapsible-body > section,
-.collapsible-panel--learnmore .collapsible-body > section,
-.collapsible-panel--alerts .collapsible-body {
-  margin-top: 0;
+.sticky-watch-chip--bearish {
+  border-color: rgba(255, 107, 129, 0.35);
+}
+
+.sticky-watch-symbol {
+  font-weight: 800;
+}
+
+.sticky-watch-confidence {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 720px) {
+  .sticky-watchlist-shell {
+    top: 6px;
+  }
+
+  .sticky-watchlist-row {
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .sticky-watchlist-label {
+    display: none;
+  }
 }

@@ -9,6 +9,7 @@ import SignalContextPanel from '@/components/signals/SignalContextPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
+import WatchlistPanel from '@/components/WatchlistPanel';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { useAccountSync } from '@/hooks/useAccountSync';
 import { shouldRefreshEntitlement } from '@/lib/entitlements';
@@ -260,6 +261,8 @@ export default function HomePage() {
   const [contextItems, setContextItems] = useState([]);
   const [contextMeta, setContextMeta] = useState({ live: false, sourceTypes: { article: 0, x: 0, note: 0 }, updatedAt: null });
   const entitlementRefreshRef = useRef(false);
+  const watchlistSectionRef = useRef(null);
+  const [showStickyWatchlist, setShowStickyWatchlist] = useState(false);
 
   useEffect(() => {
     setSignalHistory(readSignalHistory());
@@ -742,6 +745,12 @@ const sinceLastVisitSummary = useMemo(() => {
     }
   }
 
+  function openWatchlistAsset(symbol) {
+    const asset = rankedAssets.find((item) => item.symbol === symbol) || MARKET_FIXTURES.find((item) => item.symbol === symbol) || { symbol, name: symbol };
+    setState((previous) => ({ ...previous, selectedAsset: symbol }));
+    setDetailAsset(asset);
+  }
+
   function toggleWatchlist(symbol) {
     setState((previous) => ({
       ...previous,
@@ -750,6 +759,29 @@ const sinceLastVisitSummary = useMemo(() => {
         : [...previous.watchlist, symbol],
     }));
   }
+
+  useEffect(() => {
+    const handleStickyWatchlist = () => {
+      if (typeof window === 'undefined') return;
+      const node = watchlistSectionRef.current;
+      if (!node || !state.watchlist?.length) {
+        setShowStickyWatchlist(false);
+        return;
+      }
+      const rect = node.getBoundingClientRect();
+      const pastTop = rect.bottom < 76;
+      const beforeFooter = window.innerHeight + 160 < document.documentElement.scrollHeight;
+      setShowStickyWatchlist(pastTop && beforeFooter);
+    };
+
+    handleStickyWatchlist();
+    window.addEventListener('scroll', handleStickyWatchlist, { passive: true });
+    window.addEventListener('resize', handleStickyWatchlist);
+    return () => {
+      window.removeEventListener('scroll', handleStickyWatchlist);
+      window.removeEventListener('resize', handleStickyWatchlist);
+    };
+  }, [state.watchlist, rankedAssets.length]);
 
   function jumpTo(id) {
     if (typeof document === 'undefined') return;
@@ -778,44 +810,62 @@ const sinceLastVisitSummary = useMemo(() => {
 
 
         {priorityAlerts.length ? (
-          <details className="collapsible-panel collapsible-panel--alerts" open>
-            <summary className="collapsible-summary">
-              <div>
-                <div className="eyebrow">Alert Center</div>
-                <div className="collapsible-title">Important signal changes</div>
-              </div>
-              <span className="badge">{priorityAlerts.length} active</span>
-            </summary>
-            <section className="priority-alert-stack collapsible-body" aria-label="Signal alerts">
-              {priorityAlerts.map((alert) => (
-                <div key={alert.id} className={`priority-alert priority-alert--${alert.level}`}>
-                  <div className="priority-alert-copy">
-                    <div className="priority-alert-title">{alert.title}</div>
-                    <div className="priority-alert-body">{alert.body}</div>
-                  </div>
-                  <div className="priority-alert-actions">
-                    {alert.symbol ? (
-                      <button
-                        type="button"
-                        className="ghost-button small"
-                        onClick={() => openAlertAsset(alert.symbol)}
-                      >
-                        Open
-                      </button>
-                    ) : null}
+          <section className="priority-alert-stack" aria-label="Signal alerts">
+            {priorityAlerts.map((alert) => (
+              <div key={alert.id} className={`priority-alert priority-alert--${alert.level}`}>
+                <div className="priority-alert-copy">
+                  <div className="priority-alert-title">{alert.title}</div>
+                  <div className="priority-alert-body">{alert.body}</div>
+                </div>
+                <div className="priority-alert-actions">
+                  {alert.symbol ? (
                     <button
                       type="button"
                       className="ghost-button small"
-                      onClick={() => dismissPriorityAlert(alert.id)}
+                      onClick={() => openAlertAsset(alert.symbol)}
                     >
-                      Dismiss
+                      Open
                     </button>
-                  </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="ghost-button small"
+                    onClick={() => dismissPriorityAlert(alert.id)}
+                  >
+                    Dismiss
+                  </button>
                 </div>
-              ))}
-            </section>
-          </details>
+              </div>
+            ))}
+          </section>
         ) : null}
+
+
+{showStickyWatchlist && state.watchlist.length ? (
+  <section className="sticky-watchlist-shell" aria-label="Sticky watchlist">
+    <div className="sticky-watchlist-row">
+      <div className="sticky-watchlist-label">Watchlist</div>
+      <div className="sticky-watchlist-scroller">
+        {state.watchlist.map((symbol) => {
+          const asset = rankedAssets.find((item) => item.symbol === symbol) || MARKET_FIXTURES.find((item) => item.symbol === symbol) || { symbol, signalScore: 52, conviction: 52, sentiment: 'neutral' };
+          const confidence = Math.round(asset.signalScore ?? asset.conviction ?? 0);
+          const tone = confidence >= 70 ? 'bullish' : confidence < 45 ? 'bearish' : 'neutral';
+          return (
+            <button
+              key={symbol}
+              type="button"
+              className={`sticky-watch-chip sticky-watch-chip--${tone}`}
+              onClick={() => openWatchlistAsset(symbol)}
+            >
+              <span className="sticky-watch-symbol">{symbol}</span>
+              <span className="sticky-watch-confidence">{confidence}%</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+) : null}
 
         <HeroSection
           selected={topSignal}
@@ -831,36 +881,27 @@ const sinceLastVisitSummary = useMemo(() => {
           }}
         />
 
-        <details className="collapsible-panel collapsible-panel--learnmore">
-          <summary className="collapsible-summary">
-            <div>
-              <div className="eyebrow">Learn More</div>
-              <div className="collapsible-title">Why Midnight Signal</div>
+        <section className="conversion-strip card" aria-label="Why Midnight Signal">
+          <div className="conversion-intro">
+            <div className="eyebrow">Why Midnight Signal</div>
+            <h2 className="section-title">A clearer path from market noise to market wisdom</h2>
+            <p className="muted small">Midnight Signal is designed to teach what the signal means, show why it appears, and let users stay useful on Free before deciding whether Pro depth is worth it.</p>
+          </div>
+          <div className="conversion-grid">
+            <div className="conversion-card">
+              <div className="conversion-card-title">Learn first</div>
+              <p className="muted small">Tonight’s Top Signal and the board are built to explain posture in plain language, not just throw numbers around.</p>
             </div>
-            <span className="muted small">Open</span>
-          </summary>
-          <section className="conversion-strip card collapsible-body" aria-label="Why Midnight Signal">
-            <div className="conversion-intro">
-              <div className="eyebrow">Why Midnight Signal</div>
-              <h2 className="section-title">A clearer path from market noise to market wisdom</h2>
-              <p className="muted small">Midnight Signal is designed to teach what the signal means, show why it appears, and let users stay useful on Free before deciding whether Pro depth is worth it.</p>
+            <div className="conversion-card">
+              <div className="conversion-card-title">Trust the setup</div>
+              <p className="muted small">Disclaimer-first onboarding, optional cloud sync, and verified billing flow keep the experience more trustworthy.</p>
             </div>
-            <div className="conversion-grid">
-              <div className="conversion-card">
-                <div className="conversion-card-title">Learn first</div>
-                <p className="muted small">Tonight’s Top Signal and the board are built to explain posture in plain language, not just throw numbers around.</p>
-              </div>
-              <div className="conversion-card">
-                <div className="conversion-card-title">Trust the setup</div>
-                <p className="muted small">Disclaimer-first onboarding, optional cloud sync, and verified billing flow keep the experience more trustworthy.</p>
-              </div>
-              <div className="conversion-card">
-                <div className="conversion-card-title">Upgrade only if it fits</div>
-                <p className="muted small">Free covers the read, scan, and watchlist flow. Pro adds validation, forward tracking, and deeper breakdowns.</p>
-              </div>
+            <div className="conversion-card">
+              <div className="conversion-card-title">Upgrade only if it fits</div>
+              <p className="muted small">Free covers the read, scan, and watchlist flow. Pro adds validation, forward tracking, and deeper breakdowns.</p>
             </div>
-          </section>
-        </details>
+          </div>
+        </section>
 
 
         <section className="top-grid lead-flow-grid">
@@ -881,21 +922,10 @@ const sinceLastVisitSummary = useMemo(() => {
           />
         </section>
 
-        <details className="collapsible-panel collapsible-panel--context">
-          <summary className="collapsible-summary">
-            <div>
-              <div className="eyebrow">Signal Context</div>
-              <div className="collapsible-title">Why this signal is leading tonight</div>
-            </div>
-            <span className="muted small">Open</span>
-          </summary>
-          <div className="collapsible-body">
-            <SignalContextPanel
-              context={signalContext}
-              asset={topSignal}
-            />
-          </div>
-        </details>
+        <SignalContextPanel
+          context={signalContext}
+          asset={topSignal}
+        />
 
         <section className="since-panel card" id="since-last-visit">
           <div className="since-panel-head">
@@ -947,6 +977,16 @@ const sinceLastVisitSummary = useMemo(() => {
           </div>
         </section>
 
+
+<section className="watchlist-section" id="watchlist" ref={watchlistSectionRef}>
+  <WatchlistPanel
+    state={state}
+    setState={setState}
+    onAssetOpen={setDetailAsset}
+    assets={rankedAssets}
+  />
+</section>
+
         <section className="market-grid market-grid-single" id="market-scan">
           <div className="market-scan-header">
             <div>
@@ -980,7 +1020,7 @@ const sinceLastVisitSummary = useMemo(() => {
         ) : null}
 
         <div className="footer-note">
-          Build v11.57.3 · Signal + news/X context layer · source: {marketSource}
+          Build v11.77.4 · Sticky watchlist bar · source: {marketSource}
         </div>
       </div>
 
