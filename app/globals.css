@@ -3665,3 +3665,34 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+
+.board-watchlist-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  align-items: start;
+}
+
+.board-watchlist-main {
+  min-width: 0;
+}
+
+.board-watchlist-side {
+  min-width: 0;
+}
+
+.watchlist-auth-note {
+  margin-top: -2px;
+  padding: 0 2px;
+}
+
+@media (max-width: 1080px) {
+  .board-watchlist-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .board-watchlist-side {
+    order: -1;
+  }
+}

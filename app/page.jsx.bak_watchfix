@@ -10,7 +10,6 @@ import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
 import AlertCenterScaffold from '@/components/panels/AlertCenterScaffold';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
-import WatchlistPanel from '@/components/WatchlistPanel';
 import DisclaimerModal from '@/components/modals/DisclaimerModal';
 import OnboardingModal from '@/components/modals/OnboardingModal';
 import { MARKET_FIXTURES } from '@/lib/default-state';
@@ -1088,29 +1087,14 @@ function handleOnboardingComplete(payload) {
             </div>
           </div>
 
-          <div className="board-watchlist-layout">
-            <div className="board-watchlist-main">
-              <Top20Grid
-                state={state}
-                setState={setState}
-                onAssetOpen={setDetailAsset}
-                assets={rankedAssets}
-                collapsed={!panelState.marketScan}
-                onToggleCollapse={() => togglePanel('marketScan')}
-              />
-            </div>
-            <div className="board-watchlist-side">
-              <WatchlistPanel
-                state={state}
-                setState={setState}
-                onAssetOpen={setDetailAsset}
-                assets={rankedAssets}
-                user={user}
-                status={status}
-                experience={experience}
-              />
-            </div>
-          </div>
+          <Top20Grid
+            state={state}
+            setState={setState}
+            onAssetOpen={setDetailAsset}
+            assets={rankedAssets}
+            collapsed={!panelState.marketScan}
+            onToggleCollapse={() => togglePanel('marketScan')}
+          />
         </section>
 
         {experience.showContextPanel && !experience.contextFirst ? (
