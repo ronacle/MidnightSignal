@@ -23,52 +23,27 @@ const FALLBACK_ASSETS = [
   { symbol: 'SEI', name: 'Sei', conviction: 64, sentiment: 'bullish', story: 'Momentum is improving with better follow-through.' },
 ].slice(0, 20);
 
+function getSummaryLine(asset, experience) {
+  if (experience.userType === 'Beginner') return asset.story || asset.signalLabel || 'A calmer read of how this setup is behaving tonight.';
+  if (experience.userType === 'Active trader') return asset.signalLabel || 'Fast posture read for tactical scanning.';
+  return asset.signalLabel || 'Trend posture snapshot with less focus on short-term noise.';
+}
+
 export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS }) {
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
   const experience = deriveExperienceProfile(state);
   const visibleAssets = (assets?.length ? assets : FALLBACK_ASSETS).slice(0, experience.boardAssetCount);
-
   return (
-    <div className="panel stack premium-board-shell">
-      <div className="row space-between">
-        <div>
-          <h2 className="section-title">{experience.boardTitle}</h2>
-          <div className="muted small">{planTier === 'pro' ? `${experience.boardAssetCount}-asset scan with full breakdown access.` : `Free view active: ${experience.boardAssetCount}-asset scan, Tonight's Brief, watchlist, and alert setup remain available.`}</div>
-        </div>
-        <span className="badge glow-badge">Ranked signal scan</span>
-      </div>
-      <div className="top20-grid">
+    <div className={`panel stack premium-board-shell ${experience.boardCardStyle}`}>
+      <div className="row space-between"><div><h2 className="section-title">{experience.boardTitle}</h2><div className="muted small">{planTier === 'pro' ? `${experience.boardAssetCount}-asset scan with full breakdown access.` : `Free view active: ${experience.boardAssetCount}-asset scan, Tonight's Brief, watchlist, and alert setup remain available.`}</div><div className="muted small top20-mode-hint">{experience.boardHint}</div></div><span className="badge glow-badge">{experience.boardBadge}</span></div>
+      <div className={`top20-grid ${experience.boardColumnsClass}`}>
         {visibleAssets.map((asset) => (
-          <button
-            key={asset.symbol}
-            type="button"
-            className={`top20-card premium-top20-card ${state.selectedAsset === asset.symbol ? 'active' : ''}`}
-            onClick={() => {
-              setState((prev) => ({ ...prev, selectedAsset: asset.symbol }));
-              onAssetOpen?.(asset);
-            }}
-          >
-            <div className="row space-between">
-              <div>
-                <div className="asset-name">{asset.symbol}</div>
-                <div className="asset-meta">{asset.name}</div>
-              </div>
-              <div className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</div>
-            </div>
-            <div className="top20-price-row">
-              <span className="top20-price">{formatPrice(asset.price)}</span>
-              <span className={`top20-change ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>
-                {formatPct(asset.change24h || 0)}
-              </span>
-            </div>
-            <div className="muted small">{asset.signalLabel || asset.story}</div>
-            <div className="row wrap">
-              <span className="badge">{asset.signalScore ?? asset.conviction}%</span>
-              <span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span>
-              <span className="badge">#{asset.rank ?? '—'}</span>
-              <span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span>
-            </div>
-            <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
+          <button key={asset.symbol} type="button" className={`top20-card premium-top20-card ${experience.boardCardStyle} ${state.selectedAsset === asset.symbol ? 'active' : ''}`} onClick={() => { setState((prev) => ({ ...prev, selectedAsset: asset.symbol })); onAssetOpen?.(asset); }}>
+            <div className="row space-between"><div><div className="asset-name">{asset.symbol}</div><div className="asset-meta">{asset.name}</div></div><div className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</div></div>
+            <div className="top20-price-row"><span className="top20-price">{formatPrice(asset.price)}</span><span className={`top20-change ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>{formatPct(asset.change24h || 0)}</span></div>
+            <div className="muted small">{getSummaryLine(asset, experience)}</div>
+            <div className="row wrap"><span className="badge">{asset.signalScore ?? asset.conviction}%</span><span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span><span className="badge">#{asset.rank ?? '—'}</span><span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span></div>
+            <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : experience.intent === 'alerts' ? 'Tap for watchlist context, detail, and future alert setup.' : 'Tap for brief + asset detail. Full validation stays in Pro.'}</div>
           </button>
         ))}
       </div>

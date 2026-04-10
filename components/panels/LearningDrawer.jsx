@@ -35,12 +35,14 @@ export default function LearningDrawer({ open, onClose, state, focusAsset }) {
         <div className="drawer-header">
           <div>
             <div className="eyebrow">Learning Panel · {experience.userType}</div>
-            <h2 className="section-title" style={{ marginTop: 6 }}>Understand the signal system</h2>
+            <h2 className="section-title" style={{ marginTop: 6 }}>{experience.learningTitle}</h2>
           </div>
           <button type="button" className="ghost-button" onClick={onClose}>Close</button>
         </div>
 
         <div className="drawer-content stack">
+          <div className="list-item stack"><div className="eyebrow">How this mode teaches</div><div className="muted">{experience.learningIntro}</div></div>
+
           {focusAsset ? (
             <div className="list-item stack">
               <div className="eyebrow">Focused asset</div>

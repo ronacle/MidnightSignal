@@ -36,7 +36,7 @@ export default function SettingsPanel({ state, setState }) {
   }
   return (
     <div className="panel stack">
-      <div className="row space-between"><h2 className="section-title">Session Settings</h2><span className="badge">Mode engine active</span></div>
+      <div className="row space-between"><h2 className="section-title">Session Settings</h2><span className="badge">Mode engine differentiated</span></div>
       <div className="controls">
         <div className="field"><label>Profile name</label><input className="input" value={state.profileName || ''} onChange={(e) => update('profileName', e.target.value)} placeholder="My setup" /></div>
         <div className="field"><label>User type</label><select className="select" value={state.userType || experience.userType} onChange={(e) => applyModeChanges({ userType: e.target.value })}>{USER_TYPES.map((option) => <option key={option}>{option}</option>)}</select></div>
