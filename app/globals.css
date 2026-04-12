@@ -3815,3 +3815,122 @@ html {
     transform: none;
   }
 }
+
+
+.first-run-header {
+  display: grid;
+  gap: 8px;
+}
+
+.first-run-intro {
+  margin: 0;
+}
+
+.first-run-section {
+  display: grid;
+  gap: 10px;
+}
+
+.first-run-mobile-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 720px) {
+  .first-run-card {
+    gap: 12px;
+    padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .first-run-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding-bottom: 8px;
+    background: linear-gradient(180deg, rgba(8,12,20,0.98), rgba(8,12,20,0.92) 82%, rgba(8,12,20,0));
+  }
+
+  .first-run-eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+  }
+
+  .first-run-title {
+    font-size: 1.32rem;
+    line-height: 1.1;
+  }
+
+  .first-run-section-title {
+    font-size: 0.95rem;
+  }
+
+  .first-run-choice-grid,
+  .first-run-choice-grid.compact {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .first-run-choice {
+    padding: 12px 13px;
+    border-radius: 14px;
+    gap: 4px;
+  }
+
+  .first-run-choice-title {
+    font-size: 0.98rem;
+  }
+
+  .first-run-choice-hint,
+  .first-run-summary,
+  .first-run-preview .muted.small {
+    font-size: 0.88rem;
+    line-height: 1.35;
+  }
+
+  .first-run-preview {
+    padding: 12px;
+    gap: 8px;
+    border-radius: 16px;
+  }
+
+  .first-run-preview-title {
+    font-size: 1rem;
+  }
+
+  .first-run-preview-meta {
+    gap: 6px;
+  }
+
+  .first-run-preview-meta .badge,
+  .first-run-mobile-summary .badge {
+    min-height: 32px;
+    padding: 5px 9px;
+    font-size: 0.76rem;
+  }
+
+  .first-run-preview-item {
+    padding: 9px 10px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+  }
+
+  .first-run-mobile-summary {
+    position: sticky;
+    bottom: 56px;
+    z-index: 2;
+    padding: 8px 0 4px;
+    background: linear-gradient(180deg, rgba(8,12,20,0), rgba(8,12,20,0.9) 36%, rgba(8,12,20,0.98));
+  }
+
+  .first-run-actions {
+    margin-top: 0;
+    padding-top: 8px;
+  }
+
+  .first-run-actions .primary-button {
+    width: 100%;
+    min-height: 50px;
+  }
+}
