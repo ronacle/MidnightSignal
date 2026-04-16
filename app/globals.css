@@ -3985,3 +3985,14 @@ html {
     grid-template-columns:1fr;
   }
 }
+
+
+.alert-builder-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0 12px;}
+.alert-builder-field{display:flex;flex-direction:column;gap:6px;}
+.alert-symbol-pill.is-active{border-color:rgba(125,211,252,.8);box-shadow:0 0 0 1px rgba(125,211,252,.25) inset;background:rgba(14,165,233,.12);}
+.alert-rule-live-list{display:grid;gap:10px;margin-top:14px;}
+.alert-live-rule{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:14px;border:1px solid rgba(148,163,184,.16);background:rgba(15,23,42,.42);}
+.alert-live-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+.alert-setup-list.compact{margin-top:12px;}
+@media (max-width: 900px){.alert-builder-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media (max-width: 640px){.alert-builder-grid{grid-template-columns:1fr;}.alert-live-rule{flex-direction:column;}.alert-live-actions{justify-content:flex-start;}}
