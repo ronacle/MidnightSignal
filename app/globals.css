@@ -3934,3 +3934,54 @@ html {
     min-height: 50px;
   }
 }
+
+
+/* v11.81.6 onboarding handoff + first-session guidance */
+.first-session-guide{
+  margin-top:18px;
+  padding:18px 20px;
+  display:grid;
+  grid-template-columns:minmax(0,1.45fr) auto;
+  gap:18px;
+  align-items:start;
+  border:1px solid rgba(133, 164, 214, 0.18);
+  background:linear-gradient(135deg, rgba(18,25,46,0.92), rgba(10,16,32,0.98));
+}
+.first-session-guide-copy{
+  display:grid;
+  gap:10px;
+}
+.first-session-guide .section-title{
+  margin:0;
+}
+.first-session-guide-list{
+  display:grid;
+  gap:8px;
+}
+.first-session-guide-item{
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,0.03);
+  padding:10px 12px;
+  color:var(--text);
+  font-size:.95rem;
+}
+.first-session-guide-actions{
+  display:grid;
+  gap:10px;
+  min-width:220px;
+}
+.alert-center-anchor,
+.signal-context-anchor{
+  display:block;
+}
+@media (max-width: 900px){
+  .first-session-guide{
+    grid-template-columns:1fr;
+    padding:16px;
+  }
+  .first-session-guide-actions{
+    min-width:0;
+    grid-template-columns:1fr;
+  }
+}

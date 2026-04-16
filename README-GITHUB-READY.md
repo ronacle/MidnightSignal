@@ -1,4 +1,4 @@
-# Midnight Signal v11.81.3 GitHub-ready package
+# Midnight Signal v11.81.6 GitHub-ready package
 
 This repo has been flattened so the app files are at the repository root.
 

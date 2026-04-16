@@ -234,7 +234,48 @@ function buildMarketUniverse(liveItems = []) {
   }));
 }
 
+function buildFirstSessionGuide(experience, user) {
+  const targetId = experience.intent === 'alerts'
+    ? 'alert-center'
+    : experience.contextFirst
+      ? 'signal-context'
+      : 'market-scan';
+
+  const title = experience.intent === 'alerts'
+    ? 'Your alert-aware setup is active'
+    : experience.intent === 'track'
+      ? 'Your board-first setup is active'
+      : 'Your guided setup is active';
+
+  const intro = experience.intent === 'alerts'
+    ? 'Start by checking Alert Center, then use your watchlist as the shortlist for what deserves a trigger.'
+    : experience.intent === 'track'
+      ? 'Start with Tonight’s Top Signal, then move straight into the board and keep your watchlist close while you compare names.'
+      : 'Start with the signal explanation first, then move into the smaller board and your watchlist when you want more context.';
+
+  const bullets = [
+    experience.intent === 'alerts'
+      ? 'Alert Center is now your first stop for rules, delivery mode, and recent events.'
+      : experience.contextFirst
+        ? 'Signal Context is surfaced earlier so the “why” is visible before the wider board.'
+        : 'The market board is the main workspace for this setup, with denser scanning up front.',
+    user
+      ? 'Your setup and watchlist can sync across devices with this account.'
+      : 'Your watchlist and setup are saved locally on this device until you sign in.',
+    'You can change user type, goal, and defaults anytime in Controls.',
+  ];
+
+  const primaryLabel = experience.intent === 'alerts'
+    ? 'Open Alert Center'
+    : experience.contextFirst
+      ? 'Open Signal Context'
+      : 'Open Market Board';
+
+  return { targetId, title, intro, bullets, primaryLabel };
+}
+
 export default function HomePage() {
+
   const {
     state,
     setState,
@@ -271,6 +312,8 @@ export default function HomePage() {
   const [gateReady, setGateReady] = useState(false);
   const [showDisclaimerGate, setShowDisclaimerGate] = useState(false);
   const [showOnboardingGate, setShowOnboardingGate] = useState(false);
+  const [firstSessionGuide, setFirstSessionGuide] = useState(null);
+  const [pendingHandoffTarget, setPendingHandoffTarget] = useState('');
   const [contextMeta, setContextMeta] = useState({ live: false, sourceTypes: { article: 0, x: 0, note: 0 }, updatedAt: null });
   const entitlementRefreshRef = useRef(false);
 
@@ -775,6 +818,7 @@ const sinceLastVisitSummary = useMemo(() => {
   }
 
   const signalContext = useMemo(() => buildSignalContext(topSignal, rankedAssets, state.watchlist, regimeSummary, { items: contextItems, meta: contextMeta }), [topSignal, rankedAssets, state.watchlist, regimeSummary, contextItems, contextMeta]);
+  const sessionGuide = useMemo(() => buildFirstSessionGuide(experience, user), [experience, user]);
 
 useEffect(() => {
   if (typeof window === 'undefined') return;
@@ -836,6 +880,15 @@ function handleOnboardingComplete(payload) {
     onboardingGoal: intent,
     onboardingCompletedAt: completedAt,
   });
+  const nextExperience = deriveExperienceProfile({
+    ...state,
+    ...preset,
+    userType,
+    intent,
+    onboardingGoal: intent,
+    onboardingCompletedAt: completedAt,
+  });
+  const nextGuide = buildFirstSessionGuide(nextExperience, user);
 
   try {
     window.localStorage.setItem('ms_onboarded', 'true');
@@ -843,6 +896,10 @@ function handleOnboardingComplete(payload) {
       userType,
       goal: intent,
       dashboardFocus: preset.dashboardFocus,
+      completedAt,
+    }));
+    window.localStorage.setItem('ms_first_session_handoff', JSON.stringify({
+      targetId: nextGuide.targetId,
       completedAt,
     }));
   } catch {
@@ -856,8 +913,40 @@ function handleOnboardingComplete(payload) {
     onboardingGoal: intent,
     onboardingCompletedAt: completedAt,
   }));
+  setFirstSessionGuide(nextGuide);
+  setPendingHandoffTarget(nextGuide.targetId);
   setShowOnboardingGate(false);
 }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem('ms_first_session_handoff');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const completedAt = parsed?.completedAt ? new Date(parsed.completedAt).getTime() : 0;
+      if (!completedAt || Date.now() - completedAt > 1000 * 60 * 30) {
+        window.localStorage.removeItem('ms_first_session_handoff');
+        return;
+      }
+      if (!firstSessionGuide) {
+        setFirstSessionGuide(sessionGuide);
+      }
+      if (!pendingHandoffTarget && parsed?.targetId) {
+        setPendingHandoffTarget(parsed.targetId);
+      }
+    } catch {
+      // no-op
+    }
+  }, [firstSessionGuide, pendingHandoffTarget, sessionGuide]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || !pendingHandoffTarget || showOnboardingGate) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById(pendingHandoffTarget)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [pendingHandoffTarget, showOnboardingGate]);
 
 
   useEffect(() => {
@@ -977,6 +1066,56 @@ function handleOnboardingComplete(payload) {
           }}
         />
 
+        {firstSessionGuide ? (
+          <section className={`first-session-guide card ${experience.modeClass} ${experience.intentClass}`} aria-label="First session guidance">
+            <div className="first-session-guide-copy">
+              <div className="eyebrow">Setup active</div>
+              <h2 className="section-title">{firstSessionGuide.title}</h2>
+              <p className="muted small">{firstSessionGuide.intro}</p>
+              <div className="first-session-guide-list">
+                {firstSessionGuide.bullets.map((item) => (
+                  <div key={item} className="first-session-guide-item">{item}</div>
+                ))}
+              </div>
+            </div>
+            <div className="first-session-guide-actions">
+              <button
+                type="button"
+                className="button"
+                onClick={() => {
+                  setPendingHandoffTarget(firstSessionGuide.targetId);
+                  jumpTo(firstSessionGuide.targetId);
+                }}
+              >
+                {firstSessionGuide.primaryLabel}
+              </button>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => {
+                  setAlertAsset(null);
+                  setControlOpen(true);
+                }}
+              >
+                Adjust setup
+              </button>
+              <button
+                type="button"
+                className="ghost-button small"
+                onClick={() => {
+                  setFirstSessionGuide(null);
+                  setPendingHandoffTarget('');
+                  try {
+                    window.localStorage.removeItem('ms_first_session_handoff');
+                  } catch {}
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
+          </section>
+        ) : null}
+
         <section className={`conversion-strip card ${experience.modeClass} ${experience.intentClass}`} aria-label="Why Midnight Signal">
           <div className="conversion-intro">
             <div className="eyebrow">Why Midnight Signal</div>
@@ -1013,27 +1152,31 @@ function handleOnboardingComplete(payload) {
         </section>
 
         {experience.showContextPanel && experience.contextFirst ? (
-          <SignalContextPanel
-            context={signalContext}
-            asset={topSignal}
-            collapsed={!panelState.signalContext}
-            onToggleCollapse={() => togglePanel('signalContext')}
-          />
+          <section id="signal-context" className="signal-context-anchor">
+            <SignalContextPanel
+              context={signalContext}
+              asset={topSignal}
+              collapsed={!panelState.signalContext}
+              onToggleCollapse={() => togglePanel('signalContext')}
+            />
+          </section>
         ) : null}
 
         {experience.highlightAlerts ? (
-          <AlertCenterScaffold
-            state={state}
-            setState={setState}
-            experience={experience}
-            topSignal={topSignal}
-            watchlistHighlights={watchlistHighlights}
-            onOpenControls={() => {
-              setAlertAsset(null);
-              setControlOpen(true);
-            }}
-            onOpenAsset={(symbol) => openAlertAsset(symbol)}
-          />
+          <section id="alert-center" className="alert-center-anchor">
+            <AlertCenterScaffold
+              state={state}
+              setState={setState}
+              experience={experience}
+              topSignal={topSignal}
+              watchlistHighlights={watchlistHighlights}
+              onOpenControls={() => {
+                setAlertAsset(null);
+                setControlOpen(true);
+              }}
+              onOpenAsset={(symbol) => openAlertAsset(symbol)}
+            />
+          </section>
         ) : null}
 
         {experience.showSinceLastVisit ? (
@@ -1163,12 +1306,14 @@ function handleOnboardingComplete(payload) {
         </section>
 
         {experience.showContextPanel && !experience.contextFirst ? (
-          <SignalContextPanel
-            context={signalContext}
-            asset={topSignal}
-            collapsed={!panelState.signalContext}
-            onToggleCollapse={() => togglePanel('signalContext')}
-          />
+          <section id="signal-context" className="signal-context-anchor">
+            <SignalContextPanel
+              context={signalContext}
+              asset={topSignal}
+              collapsed={!panelState.signalContext}
+              onToggleCollapse={() => togglePanel('signalContext')}
+            />
+          </section>
         ) : null}
 
         {upgradeNotice ? (
@@ -1185,7 +1330,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.81.3 · Full-width watchlist · source: {marketSource}
+          Build v11.81.6 · Onboarding handoff + first-session guidance · source: {marketSource}
         </div>
       </div>
 
