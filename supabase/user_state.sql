@@ -21,3 +21,6 @@ create policy "Users can update their own state"
   for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+
+comment on table public.user_state is 'Midnight Signal user cloud state: watchlist, alerts, recent history, onboarding setup, profiles, and entitlement snapshot.';

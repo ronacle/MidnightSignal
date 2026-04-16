@@ -63,6 +63,10 @@ export default function AlertCenterScaffold({
   watchlistHighlights = [],
   onOpenControls,
   onOpenAsset,
+  user,
+  syncing = false,
+  status = 'Saved locally',
+  lastSyncedAt = null,
 }) {
   const alerts = Array.isArray(state?.alerts) ? state.alerts : [];
   const watchlist = Array.isArray(state?.watchlist) ? state.watchlist : [];
@@ -190,6 +194,9 @@ export default function AlertCenterScaffold({
           <h2 className="section-title">Stay informed without babysitting the board</h2>
           <p className="muted small alert-center-copy">
             Build alert rules from the names you care about, choose how Midnight Signal should notify you, and keep a running view of what fired most recently.
+            {user
+              ? ` Your rules and alert history can follow ${user.email} across devices.`
+              : ' Guests keep alerts on this device until they sign in.'}
           </p>
         </div>
         <div className="alert-center-summary">
@@ -197,6 +204,7 @@ export default function AlertCenterScaffold({
           <span className="badge">{alerts.filter((item) => item.paused).length} paused</span>
           <span className="badge">{recentEvents.length} recent</span>
           <span className="badge">{state?.alertDigestMode === 'digest' ? 'Digest mode' : 'Instant mode'}</span>
+          <span className="badge">{user ? (syncing ? 'Cloud syncing…' : (lastSyncedAt ? 'Cloud saved' : 'Cloud ready')) : 'Local only'}</span>
         </div>
       </div>
 
@@ -255,6 +263,10 @@ export default function AlertCenterScaffold({
             <div className="alert-setup-item">
               <strong>Delivery state</strong>
               <span className="muted small">{state?.alertDeliveryEnabled ? `Email ready for ${state?.alertDeliveryEmail || 'configured inbox'}` : 'Email delivery still off. Use Control Panel when you are ready to send.'}</span>
+            </div>
+            <div className="alert-setup-item">
+              <strong>Persistence</strong>
+              <span className="muted small">{user ? `${syncing ? 'Syncing alert rules now.' : status}. ${lastSyncedAt ? `Last synced ${formatTimestamp(lastSyncedAt)}.` : 'Waiting for the first cloud save.'}` : 'Rules persist locally on this device until you sign in.'}</span>
             </div>
           </div>
 

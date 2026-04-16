@@ -7,8 +7,8 @@ import { mergeState } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase-browser';
 import { readAlertMemory, readDigestMemory, writeAlertMemory, writeDigestMemory } from '@/lib/alert-engine';
 
-const STORAGE_KEY = 'midnight-signal-local-state-v11.49';
-const LEGACY_STORAGE_KEYS = ['midnight-signal-local-state-v11.48', 'midnight-signal-local-state-v11.47', 'midnight-signal-local-state-v11.46', 'midnight-signal-local-state-v11.45', 'midnight-signal-local-state-v11.44', 'midnight-signal-local-state-v11.43'];
+const STORAGE_KEY = 'midnight-signal-local-state-v11.84';
+const LEGACY_STORAGE_KEYS = ['midnight-signal-local-state-v11.83', 'midnight-signal-local-state-v11.82', 'midnight-signal-local-state-v11.81', 'midnight-signal-local-state-v11.80', 'midnight-signal-local-state-v11.79', 'midnight-signal-local-state-v11.49', 'midnight-signal-local-state-v11.48', 'midnight-signal-local-state-v11.47', 'midnight-signal-local-state-v11.46', 'midnight-signal-local-state-v11.45', 'midnight-signal-local-state-v11.44', 'midnight-signal-local-state-v11.43'];
 const POLL_INTERVAL_MS = 60000;
 
 function deriveDeviceLabel() {
@@ -317,11 +317,26 @@ export function useAccountSync() {
       }
     };
 
+    const handleStorage = (event) => {
+      if (!event.key || ![STORAGE_KEY, ...LEGACY_STORAGE_KEYS].includes(event.key)) return;
+      if (!event.newValue) return;
+      try {
+        const incoming = mergeState(DEFAULT_STATE, JSON.parse(event.newValue));
+        stateRef.current = incoming;
+        setState(incoming);
+        setStatus(userRef.current ? 'Synced from another tab' : 'Updated on this device');
+      } catch {
+        // ignore malformed storage payloads
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       unsubscribed = true;
       listener.subscription.unsubscribe();
+      window.removeEventListener('storage', handleStorage);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(poll);
       window.clearTimeout(saveTimer.current);

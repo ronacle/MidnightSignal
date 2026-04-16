@@ -5,7 +5,7 @@ import { MARKET_FIXTURES } from '@/lib/default-state';
 
 const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
 
-export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [], user, status, experience, compact = false, sticky = false }) {
+export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [], user, status, syncing = false, lastSyncedAt = null, experience, compact = false, sticky = false }) {
   const [newSymbol, setNewSymbol] = useState('LINK');
   const assetPool = useMemo(() => (assets?.length ? assets : MARKET_FIXTURES), [assets]);
 
@@ -44,14 +44,16 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
           <h2 className="section-title compact-title">{compact ? 'Quick Watchlist' : 'Watchlist'}</h2>
           <div className="muted small">{user ? 'Your prioritized assets across sessions' : experience?.intent === 'alerts' ? 'Local alert candidates until you sign in' : 'Your prioritized assets on this device'}</div>
         </div>
-        <span className="badge">{user ? 'Synced' : 'Local watchlist'}</span>
+        <span className="badge">{user ? (syncing ? 'Syncing…' : 'Cloud watchlist') : 'Local watchlist'}</span>
       </div>
 
 
 
-      {!compact && !user ? (
+      {!compact ? (
         <div className="muted small watchlist-auth-note">
-          Watchlist is available on Free without an account. Sign in later to sync it across devices.
+          {user
+            ? `Watchlist follows ${user.email} across devices. ${lastSyncedAt ? `Last cloud sync ${new Date(lastSyncedAt).toLocaleString()}.` : 'Waiting for first cloud sync.'}`
+            : 'Watchlist is available on Free without an account. Sign in later to sync it across devices.'}
         </div>
       ) : null}
 

@@ -1176,6 +1176,10 @@ function handleOnboardingComplete(payload) {
                 setControlOpen(true);
               }}
               onOpenAsset={(symbol) => openAlertAsset(symbol)}
+              user={user}
+              syncing={syncing}
+              status={status}
+              lastSyncedAt={lastSyncedAt}
             />
           </section>
         ) : null}
@@ -1272,6 +1276,8 @@ function handleOnboardingComplete(payload) {
                   assets={rankedAssets}
                   user={user}
                   status={status}
+                  syncing={syncing}
+                  lastSyncedAt={lastSyncedAt}
                   experience={experience}
                 />
               </div>
@@ -1298,6 +1304,8 @@ function handleOnboardingComplete(payload) {
                 assets={rankedAssets}
                 user={user}
                 status={status}
+                syncing={syncing}
+                lastSyncedAt={lastSyncedAt}
                 experience={experience}
                 compact
                 sticky

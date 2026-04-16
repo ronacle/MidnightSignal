@@ -24,3 +24,6 @@ npm run build
 - `.DS_Store` files were removed.
 - `.gitignore` was added.
 - `package-lock.json` is present and points at the public npm registry.
+
+
+v11.84 adds visible account persistence for watchlist, alert rules, recent alert history, and onboarding state using the existing Supabase-backed user_state table.

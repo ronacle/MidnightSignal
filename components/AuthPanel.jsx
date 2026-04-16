@@ -2,6 +2,15 @@
 
 import { useMemo, useState } from 'react';
 
+function PersistItem({ label, state }) {
+  return (
+    <div className="list-item row space-between wrap">
+      <div className="muted small">{label}</div>
+      <span className="badge">{state}</span>
+    </div>
+  );
+}
+
 function Step({ done, title, text }) {
   return (
     <div className={`setup-step ${done ? 'done' : ''}`}>
@@ -48,6 +57,13 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
         <Step done={planTier === 'pro'} title="Optional: unlock Pro" text={planTier === 'pro' ? 'Stripe-verified Pro is active.' : 'Upgrade later for deeper validation, forward tracking, and advanced alert tools.'} />
       </div>
 
+      <div className="stack">
+        <div className="eyebrow">What persistence covers</div>
+        <PersistItem label="Watchlist" state={user ? 'Cloud + local backup' : 'Local only'} />
+        <PersistItem label="Alert rules & recent history" state={user ? 'Cloud + local backup' : 'Local only'} />
+        <PersistItem label="Saved profiles & onboarding setup" state={user ? 'Cloud + local backup' : 'Local only'} />
+      </div>
+
       {!supabaseReady && (
         <div className="notice small">
           Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to enable cloud sync.
@@ -60,7 +76,7 @@ export default function AuthPanel({ user, status, syncing, lastSyncedAt, onSignI
           <div className="muted small">Last synced: {lastSyncedAt ? new Date(lastSyncedAt).toLocaleString() : 'Not yet synced'}</div>
           <div className="muted small">Saved profiles in cloud: {profileCount}</div>
           <div className="muted small">Billing truth: {entitlement?.verified ? 'Verified Pro' : 'Free / unverified'}{entitlement?.status ? ` · ${String(entitlement.status).replace(/_/g, ' ')}` : ''}</div>
-          <div className="muted small">Cloud sync carries your watchlist, onboarding state, saved profiles, alert rules, digest queue, and verified entitlement state.</div>
+          <div className="muted small">Cloud sync carries your watchlist, onboarding state, saved profiles, alert rules, recent alert history, digest queue, and verified entitlement state.</div>
           <div className="row">
             <button className="button" onClick={onRefresh} type="button">Pull latest cloud state</button>
             <button className="ghost-button" onClick={onSignOut} type="button">Sign out</button>
