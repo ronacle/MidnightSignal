@@ -1156,6 +1156,7 @@ function handleOnboardingComplete(payload) {
             <SignalContextPanel
               context={signalContext}
               asset={topSignal}
+              experience={experience}
               collapsed={!panelState.signalContext}
               onToggleCollapse={() => togglePanel('signalContext')}
             />
@@ -1310,6 +1311,7 @@ function handleOnboardingComplete(payload) {
             <SignalContextPanel
               context={signalContext}
               asset={topSignal}
+              experience={experience}
               collapsed={!panelState.signalContext}
               onToggleCollapse={() => togglePanel('signalContext')}
             />

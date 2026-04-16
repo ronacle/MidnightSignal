@@ -4053,3 +4053,74 @@ html {
   border:1px solid rgba(148,163,184,.14);
   background:rgba(15,23,42,.42);
 }
+
+
+/* v11.83 signal context + explainability upgrade */
+.signal-context-explain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.signal-context-explain-card {
+  padding: 16px 16px 15px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.035);
+  display: grid;
+  gap: 10px;
+}
+
+.signal-context-explain-card-primary {
+  background: linear-gradient(180deg, rgba(107,197,255,0.08), rgba(255,255,255,0.03));
+  border-color: rgba(107,197,255,0.18);
+}
+
+.signal-context-mode-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.signal-context-explain-copy,
+.signal-context-watch-note {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.signal-context-bullets {
+  display: grid;
+  gap: 8px;
+}
+
+.signal-context-bullet {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  gap: 8px;
+  align-items: start;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.signal-context-bullet-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(107,197,255,0.9);
+  margin-top: 7px;
+  box-shadow: 0 0 0 4px rgba(107,197,255,0.12);
+}
+
+.signal-context-driver-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 1100px) {
+  .signal-context-explain-grid {
+    grid-template-columns: 1fr;
+  }
+}

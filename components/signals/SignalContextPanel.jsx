@@ -6,6 +6,108 @@ function formatSourceType(value = '') {
   return 'Note';
 }
 
+function formatDriverLabel(label = '') {
+  return String(label || '').replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim();
+}
+
+function getTopDrivers(asset) {
+  const factors = Object.entries(asset?.factors || {})
+    .filter(([, value]) => typeof value === 'number')
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([label, value]) => ({ label: formatDriverLabel(label), value }));
+
+  if (factors.length) return factors;
+
+  return [
+    { label: 'Momentum', value: asset?.signalScore ?? asset?.conviction ?? 0 },
+    { label: 'Structure', value: Math.max(45, (asset?.signalScore ?? asset?.conviction ?? 50) - 6) },
+    { label: 'Participation', value: Math.max(40, Math.round((asset?.volumeToMarketCap || 0) * 10)) },
+  ];
+}
+
+function buildExplainability(context, asset, experience) {
+  const profile = experience?.userType || 'Beginner';
+  const intent = experience?.intent || 'learn';
+  const conviction = Number(asset?.signalScore ?? asset?.conviction ?? 0);
+  const reasons = Array.isArray(asset?.signalReasons) ? asset.signalReasons.slice(0, 3) : [];
+  const drivers = getTopDrivers(asset);
+  const driverNames = drivers.map((item) => item.label);
+  const crowdTone = context?.meta?.crowdTone || context?.crowdTone || 'mixed';
+  const articleCount = Number(context?.meta?.sourceTypes?.article || 0);
+  const xCount = Number(context?.meta?.sourceTypes?.x || 0);
+  const volatility = Number(asset?.factors?.volatility || 0);
+  const structure = Number(asset?.factors?.structure || 0);
+  const momentum = Number(asset?.factors?.momentum || 0);
+  const relativeStrength = Number(asset?.factors?.relativeStrength || 0);
+  const direction = asset?.sentiment === 'bearish' ? 'downside pressure' : asset?.sentiment === 'bullish' ? 'upside pressure' : 'a balanced posture';
+
+  let why = [];
+  if (reasons.length) {
+    why = reasons;
+  } else {
+    why = [
+      `${driverNames[0] || 'Momentum'} is one of the strongest inputs in the current score.`,
+      `${driverNames[1] || 'Structure'} is helping keep the setup from reading as pure noise.`,
+      `${driverNames[2] || 'Participation'} is adding confirmation to the current posture.`,
+    ];
+  }
+
+  let means = '';
+  let watch = '';
+
+  if (profile === 'Beginner') {
+    means = conviction >= 70
+      ? `Right now the market is leaning more clearly in one direction, and ${asset.symbol} is one of the stronger names in that move.`
+      : conviction >= 55
+        ? `${asset.symbol} has a usable setup, but it still needs more confirmation before it feels decisive.`
+        : `${asset.symbol} is showing mixed evidence, so this is more of a watch item than a high-confidence setup.`;
+    watch = asset?.sentiment === 'bearish'
+      ? `Watch whether weakness keeps spreading. If the score slips further or the crowd tone worsens, the setup gets less reliable.`
+      : `Watch whether the current strength keeps holding. If momentum fades or structure softens, the signal can cool quickly.`;
+  } else if (profile === 'Active trader') {
+    means = conviction >= 70
+      ? `${asset.symbol} is reading like a continuation candidate with ${direction} and better board leadership than most of the field.`
+      : `${asset.symbol} is tradable, but still sitting in a middling zone where confirmation matters more than anticipation.`;
+    watch = asset?.sentiment === 'bearish'
+      ? `Respect reversal risk if volatility rises without structure improving. A softer crowd read can accelerate downside.`
+      : `Stay focused on follow-through. If momentum remains above structure and relative strength stays firm, continuation bias remains valid.`;
+  } else {
+    means = conviction >= 70
+      ? `${asset.symbol} is showing a stronger longer-horizon posture than most names on the board, which can matter more than short-term noise.`
+      : `${asset.symbol} is improving, but the longer-horizon read still needs steadier confirmation before it earns more confidence.`;
+    watch = `Focus on whether structure (${structure || '—'}) and relative strength (${relativeStrength || '—'}) stay firm enough to support the broader trend read.`;
+  }
+
+  const changed = [
+    articleCount || xCount
+      ? `Narrative attention is elevated by ${articleCount} article${articleCount === 1 ? '' : 's'} and ${xCount} X item${xCount === 1 ? '' : 's'} in the current context layer.`
+      : 'Live context is still light, so the explanation is leaning more on the signal engine than the narrative feed.',
+    `Crowd tone currently reads as ${crowdTone}, which is ${crowdTone === 'bullish' ? 'reinforcing' : crowdTone === 'bearish' ? 'pressuring' : 'not strongly confirming'} the signal posture.`,
+    volatility >= 70
+      ? 'Volatility is elevated, so even a strong signal may feel less smooth than the score suggests.'
+      : momentum > structure
+        ? 'Momentum is running ahead of structure, which can be powerful early but still deserves confirmation.'
+        : 'Structure is holding up reasonably well relative to momentum, which supports a steadier read.',
+  ];
+
+  const modeRead = profile === 'Beginner'
+    ? 'Plain-English read'
+    : profile === 'Active trader'
+      ? 'Tactical read'
+      : 'Long-horizon read';
+
+  const modeSummary = profile === 'Beginner'
+    ? 'This section translates the score into plain language before you scan more names.'
+    : profile === 'Active trader'
+      ? 'Use this to decide whether the setup deserves more screen time or just a quick pass.'
+      : 'Use this to separate durable posture from short-term market noise.';
+
+  const confidenceRead = conviction >= 70 ? 'High-conviction posture' : conviction >= 55 ? 'Developing posture' : 'Mixed posture';
+
+  return { why, means, watch, changed, drivers, modeRead, modeSummary, confidenceRead, intent };
+}
+
 function ContextBadges({ context, asset }) {
   return (
     <>
@@ -15,10 +117,11 @@ function ContextBadges({ context, asset }) {
   );
 }
 
-export default function SignalContextPanel({ context, asset, collapsed = false, onToggleCollapse }) {
+export default function SignalContextPanel({ context, asset, experience = null, collapsed = false, onToggleCollapse }) {
   if (!context || !asset) return null;
 
   const sourceTypes = context?.meta?.sourceTypes || {};
+  const explain = buildExplainability(context, asset, experience);
 
   if (collapsed) {
     return (
@@ -45,7 +148,7 @@ export default function SignalContextPanel({ context, asset, collapsed = false, 
             </div>
           </div>
           <div className="signal-context-collapsed-summary muted small">
-            Signal context hidden. Expand to review narrative cues, X watch, and related asset mentions.
+            Hidden right now: why {asset.symbol} is scoring here, what that usually means, and what to watch next.
           </div>
         </div>
       </section>
@@ -79,6 +182,47 @@ export default function SignalContextPanel({ context, asset, collapsed = false, 
         <div className="signal-context-title">{context.headline}</div>
         <div className="muted small">{context.subhead}</div>
         <p className="signal-context-setup">{context.setup}</p>
+      </div>
+
+      <div className="signal-context-explain-grid">
+        <div className="signal-context-explain-card signal-context-explain-card-primary">
+          <div className="signal-context-label">Why this signal exists</div>
+          <div className="signal-context-mode-title">{explain.confidenceRead}</div>
+          <div className="signal-context-bullets">
+            {explain.why.map((item, idx) => (
+              <div key={`${item}-${idx}`} className="signal-context-bullet">
+                <span className="signal-context-bullet-dot" aria-hidden="true" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+          <div className="signal-context-driver-row">
+            {explain.drivers.map((item) => (
+              <span key={item.label} className="since-chip">{item.label}: {item.value}</span>
+            ))}
+          </div>
+        </div>
+
+        <div className="signal-context-explain-card">
+          <div className="signal-context-label">{explain.modeRead}</div>
+          <div className="signal-context-mode-title">What this usually means</div>
+          <p className="signal-context-explain-copy">{explain.means}</p>
+          <div className="muted small">{explain.modeSummary}</div>
+        </div>
+
+        <div className="signal-context-explain-card">
+          <div className="signal-context-label">What changed tonight</div>
+          <div className="signal-context-mode-title">What to watch next</div>
+          <div className="signal-context-bullets">
+            {explain.changed.map((item, idx) => (
+              <div key={`${item}-${idx}`} className="signal-context-bullet">
+                <span className="signal-context-bullet-dot" aria-hidden="true" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+          <div className="signal-context-watch-note">{explain.watch}</div>
+        </div>
       </div>
 
       <div className="since-chip-row" style={{ marginBottom: 16 }}>
