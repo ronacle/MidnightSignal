@@ -38,6 +38,23 @@ const DIRECTION_TYPES = {
   bearish: 'sentiment_bearish',
 };
 
+function getAlertStateMeta(alert) {
+  if (alert?.lastTriggeredAt) return { label: 'Triggered', className: 'is-triggered' };
+  if (alert?.paused) return { label: 'Paused', className: 'is-paused' };
+  return { label: 'Live', className: 'is-live' };
+}
+
+function explainEvent(event) {
+  if (!event) return 'Triggered by a saved rule or a meaningful system posture shift.';
+  const confidence = Number(event.confidence ?? 0);
+  const posture = String(event.posture || '').toLowerCase();
+  if (confidence >= 75) return 'Conviction cleared your higher-confidence threshold, so Midnight Signal elevated it instead of treating it as ordinary noise.';
+  if (posture.includes('bear')) return 'A bearish posture shift aligned with your monitored direction, so the event was logged for caution rather than ignored.';
+  if (posture.includes('bull')) return 'A bullish posture shift aligned with your monitored direction, so the event was surfaced as a momentum-positive trigger.';
+  return 'The rule crossed its required threshold or posture condition, so it was added to your recent alert history.';
+}
+
+
 export default function AlertCenterScaffold({
   state,
   setState,
@@ -61,6 +78,8 @@ export default function AlertCenterScaffold({
   const [threshold, setThreshold] = useState(String(state?.alertCenterThreshold || 70));
   const [direction, setDirection] = useState(state?.alertCenterDirection || 'both');
   const [timeframe, setTimeframe] = useState(state?.alertCenterTimeframe || state?.timeframe || '15M');
+  const [testStatus, setTestStatus] = useState('');
+  const [openWhyEventId, setOpenWhyEventId] = useState(null);
 
   const alertSummary = useMemo(() => {
     const focused = activeAlerts.filter((item) => item.symbol === selectedSymbol);
@@ -136,6 +155,31 @@ export default function AlertCenterScaffold({
     }));
   }
 
+
+  function sendTestAlert() {
+    const now = new Date().toISOString();
+    const mockEvent = {
+      id: `test-${selectedSymbol}-${Date.now()}`,
+      symbol: selectedSymbol,
+      body: `Test alert fired for ${selectedSymbol}`,
+      text: `Test alert fired for ${selectedSymbol}`,
+      posture: direction === 'bearish' ? 'Bearish posture' : direction === 'bullish' ? 'Bullish posture' : 'Signal shift',
+      confidence: Number(threshold || 70),
+      level: direction === 'bearish' ? 'warning' : 'watch',
+      triggeredAt: now,
+      reason: `Manual test alert for ${selectedSymbol} at ${threshold}% on ${timeframe}.`,
+      isTest: true,
+    };
+
+    setState((previous) => ({
+      ...previous,
+      recentAlertEvents: [mockEvent, ...((previous?.recentAlertEvents) || [])].slice(0, 18),
+      alertLastDeliveryStatus: `Test alert recorded at ${new Date(now).toLocaleTimeString()}`,
+      alertLastTriggeredAt: now,
+    }));
+    setTestStatus(`Test alert recorded for ${selectedSymbol}.`);
+  }
+
   const focusedRules = alerts.filter((item) => item.symbol === selectedSymbol).slice(0, 6);
 
   return (
@@ -150,7 +194,8 @@ export default function AlertCenterScaffold({
         </div>
         <div className="alert-center-summary">
           <span className="badge">{activeAlerts.length} active</span>
-          <span className="badge">{watchlist.length} watched</span>
+          <span className="badge">{alerts.filter((item) => item.paused).length} paused</span>
+          <span className="badge">{recentEvents.length} recent</span>
           <span className="badge">{state?.alertDigestMode === 'digest' ? 'Digest mode' : 'Instant mode'}</span>
         </div>
       </div>
@@ -216,8 +261,10 @@ export default function AlertCenterScaffold({
           <div className="row wrap-gap">
             <button type="button" className="button" onClick={createRule}>Add rule</button>
             <button type="button" className="ghost-button" onClick={saveStarterPack}>Create starter alerts</button>
+            <button type="button" className="ghost-button" onClick={sendTestAlert}>Send test alert</button>
             <button type="button" className="ghost-button" onClick={() => onOpenControls?.()}>Open alert controls</button>
           </div>
+          {testStatus ? <div className="alert-inline-status muted small">{testStatus}</div> : null}
         </div>
 
         <div className="alert-center-card">
@@ -230,18 +277,23 @@ export default function AlertCenterScaffold({
           </div>
 
           <div className="alert-rule-live-list">
-            {focusedRules.length ? focusedRules.map((alert) => (
-              <div key={alert.id} className="alert-live-rule">
-                <div>
-                  <div className="alert-history-title">{describeRule(alert)}</div>
-                  <div className="muted small">{alert.timeframe || '15M'} · {alert.paused ? 'Paused' : 'Live'} · updated {formatTimestamp(alert.updatedAt)}</div>
+            {focusedRules.length ? focusedRules.map((alert) => {
+              const stateMeta = getAlertStateMeta(alert);
+              return (
+              <div key={alert.id} className={`alert-live-rule ${stateMeta.className}`}>
+                <div className="alert-live-main">
+                  <div className="alert-live-topline">
+                    <div className="alert-history-title">{describeRule(alert)}</div>
+                    <span className={`alert-state-chip ${stateMeta.className}`}>{stateMeta.label}</span>
+                  </div>
+                  <div className="muted small">{alert.timeframe || '15M'} · updated {formatTimestamp(alert.updatedAt)}</div>
                 </div>
                 <div className="alert-live-actions">
                   <button type="button" className="ghost-button small" onClick={() => togglePause(alert.id)}>{alert.paused ? 'Resume' : 'Pause'}</button>
                   <button type="button" className="ghost-button small" onClick={() => removeRule(alert.id)}>Remove</button>
                 </div>
               </div>
-            )) : (
+            )}) : (
               <div className="alert-empty-state"><div className="muted small">No rules for {selectedSymbol} yet. Add one from the builder to make Get Alerts mode feel active right away.</div></div>
             )}
           </div>
@@ -277,14 +329,25 @@ export default function AlertCenterScaffold({
             {recentEvents.slice(0, 6).map((event) => (
               <div key={event.id} className={`alert-history-item alert-history-${event.level || 'watch'}`}>
                 <div className="alert-history-main">
-                  <div className="alert-history-title">{event.symbol || 'Alert'} · {event.body || event.text || 'Alert event'}</div>
+                  <div className="alert-history-topline">
+                    <div className="alert-history-title">{event.symbol || 'Alert'} · {event.body || event.text || 'Alert event'}</div>
+                    {event.isTest ? <span className="alert-test-badge">Test</span> : null}
+                  </div>
                   <div className="muted small">{event.posture || 'Signal shift'} · confidence {event.confidence ?? '--'}% · {formatTimestamp(event.triggeredAt || event.updatedAt)}</div>
-                </div>
-                {event.symbol ? (
-                  <button type="button" className="ghost-button small" onClick={() => onOpenAsset?.(event.symbol)}>
-                    Open
+                  <button type="button" className="alert-why-link" onClick={() => setOpenWhyEventId(openWhyEventId === event.id ? null : event.id)}>
+                    {openWhyEventId === event.id ? 'Hide why this fired' : 'Why this fired'}
                   </button>
-                ) : null}
+                  {openWhyEventId === event.id ? (
+                    <div className="alert-why-panel muted small">{event.reason || explainEvent(event)}</div>
+                  ) : null}
+                </div>
+                <div className="alert-history-actions">
+                  {event.symbol ? (
+                    <button type="button" className="ghost-button small" onClick={() => onOpenAsset?.(event.symbol)}>
+                      Open
+                    </button>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
