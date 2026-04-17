@@ -27,3 +27,7 @@ npm run build
 
 
 v11.84 adds visible account persistence for watchlist, alert rules, recent alert history, and onboarding state using the existing Supabase-backed user_state table.
+
+
+## v11.85 email alert delivery
+Set `RESEND_API_KEY` and `ALERTS_FROM_EMAIL` in Vercel to enable live test sends from `/api/alerts/send`.

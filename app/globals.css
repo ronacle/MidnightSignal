@@ -4124,3 +4124,47 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* v11.85 real email alert delivery + test send */
+.alert-delivery-builder {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.42);
+}
+.alert-delivery-builder-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 0.9rem;
+}
+.alert-email-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: end;
+}
+.alert-email-field {
+  min-width: 0;
+}
+.alert-email-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+.alert-delivery-note {
+  margin-top: 0.7rem;
+}
+@media (max-width: 860px) {
+  .alert-delivery-builder-top,
+  .alert-email-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .alert-email-actions {
+    width: 100%;
+  }
+}

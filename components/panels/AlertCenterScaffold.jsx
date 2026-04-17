@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 function formatTimestamp(value) {
   if (!value) return 'Waiting for first trigger';
@@ -83,7 +83,14 @@ export default function AlertCenterScaffold({
   const [direction, setDirection] = useState(state?.alertCenterDirection || 'both');
   const [timeframe, setTimeframe] = useState(state?.alertCenterTimeframe || state?.timeframe || '15M');
   const [testStatus, setTestStatus] = useState('');
+  const [deliveryEmail, setDeliveryEmail] = useState(state?.alertDeliveryEmail || user?.email || '');
+  const [sendingTest, setSendingTest] = useState(false);
+  const [deliveryFeedback, setDeliveryFeedback] = useState('');
   const [openWhyEventId, setOpenWhyEventId] = useState(null);
+
+  useEffect(() => {
+    setDeliveryEmail(state?.alertDeliveryEmail || user?.email || '');
+  }, [state?.alertDeliveryEmail, user?.email]);
 
   const alertSummary = useMemo(() => {
     const focused = activeAlerts.filter((item) => item.symbol === selectedSymbol);
@@ -160,7 +167,13 @@ export default function AlertCenterScaffold({
   }
 
 
-  function sendTestAlert() {
+  async function sendTestAlert() {
+    const cleanEmail = String(deliveryEmail || '').trim();
+    if (!cleanEmail) {
+      setDeliveryFeedback('Add a delivery email first.');
+      return;
+    }
+
     const now = new Date().toISOString();
     const mockEvent = {
       id: `test-${selectedSymbol}-${Date.now()}`,
@@ -175,13 +188,65 @@ export default function AlertCenterScaffold({
       isTest: true,
     };
 
+    setSendingTest(true);
+    try {
+      const response = await fetch('/api/alerts/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          test: true,
+          digestMode: state?.alertDigestMode || 'instant',
+          alerts: [mockEvent],
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.ok === false) {
+        throw new Error(data?.message || 'Unable to send test alert.');
+      }
+
+      setState((previous) => ({
+        ...previous,
+        alertDeliveryEnabled: true,
+        alertDeliveryEmail: cleanEmail,
+        recentAlertEvents: [mockEvent, ...((previous?.recentAlertEvents) || [])].slice(0, 18),
+        alertLastDeliveryAt: data?.sentAt || now,
+        alertLastTriggeredAt: now,
+        alertLastDeliveryStatus: data?.mode === 'live'
+          ? `Test email sent to ${cleanEmail}`
+          : 'Test route ready. Add RESEND_API_KEY and ALERTS_FROM_EMAIL in Vercel for live email sends.',
+      }));
+      setTestStatus(`Test alert sent for ${selectedSymbol}.`);
+      setDeliveryFeedback(
+        data?.mode === 'live'
+          ? `Live email sent to ${cleanEmail}.`
+          : 'Mock delivery succeeded. Add RESEND_API_KEY and ALERTS_FROM_EMAIL in Vercel to enable live sends.'
+      );
+    } catch (error) {
+      setDeliveryFeedback(error?.message || 'Unable to send test alert.');
+      setState((previous) => ({
+        ...previous,
+        alertLastDeliveryStatus: error?.message || 'Delivery failed',
+      }));
+    } finally {
+      setSendingTest(false);
+    }
+  }
+
+  function applyDeliverySettings(enabled) {
+    const cleanEmail = String(deliveryEmail || '').trim();
     setState((previous) => ({
       ...previous,
-      recentAlertEvents: [mockEvent, ...((previous?.recentAlertEvents) || [])].slice(0, 18),
-      alertLastDeliveryStatus: `Test alert recorded at ${new Date(now).toLocaleTimeString()}`,
-      alertLastTriggeredAt: now,
+      alertDeliveryEnabled: enabled,
+      alertDeliveryEmail: cleanEmail,
+      intent: 'alerts',
+      onboardingGoal: 'alerts',
     }));
-    setTestStatus(`Test alert recorded for ${selectedSymbol}.`);
+    setDeliveryFeedback(
+      enabled
+        ? (cleanEmail ? `Email delivery armed for ${cleanEmail}.` : 'Email delivery toggled on. Add an email to receive sends.')
+        : 'Email delivery paused.'
+    );
   }
 
   const focusedRules = alerts.filter((item) => item.symbol === selectedSymbol).slice(0, 6);
@@ -262,7 +327,7 @@ export default function AlertCenterScaffold({
             </div>
             <div className="alert-setup-item">
               <strong>Delivery state</strong>
-              <span className="muted small">{state?.alertDeliveryEnabled ? `Email ready for ${state?.alertDeliveryEmail || 'configured inbox'}` : 'Email delivery still off. Use Control Panel when you are ready to send.'}</span>
+              <span className="muted small">{state?.alertDeliveryEnabled ? `Email ready for ${state?.alertDeliveryEmail || 'configured inbox'}` : 'Email delivery still off. Turn it on below and add the inbox you want Midnight Signal to use.'}</span>
             </div>
             <div className="alert-setup-item">
               <strong>Persistence</strong>
@@ -270,13 +335,45 @@ export default function AlertCenterScaffold({
             </div>
           </div>
 
+          <div className="alert-delivery-builder">
+            <div className="alert-delivery-builder-top">
+              <div>
+                <div className="alert-center-card-title">Email delivery</div>
+                <div className="muted small">Use a real inbox for instant or digest alerts. Test send checks the full route from the app to the delivery endpoint.</div>
+              </div>
+              <span className={`alert-state-chip ${state?.alertDeliveryEnabled ? 'is-live' : 'is-paused'}`}>{state?.alertDeliveryEnabled ? 'Armed' : 'Paused'}</span>
+            </div>
+
+            <div className="alert-email-row">
+              <label className="alert-builder-field alert-email-field">
+                <span className="muted small">Delivery email</span>
+                <input
+                  className="input"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={deliveryEmail}
+                  onChange={(e) => setDeliveryEmail(e.target.value)}
+                />
+              </label>
+              <div className="alert-email-actions">
+                <button type="button" className={state?.alertDeliveryEnabled ? 'ghost-button' : 'button'} onClick={() => applyDeliverySettings(true)}>Enable email</button>
+                <button type="button" className="ghost-button" onClick={() => applyDeliverySettings(false)}>Pause email</button>
+              </div>
+            </div>
+
+            <div className="alert-delivery-note muted small">
+              Live sends use <strong>RESEND_API_KEY</strong> and <strong>ALERTS_FROM_EMAIL</strong> in Vercel. Without them, the test button still verifies the route in mock mode.
+            </div>
+          </div>
+
           <div className="row wrap-gap">
             <button type="button" className="button" onClick={createRule}>Add rule</button>
             <button type="button" className="ghost-button" onClick={saveStarterPack}>Create starter alerts</button>
-            <button type="button" className="ghost-button" onClick={sendTestAlert}>Send test alert</button>
+            <button type="button" className="ghost-button" onClick={sendTestAlert} disabled={sendingTest}>{sendingTest ? 'Sending test…' : 'Send test alert'}</button>
             <button type="button" className="ghost-button" onClick={() => onOpenControls?.()}>Open alert controls</button>
           </div>
           {testStatus ? <div className="alert-inline-status muted small">{testStatus}</div> : null}
+          {deliveryFeedback ? <div className="alert-inline-status muted small">{deliveryFeedback}</div> : null}
         </div>
 
         <div className="alert-center-card">
@@ -322,7 +419,7 @@ export default function AlertCenterScaffold({
           </div>
 
           <div className="alert-delivery-status muted small">
-            Delivery email: <strong>{state?.alertDeliveryEmail || 'not set yet'}</strong> · Last status: <strong>{state?.alertLastDeliveryStatus || 'waiting for first send'}</strong>
+            Delivery email: <strong>{state?.alertDeliveryEmail || 'not set yet'}</strong> · Last status: <strong>{state?.alertLastDeliveryStatus || 'waiting for first send'}</strong> · Last sent: <strong>{formatTimestamp(state?.alertLastDeliveryAt)}</strong>
           </div>
         </div>
       </div>
