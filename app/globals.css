@@ -1225,6 +1225,27 @@ button, input, select { font: inherit; }
 }
 
 
+.decision-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.decision-chip {
+  min-width: 0;
+}
+
+.decision-subblock {
+  margin-top: 2px;
+}
+
+@media (max-width: 860px) {
+  .decision-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
  /* v11.21.4.7 clean keep-intelligence + compact brief */
  /*
 #since-last-visit {
