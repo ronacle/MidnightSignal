@@ -58,6 +58,21 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
   }, [alertAsset]);
 
   const activeCount = useMemo(() => alerts.filter((alert) => !alert.paused).length, [alerts]);
+  const remainingRuleCount = Math.max(0, alertRuleLimit - alerts.length);
+
+  function openUpgrade() {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/api/stripe/checkout';
+    }
+  }
+
+  function canCreateAlerts(count = 1) {
+    if (unlimitedAlerts) return true;
+    if (editingId) return true;
+    if (alerts.length + count <= alertRuleLimit) return true;
+    setUpgradeMessage(`Free plan includes ${alertRuleLimit} alert rules. Upgrade to Pro for unlimited alerts.`);
+    return false;
+  }
 
   function updateDraft(key, value) {
     setDraft((previous) => ({ ...previous, [key]: value }));
