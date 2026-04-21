@@ -1,6 +1,7 @@
 'use client';
 
 import { formatCompactNumber, formatPct, formatPrice, formatTime, getConvictionTier } from '@/lib/utils';
+import { buildForwardOutcomeEntries } from '@/lib/trust-dashboard';
 
 export default function TopSignal({
   asset,
@@ -34,7 +35,7 @@ export default function TopSignal({
   ].filter(([, value]) => typeof value === 'number');
 
   const recent = signalHistory.slice(0, 4);
-  const forwardRecent = forwardValidation.slice(0, 5);
+  const forwardRecent = buildForwardOutcomeEntries(forwardValidation).slice(0, 5);
   const tf = asset?.timeframe || {};
   const currentAdaptive = adaptiveSummary.find((entry) => entry.regime === (regimeSummary?.regime || asset?.marketRegime));
   const topSignalMotion = Boolean(state?.livePulseEnabled);
@@ -231,11 +232,11 @@ export default function TopSignal({
           <div className="eyebrow">Forward signal log</div>
           <div className="history-stack">
             {forwardRecent.length ? forwardRecent.map((entry) => (
-              <div className="history-row" key={entry.id}>
+              <div className="history-row trust-history-row" key={entry.id}>
                 <span>{entry.symbol}</span>
                 <span>{entry.score}%</span>
                 <span>{entry.regime}</span>
-                <span>1h {entry.checkpoints?.['1h']?.returnPct ?? '—'}% · 4h {entry.checkpoints?.['4h']?.returnPct ?? '—'}% · 24h {entry.checkpoints?.['24h']?.returnPct ?? '—'}%</span>
+                <span><span className={`outcome-badge ${entry.outcomeTone}`}>{entry.outcomeLabel}</span> {entry.latestHorizon === 'developing' ? 'Checkpoint still forming' : `${entry.latestHorizon} ${entry.latestReturnPct}%`}</span>
               </div>
             )) : <div className="muted small">No forward validation signals tracked yet.</div>}
           </div>

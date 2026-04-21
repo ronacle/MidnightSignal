@@ -9,6 +9,7 @@ import SignalContextPanel from '@/components/signals/SignalContextPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
 import LearningDrawer from '@/components/panels/LearningDrawer';
 import AlertCenterScaffold from '@/components/panels/AlertCenterScaffold';
+import TrustDashboardPanel from '@/components/panels/TrustDashboardPanel';
 import AssetDetailSheet from '@/components/panels/AssetDetailSheet';
 import WatchlistPanel from '@/components/WatchlistPanel';
 import DisclaimerModal from '@/components/modals/DisclaimerModal';
@@ -1151,6 +1152,12 @@ function handleOnboardingComplete(payload) {
           />
         </section>
 
+        <TrustDashboardPanel
+          mode={state.mode}
+          forwardValidation={forwardValidation}
+          recentAlertEvents={state?.recentAlertEvents || []}
+        />
+
         {experience.showContextPanel && experience.contextFirst ? (
           <section id="signal-context" className="signal-context-anchor">
             <SignalContextPanel
@@ -1340,7 +1347,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.81.6 · Onboarding handoff + first-session guidance · source: {marketSource}
+          Build v11.88 · Signal outcome tracking + trust dashboard · source: {marketSource}
         </div>
       </div>
 

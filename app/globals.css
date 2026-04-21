@@ -4256,3 +4256,60 @@ html {
     justify-content: space-between;
   }
 }
+
+
+/* v11.88 trust dashboard */
+.trust-dashboard-panel {
+  display: grid;
+  gap: 14px;
+}
+.trust-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  gap: 14px;
+}
+.trust-takeaway {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.48);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+.outcome-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-right: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+.outcome-badge.worked {
+  background: rgba(22, 163, 74, 0.14);
+  border-color: rgba(22, 163, 74, 0.28);
+  color: #86efac;
+}
+.outcome-badge.mixed {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.28);
+  color: #fde68a;
+}
+.outcome-badge.failed {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: #fca5a5;
+}
+.outcome-badge.developing {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.24);
+  color: #93c5fd;
+}
+.trust-history-row span:last-child {
+  text-align: right;
+}
+@media (max-width: 980px) {
+  .trust-grid {
+    grid-template-columns: 1fr;
+  }
+}
