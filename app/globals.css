@@ -167,6 +167,7 @@ button, input, select { font: inherit; }
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  align-items: end;
 }
 
 @media (max-width: 720px) {
@@ -179,28 +180,46 @@ button, input, select { font: inherit; }
 .field {
   display: grid;
   gap: 7px;
+  min-width: 0;
 }
 
-.field label {
+.field label,
+.field > span {
   font-size: 0.84rem;
   color: var(--muted);
+  line-height: 1.25;
 }
 
 .input,
 .select,
 .button,
 .ghost-button {
-  min-height: 44px;
+  min-height: 46px;
   border-radius: 14px;
   border: 1px solid var(--line);
 }
 
 .input,
 .select {
+  width: 100%;
   background: rgba(255, 255, 255, 0.03);
   color: var(--text);
   padding: 0 14px;
   outline: none;
+}
+
+.select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' stroke='%23aab9d6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 12px;
+}
+
+.select::-ms-expand {
+  display: none;
 }
 
 .input:focus,
@@ -4167,4 +4186,23 @@ html {
   .alert-email-actions {
     width: 100%;
   }
+}
+
+
+.compact-panel .controls {
+  gap: 12px;
+}
+
+.compact-panel .field .input,
+.compact-panel .field .select {
+  background-color: rgba(255, 255, 255, 0.035);
+}
+
+.toggle-row {
+  min-width: 0;
+}
+
+.toggle-row .muted.small,
+.list-item .muted.small {
+  line-height: 1.35;
 }
