@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { getAlertRuleLimit, hasUnlimitedAlerts } from '@/lib/entitlements';
 
 const DEFAULT_DRAFT = {
   symbol: '',
@@ -39,9 +40,13 @@ function formatTimestamp(value) {
 }
 
 export default function AlertManagerPanel({ state, setState, alertAsset, onConsumeAlertAsset }) {
+  const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
+  const alertRuleLimit = getAlertRuleLimit(planTier);
+  const unlimitedAlerts = hasUnlimitedAlerts(planTier);
   const [draft, setDraft] = useState(DEFAULT_DRAFT);
   const [editingId, setEditingId] = useState(null);
   const [sendStatus, setSendStatus] = useState('');
+  const [upgradeMessage, setUpgradeMessage] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
   const alerts = state.alerts || [];
   const recentEvents = state.recentAlertEvents || [];
@@ -69,6 +74,8 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
   }
 
   function saveAlert() {
+    const neededCount = 1;
+    if (!editingId && !canCreateAlerts(neededCount)) return;
     if (!draft.symbol) return;
 
     const nextAlert = {
@@ -91,6 +98,7 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
       };
     });
 
+    setUpgradeMessage('');
     resetComposer();
   }
 
@@ -177,6 +185,9 @@ export default function AlertManagerPanel({ state, setState, alertAsset, onConsu
         </div>
         <span className="badge">{activeCount} active</span>
       </div>
+
+      <div className={`alert-plan-strip ${planTier === 'pro' ? 'is-pro' : 'is-free'}`}><div className="alert-plan-copy"><strong>{planTier === 'pro' ? 'Pro: unlimited alert rules' : 'Free: 2 alert rules included'}</strong><span>{planTier === 'pro' ? 'Use the alert engine freely across your watchlist.' : `${alerts.length} of ${alertRuleLimit} rules used. Upgrade only when you need more than the free starter limit.`}</span></div><div className="alert-plan-actions"><span className="badge">{unlimitedAlerts ? 'Unlimited' : `${remainingRuleCount} left`}</span>{planTier !== 'pro' ? <button className="ghost-button small" type="button" onClick={openUpgrade}>Upgrade to Pro</button> : null}</div></div>
+      {upgradeMessage ? <div className="muted small">{upgradeMessage}</div> : null}
 
       {alertAsset ? (
         <div className="notice">

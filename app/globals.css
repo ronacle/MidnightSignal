@@ -1225,27 +1225,6 @@ button, input, select { font: inherit; }
 }
 
 
-.decision-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.decision-chip {
-  min-width: 0;
-}
-
-.decision-subblock {
-  margin-top: 2px;
-}
-
-@media (max-width: 860px) {
-  .decision-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-
  /* v11.21.4.7 clean keep-intelligence + compact brief */
  /*
 #since-last-visit {
@@ -4226,4 +4205,54 @@ html {
 .toggle-row .muted.small,
 .list-item .muted.small {
   line-height: 1.35;
+}
+
+
+/* v11.87 monetization layer */
+.alert-plan-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.55);
+}
+.alert-plan-strip.is-free {
+  border-color: rgba(251, 191, 36, 0.28);
+  background: linear-gradient(180deg, rgba(39, 26, 4, 0.55), rgba(15, 23, 42, 0.62));
+}
+.alert-plan-strip.is-pro {
+  border-color: rgba(96, 165, 250, 0.24);
+  background: linear-gradient(180deg, rgba(8, 27, 57, 0.55), rgba(15, 23, 42, 0.62));
+}
+.alert-plan-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.alert-plan-copy strong {
+  font-size: 0.95rem;
+}
+.alert-plan-copy span {
+  color: rgba(226, 232, 240, 0.82);
+  font-size: 0.83rem;
+  line-height: 1.45;
+}
+.alert-plan-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+@media (max-width: 820px) {
+  .alert-plan-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .alert-plan-actions {
+    justify-content: space-between;
+  }
 }

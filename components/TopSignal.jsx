@@ -41,7 +41,6 @@ export default function TopSignal({
 
   const conviction = asset.signalScore ?? asset.conviction ?? 0;
   const convictionTone = conviction >= 70 ? 'top-signal-strong' : conviction < 45 ? 'top-signal-cautious' : '';
-  const topDrivers = factorRows.slice().sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0)).slice(0, 3).map(([label]) => label);
 
   return (
     <div className={`panel stack ${topSignalMotion ? 'top-signal-motion' : ''} ${embedded ? 'embedded-top-signal' : ''} ${convictionTone}`}>
@@ -92,77 +91,19 @@ export default function TopSignal({
 
       {decisionLayer ? (
         <div className="decision-card">
-          <div className="row space-between wrap gap-8">
+          <div className="row space-between">
             <div>
               <div className="eyebrow">Decision layer</div>
               <div className="value">{decisionLayer.posture}</div>
             </div>
-            <div className="row wrap">
-              <span className="badge">{decisionLayer.bias}</span>
-              <span className="badge">{decisionLayer.confidence}% confidence</span>
-              <span className="badge">{asset.marketRegime || 'Mixed'} regime</span>
-            </div>
+            <span className="badge">{asset.marketRegime || 'Mixed'} regime</span>
           </div>
-
-          <div className="decision-grid">
-            <div className="factor-chip decision-chip">
-              <span>Bias</span>
-              <strong>{decisionLayer.bias}</strong>
-            </div>
-            <div className="factor-chip decision-chip">
-              <span>Confidence</span>
-              <strong>{decisionLayer.confidence}%</strong>
-            </div>
-            <div className="factor-chip decision-chip">
-              <span>Posture</span>
-              <strong>{decisionLayer.posture}</strong>
-            </div>
-          </div>
-
-          <div className="history-stack">
-            <div className="history-row">
-              <span>{beginner ? 'What this means' : 'What this means now'}</span>
-              <span>{beginner ? `In simple terms, ${decisionLayer.whatItMeans}` : decisionLayer.whatItMeans}</span>
-            </div>
-            <div className="history-row">
-              <span>Risk note</span>
-              <span>{beginner ? `Keep it simple: ${decisionLayer.riskNote}` : decisionLayer.riskNote}</span>
-            </div>
-            <div className="history-row">
-              <span>{beginner ? 'Best for' : 'Best used for'}</span>
-              <span>{decisionLayer.bestFor}</span>
-            </div>
-            <div className="history-row">
-              <span>What changed tonight</span>
-              <span>{decisionLayer.whatChangedTonight}</span>
-            </div>
-          </div>
-
-          <div className="factor-block decision-subblock">
-            <div className="eyebrow">If / then guidance</div>
-            <div className="history-stack">
-              {decisionLayer.ifThen.map((item, index) => (
-                <div className="history-row" key={`${item}-${index}`}>
-                  <span>{index === 0 ? 'If' : 'Then'}</span>
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="factor-block decision-subblock">
-            <div className="eyebrow">Top drivers tonight</div>
-            <div className="row wrap">
-              {topDrivers.length ? topDrivers.map((driver) => (
-                <span className="badge" key={driver}>{driver}</span>
-              )) : <span className="muted small">No top drivers recorded yet.</span>}
-            </div>
-          </div>
-
+          <div className="muted">{beginner ? `This posture helps translate the signal into a simpler read: ${decisionLayer.posture}.` : decisionLayer.riskContext}</div>
+          <div className="notice small">{decisionLayer.bestFor}</div>
           <div className="history-stack">
             {decisionLayer.changeSummary.map((item, index) => (
               <div className="history-row" key={`${item}-${index}`}>
-                <span>Shift</span>
+                <span>Change</span>
                 <span>{item}</span>
               </div>
             ))}

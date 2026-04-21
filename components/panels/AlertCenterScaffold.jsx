@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { getAlertRuleLimit, hasUnlimitedAlerts } from '@/lib/entitlements';
 
 function formatTimestamp(value) {
   if (!value) return 'Waiting for first trigger';
@@ -69,6 +70,9 @@ export default function AlertCenterScaffold({
   lastSyncedAt = null,
 }) {
   const alerts = Array.isArray(state?.alerts) ? state.alerts : [];
+  const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
+  const alertRuleLimit = getAlertRuleLimit(planTier);
+  const unlimitedAlerts = hasUnlimitedAlerts(planTier);
   const watchlist = Array.isArray(state?.watchlist) ? state.watchlist : [];
   const recentEvents = Array.isArray(state?.recentAlertEvents) ? state.recentAlertEvents : [];
   const activeAlerts = alerts.filter((item) => !item.paused);
@@ -87,6 +91,7 @@ export default function AlertCenterScaffold({
   const [sendingTest, setSendingTest] = useState(false);
   const [deliveryFeedback, setDeliveryFeedback] = useState('');
   const [openWhyEventId, setOpenWhyEventId] = useState(null);
+  const [upgradeMessage, setUpgradeMessage] = useState('');
 
   useEffect(() => {
     setDeliveryEmail(state?.alertDeliveryEmail || user?.email || '');
@@ -98,11 +103,30 @@ export default function AlertCenterScaffold({
       focusedCount: focused.length,
       totalCount: activeAlerts.length,
       recentCount: recentEvents.length,
+      remainingCount: Math.max(0, alertRuleLimit - alerts.length),
+      usageLabel: unlimitedAlerts ? 'Unlimited alerts' : `${alerts.length} of ${alertRuleLimit} alerts used`,
     };
-  }, [activeAlerts, recentEvents, selectedSymbol]);
+  }, [activeAlerts, recentEvents, selectedSymbol, alertRuleLimit, alerts.length, unlimitedAlerts]);
+
+  function openUpgrade() {
+    window.location.href = '/api/stripe/checkout';
+  }
+
+  function canAddRules(count = 1) {
+    if (unlimitedAlerts) return true;
+    const available = alertRuleLimit - alerts.length;
+    if (available >= count) return true;
+    setUpgradeMessage(`Free plan includes ${alertRuleLimit} alert rules. Upgrade to Pro for unlimited alerts.`);
+    return false;
+  }
 
   function saveStarterPack() {
     const existingKeys = new Set(alerts.map((item) => `${item.symbol}:${item.type}:${item.threshold ?? 'na'}:${item.timeframe || 'na'}`));
+    const availableSlots = unlimitedAlerts ? Number.POSITIVE_INFINITY : Math.max(0, alertRuleLimit - alerts.length);
+    if (availableSlots <= 0) {
+      setUpgradeMessage(`Free plan includes ${alertRuleLimit} alert rules. Upgrade to Pro for unlimited alerts.`);
+      return;
+    }
     const starterAlerts = starterSymbols.flatMap((symbol, index) => {
       const quickRules = [
         makeQuickAlert(symbol, 'conviction_above', index === 0 ? 72 : 68, 'both', state?.timeframe || '15M'),
@@ -111,14 +135,20 @@ export default function AlertCenterScaffold({
       return quickRules.filter((item) => !existingKeys.has(`${item.symbol}:${item.type}:${item.threshold ?? 'na'}:${item.timeframe || 'na'}`));
     });
 
+    const limitedStarterAlerts = starterAlerts.slice(0, availableSlots);
     setState((previous) => ({
       ...previous,
-      alerts: [...starterAlerts, ...(previous.alerts || [])],
+      alerts: [...limitedStarterAlerts, ...(previous.alerts || [])],
       alertDeliveryEnabled: previous.alertDeliveryEnabled || false,
       dashboardFocus: 'watchlist',
       intent: 'alerts',
       onboardingGoal: 'alerts',
     }));
+    if (!unlimitedAlerts && starterAlerts.length > availableSlots) {
+      setUpgradeMessage(`Starter pack added ${limitedStarterAlerts.length} free rules. Upgrade to Pro for unlimited alerts.`);
+    } else {
+      setUpgradeMessage('');
+    }
   }
 
   function seedDeliveryMode(mode) {
@@ -133,6 +163,7 @@ export default function AlertCenterScaffold({
   }
 
   function createRule() {
+    if (!canAddRules(direction !== 'both' ? 2 : 1)) return;
     const safeThreshold = Math.max(35, Math.min(95, Number(threshold || 70)));
     const nextAlerts = [];
     nextAlerts.push(makeQuickAlert(selectedSymbol, 'conviction_above', safeThreshold, direction, timeframe));
@@ -140,9 +171,10 @@ export default function AlertCenterScaffold({
       nextAlerts.push(makeQuickAlert(selectedSymbol, DIRECTION_TYPES[direction], null, direction, timeframe));
     }
 
+    const allowedAlerts = unlimitedAlerts ? nextAlerts : nextAlerts.slice(0, Math.max(0, alertRuleLimit - alerts.length));
     setState((previous) => ({
       ...previous,
-      alerts: [...nextAlerts, ...(previous.alerts || [])],
+      alerts: [...allowedAlerts, ...(previous.alerts || [])],
       alertCenterThreshold: String(safeThreshold),
       alertCenterDirection: direction,
       alertCenterTimeframe: timeframe,
@@ -267,7 +299,7 @@ export default function AlertCenterScaffold({
         <div className="alert-center-summary">
           <span className="badge">{activeAlerts.length} active</span>
           <span className="badge">{alerts.filter((item) => item.paused).length} paused</span>
-          <span className="badge">{recentEvents.length} recent</span>
+          <span className="badge">{planTier === 'pro' ? recentEvents.length : Math.min(recentEvents.length, 5)} recent</span>
           <span className="badge">{state?.alertDigestMode === 'digest' ? 'Digest mode' : 'Instant mode'}</span>
           <span className="badge">{user ? (syncing ? 'Cloud syncing…' : (lastSyncedAt ? 'Cloud saved' : 'Cloud ready')) : 'Local only'}</span>
         </div>
@@ -430,12 +462,12 @@ export default function AlertCenterScaffold({
             <div className="alert-center-card-title">Recent alerts</div>
             <div className="muted small">Live trigger history from system changes and configured rules.</div>
           </div>
-          <span className="badge">{recentEvents.length} recent</span>
+          <span className="badge">{planTier === 'pro' ? recentEvents.length : Math.min(recentEvents.length, 5)} recent</span>
         </div>
 
         {recentEvents.length ? (
           <div className="alert-history-list">
-            {recentEvents.slice(0, 6).map((event) => (
+            {(planTier === 'pro' ? recentEvents.slice(0, 6) : recentEvents.slice(0, 5)).map((event) => (
               <div key={event.id} className={`alert-history-item alert-history-${event.level || 'watch'}`}>
                 <div className="alert-history-main">
                   <div className="alert-history-topline">
@@ -465,6 +497,12 @@ export default function AlertCenterScaffold({
             <div className="muted small">No configured alert has fired yet. Starter alerts will begin logging history here once the rule engine catches a crossing or posture flip.</div>
           </div>
         )}
+
+        {planTier !== 'pro' && recentEvents.length > 5 ? (
+          <div className="billing-next-step">
+            <strong>Pro history:</strong> Free shows the latest 5 events here. Upgrade to keep a fuller recent-alert timeline in view.
+          </div>
+        ) : null}
 
         {alerts.length ? (
           <div className="alert-rule-preview-row">
