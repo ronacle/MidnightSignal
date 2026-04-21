@@ -58,6 +58,17 @@ function normalizeSignalLabel(label = '') {
     .trim() || 'Mixed posture';
 }
 
+function dedupeRecentAlertEvents(events = []) {
+  const seen = new Set();
+  return (Array.isArray(events) ? events : []).filter((event) => {
+    if (!event) return false;
+    const key = event.triggerId || event.id || `${event.symbol}:${event.text || event.body || event.title || ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function createSessionSnapshot({ topSignal, rankedAssets = [], watchlist = [], regimeSummary, marketUpdatedAt }) {
   const watchSymbols = Array.isArray(watchlist) ? watchlist.map((item) => String(item).toUpperCase()) : [];
   const watchAssets = rankedAssets.filter((item) => watchSymbols.includes(item.symbol));
@@ -644,10 +655,10 @@ const sinceLastVisitSummary = useMemo(() => {
         }
 
         if (configured.events.length) {
-          const recent = [
+          const recent = dedupeRecentAlertEvents([
             ...configured.events,
             ...(state?.recentAlertEvents || []),
-          ].slice(0, 12);
+          ]).slice(0, 12);
           setState((previous) => ({ ...previous, recentAlertEvents: recent }));
 
           if (state?.signalSoundsEnabled && typeof window !== 'undefined' && window.AudioContext) {
@@ -1347,7 +1358,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.88 · Signal outcome tracking + trust dashboard · source: {marketSource}
+          Build v11.89 · Stability + signal presence · source: {marketSource}
         </div>
       </div>
 

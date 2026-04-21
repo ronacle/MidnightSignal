@@ -4313,3 +4313,29 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* v11.89 stability + signal presence */
+.plan-status-badge-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.lead-presence-caption { margin-top: 4px; color: var(--muted); font-size: 0.84rem; }
+.entitlement-badge.entitlement-active { border-color: rgba(73, 209, 125, 0.35); background: rgba(73, 209, 125, 0.12); color: #c7ffd9; }
+.entitlement-badge.entitlement-pending, .entitlement-badge.entitlement-trial { border-color: rgba(255, 203, 112, 0.3); background: rgba(255, 203, 112, 0.12); color: #ffe3ad; }
+.entitlement-badge.entitlement-basic { border-color: rgba(142, 174, 230, 0.18); }
+.signal-presence-strip { position: relative; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; padding: 16px 18px; border-radius: 20px; border: 1px solid rgba(107, 197, 255, 0.18); background: linear-gradient(180deg, rgba(18, 38, 70, 0.92), rgba(8, 19, 38, 0.92)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
+.signal-presence-strip::after { content: ''; position: absolute; inset: -40% auto auto -10%; width: 220px; height: 220px; background: radial-gradient(circle, rgba(107, 197, 255, 0.16), transparent 68%); pointer-events: none; }
+.signal-presence-radar { position: relative; width: 52px; height: 52px; display: grid; place-items: center; }
+.signal-presence-core, .signal-presence-ring { position: absolute; border-radius: 999px; }
+.signal-presence-core { width: 12px; height: 12px; background: linear-gradient(180deg, #bde6ff, #63c1ff); box-shadow: 0 0 22px rgba(107, 197, 255, 0.7); }
+.signal-presence-ring { inset: 6px; border: 1px solid rgba(107, 197, 255, 0.26); animation: midnight-radar 2.6s ease-out infinite; }
+.signal-presence-ring-delay { animation-delay: 1.3s; }
+.signal-presence-title { font-weight: 700; font-size: 1rem; }
+.signal-presence-subtitle { margin-top: 4px; color: var(--muted); line-height: 1.45; }
+.signal-presence-metrics { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.signal-presence-metric { min-width: 86px; padding: 10px 12px; border-radius: 16px; border: 1px solid rgba(142, 174, 230, 0.16); background: rgba(255, 255, 255, 0.03); display: grid; gap: 2px; }
+.signal-presence-metric span { color: var(--muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.signal-presence-metric strong { font-size: 1rem; }
+.lead-signal-panel.is-live-pulsing { animation: midnight-panel-presence 1.8s ease; }
+@keyframes midnight-radar { 0% { transform: scale(0.88); opacity: 0.7; } 100% { transform: scale(1.2); opacity: 0; } }
+@keyframes midnight-panel-presence { 0% { box-shadow: 0 0 0 0 rgba(107, 197, 255, 0.24); } 35% { box-shadow: 0 0 0 12px rgba(107, 197, 255, 0.04); } 100% { box-shadow: 0 0 0 0 rgba(107, 197, 255, 0); } }
+@media (max-width: 860px) { .signal-presence-strip { grid-template-columns: 1fr; justify-items: start; } .signal-presence-metrics, .plan-status-badge-row { justify-content: flex-start; } }
+@media (prefers-reduced-motion: reduce) { .signal-presence-ring, .lead-signal-panel.is-live-pulsing { animation: none !important; } }

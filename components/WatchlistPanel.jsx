@@ -3,11 +3,13 @@
 import { useMemo, useState } from 'react';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 
-const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
-
 export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [], user, status, syncing = false, lastSyncedAt = null, experience, compact = false, sticky = false }) {
   const [newSymbol, setNewSymbol] = useState('LINK');
   const assetPool = useMemo(() => (assets?.length ? assets : MARKET_FIXTURES), [assets]);
+  const availableSymbols = useMemo(() => {
+    const symbols = assetPool.map((item) => item.symbol).filter(Boolean);
+    return Array.from(new Set([...symbols, ...state.watchlist])).slice(0, 20);
+  }, [assetPool, state.watchlist]);
 
   function addSymbol() {
     if (state.watchlist.includes(newSymbol)) return;
@@ -60,7 +62,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
       {!compact ? (
       <div className="watchlist-add-row">
         <select className="select compact-select" value={newSymbol} onChange={(e) => setNewSymbol(e.target.value)}>
-          {AVAILABLE.map((symbol) => <option key={symbol}>{symbol}</option>)}
+          {availableSymbols.map((symbol) => <option key={symbol}>{symbol}</option>)}
         </select>
         <button className="button compact-action" onClick={addSymbol}>Add</button>
       </div>

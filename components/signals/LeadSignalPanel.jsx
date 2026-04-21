@@ -4,6 +4,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import TonightBrief from '@/components/signals/TonightBrief';
 import TopSignalCard from '@/components/signals/TopSignalCard';
 
+function getEntitlementBadge(state, planTier) {
+  const entitlement = state?.entitlement || {};
+  if (planTier === 'pro' && entitlement?.verified) return { label: 'Active', tone: 'active' };
+  if (planTier === 'pro') return { label: 'Pro pending', tone: 'pending' };
+  if (entitlement?.status === 'trialing') return { label: 'Trial', tone: 'trial' };
+  return { label: 'Basic', tone: 'basic' };
+}
+
 const VISIT_STORAGE_KEY = 'midnight-signal-last-visit';
 const SNAPSHOT_STORAGE_KEY = 'midnight-signal-last-top-signal';
 const USER_BIAS_STORAGE_KEY = 'midnight-signal-user-bias';
@@ -70,7 +78,12 @@ export default function LeadSignalPanel({
   const [userBias, setUserBias] = useState(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [planTier, setPlanTier] = useState(state?.planTier || 'basic');
+  const [presencePulse, setPresencePulse] = useState(false);
+  const [signalDelta, setSignalDelta] = useState(null);
   const breakdownRef = useRef(null);
+  const previousLeadRef = useRef(null);
+
+  const entitlementBadge = useMemo(() => getEntitlementBadge(state, planTier), [state, planTier]);
 
   const awarenessState = useMemo(() => {
     return {
@@ -108,6 +121,38 @@ export default function LeadSignalPanel({
   useEffect(() => {
     setPlanTier(state?.planTier || 'basic');
   }, [state?.planTier]);
+
+  useEffect(() => {
+    if (!asset?.symbol || typeof window === 'undefined') return;
+
+    const previousLead = previousLeadRef.current;
+    if (previousLead?.symbol) {
+      const currentScore = Number(asset.signalScore ?? asset.conviction ?? 0);
+      const previousScore = Number(previousLead.signalScore ?? previousLead.conviction ?? 0);
+      const nextDelta = {
+        previousSymbol: previousLead.symbol,
+        currentSymbol: asset.symbol,
+        scoreShift: Math.round(currentScore - previousScore),
+        changedLeader: previousLead.symbol !== asset.symbol,
+      };
+      setSignalDelta(nextDelta);
+
+      if (nextDelta.changedLeader || Math.abs(nextDelta.scoreShift) >= 3) {
+        setPresencePulse(true);
+        const timer = window.setTimeout(() => setPresencePulse(false), 1800);
+        previousLeadRef.current = {
+          symbol: asset.symbol,
+          signalScore: currentScore,
+        };
+        return () => window.clearTimeout(timer);
+      }
+    }
+
+    previousLeadRef.current = {
+      symbol: asset.symbol,
+      signalScore: Number(asset.signalScore ?? asset.conviction ?? 0),
+    };
+  }, [asset?.symbol, asset?.signalScore, asset?.conviction]);
 
   useEffect(() => {
     if (!asset || typeof window === 'undefined') return;
@@ -153,10 +198,44 @@ export default function LeadSignalPanel({
 
   return (
     <>
-      <section className="lead-signal-panel" id="top-signal">
+      <section className={`lead-signal-panel ${presencePulse ? 'is-live-pulsing' : ''}`} id="top-signal">
         <div className="plan-status-row">
-          <div className="eyebrow">Access</div>
-          <span className={`badge plan-status-badge tier-${planTier}`}>{planTier === 'pro' ? 'Pro' : 'Basic'}</span>
+          <div>
+            <div className="eyebrow">Access</div>
+            <div className="lead-presence-caption">Tonight's lead signal is live and updating.</div>
+          </div>
+          <div className="plan-status-badge-row">
+            <span className={`badge entitlement-badge entitlement-${entitlementBadge.tone}`}>{entitlementBadge.label}</span>
+            <span className={`badge plan-status-badge tier-${planTier}`}>{planTier === 'pro' ? 'Pro' : 'Basic'}</span>
+          </div>
+        </div>
+
+        <div className="signal-presence-strip" aria-live="polite">
+          <div className="signal-presence-radar" aria-hidden="true">
+            <span className="signal-presence-core" />
+            <span className="signal-presence-ring" />
+            <span className="signal-presence-ring signal-presence-ring-delay" />
+          </div>
+          <div className="signal-presence-copy">
+            <div className="signal-presence-title">{asset.symbol} is tonight's active lead</div>
+            <div className="signal-presence-subtitle">
+              {signalDelta?.changedLeader
+                ? `${signalDelta.previousSymbol} rotated out and ${asset.symbol} took control.`
+                : signalDelta && Math.abs(signalDelta.scoreShift) >= 3
+                  ? `${asset.symbol} conviction ${signalDelta.scoreShift > 0 ? 'improved' : 'cooled'} ${Math.abs(signalDelta.scoreShift)} pts.`
+                  : `Conviction is holding at ${asset.signalScore ?? asset.conviction}% with ${asset.sentiment} posture.`}
+            </div>
+          </div>
+          <div className="signal-presence-metrics">
+            <div className="signal-presence-metric">
+              <span>Score</span>
+              <strong>{asset.signalScore ?? asset.conviction}%</strong>
+            </div>
+            <div className="signal-presence-metric">
+              <span>24h</span>
+              <strong>{Number(asset.change24h || 0) >= 0 ? '+' : ''}{Number(asset.change24h || 0).toFixed(1)}%</strong>
+            </div>
+          </div>
         </div>
 
         <TonightBrief
