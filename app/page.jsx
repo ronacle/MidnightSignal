@@ -1470,7 +1470,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v12.0 · layout cleanup calm mode · source: {marketSource}
+          Build v12.0.1 · session memory accuracy pass · source: {marketSource}
         </div>
       </div>
 

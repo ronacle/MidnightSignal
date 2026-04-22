@@ -258,8 +258,12 @@ function getSinceLastVisit(asset, state) {
   const snapshot = state?.lastTopSignalSnapshot;
   const lastViewed = state?.lastViewedAt ? formatRelative(state.lastViewedAt) : 'this session';
   const current = asset?.symbol;
-  const currentScore = Number(asset?.signalScore ?? asset?.conviction ?? 0);
-  const previousScore = Number(snapshot?.signalScore ?? 0);
+  const currentScoreRaw = Number(asset?.signalScore ?? asset?.conviction);
+  const previousScoreRaw = Number(snapshot?.signalScore);
+  const currentScore = Number.isFinite(currentScoreRaw) ? currentScoreRaw : null;
+  const previousScore = Number.isFinite(previousScoreRaw) ? previousScoreRaw : null;
+  const snapshotAgeMs = snapshot?.timestamp ? Date.now() - new Date(snapshot.timestamp).getTime() : null;
+  const snapshotIsFresh = Number.isFinite(snapshotAgeMs) && snapshotAgeMs >= 0 && snapshotAgeMs < 1000 * 60 * 15;
 
   if (!snapshot?.symbol || !current) {
     return `Since your last visit · first tracked session on this device · viewed ${lastViewed}`;
@@ -269,9 +273,20 @@ function getSinceLastVisit(asset, state) {
     return `Since your last visit · leadership rotated ${snapshot.symbol} → ${current} · viewed ${lastViewed}`;
   }
 
-  if (Number.isFinite(currentScore) && Number.isFinite(previousScore) && Math.abs(currentScore - previousScore) >= 3) {
-    const direction = currentScore > previousScore ? 'conviction increased' : 'conviction softened';
-    return `Since your last visit · ${current} stayed in front and ${direction} by ${Math.abs(currentScore - previousScore)} pts · viewed ${lastViewed}`;
+  if (currentScore === null || previousScore === null || snapshotIsFresh) {
+    return `Since your last visit · ${current} remains in front with a steady read · viewed ${lastViewed}`;
+  }
+
+  const delta = currentScore - previousScore;
+  const absDelta = Math.abs(delta);
+
+  if (absDelta >= 3 && absDelta <= 25) {
+    const direction = delta > 0 ? 'conviction increased' : 'conviction softened';
+    return `Since your last visit · ${current} stayed in front and ${direction} by ${absDelta} pts · viewed ${lastViewed}`;
+  }
+
+  if (absDelta > 25) {
+    return `Since your last visit · ${current} stayed in front, but the prior conviction read was too far apart for a clean point comparison · viewed ${lastViewed}`;
   }
 
   return `Since your last visit · ${current} remains in front with a steady read · viewed ${lastViewed}`;

@@ -112,17 +112,30 @@ export default function LeadSignalPanel({
   useEffect(() => {
     if (!asset || typeof window === 'undefined') return;
 
+    const now = Date.now();
     const snapshot = {
       symbol: asset.symbol,
       signalScore: Number(asset.signalScore ?? asset.conviction ?? 0),
       sentiment: asset.sentiment,
       regime: regimeSummary?.regime || asset.marketRegime || null,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(now).toISOString(),
     };
 
     try {
-      window.localStorage.setItem(VISIT_STORAGE_KEY, new Date().toISOString());
-      window.localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot));
+      const existingVisit = window.localStorage.getItem(VISIT_STORAGE_KEY);
+      const existingSnapshotRaw = window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
+      const existingSnapshot = existingSnapshotRaw ? JSON.parse(existingSnapshotRaw) : null;
+      const existingAgeMs = existingSnapshot?.timestamp ? now - new Date(existingSnapshot.timestamp).getTime() : null;
+      const canRollForwardSnapshot = !Number.isFinite(existingAgeMs) || existingAgeMs > 1000 * 60 * 2;
+
+      if (canRollForwardSnapshot) {
+        window.localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot));
+      }
+
+      if (!existingVisit || canRollForwardSnapshot) {
+        window.localStorage.setItem(VISIT_STORAGE_KEY, new Date(now).toISOString());
+      }
+
       window.localStorage.setItem(PLAN_STORAGE_KEY, planTier);
     } catch {
       // no-op
