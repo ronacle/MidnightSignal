@@ -1275,134 +1275,6 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
 
-        <section className="top-grid lead-flow-grid">
-          <LeadSignalPanel
-            asset={topSignal}
-            state={state}
-            setState={setState}
-            marketSource={marketSource}
-            marketUpdatedAt={marketUpdatedAt}
-            marketReady={marketReady}
-            signalHistory={signalHistory}
-            validationSummary={validationSummary}
-            regimeSummary={regimeSummary}
-            forwardValidation={forwardValidation}
-            forwardScorecard={forwardScorecard}
-            adaptiveSummary={adaptiveSummary}
-            decisionLayer={decisionLayer}
-          />
-        </section>
-
-        <TrustDashboardPanel
-          mode={state.mode}
-          forwardValidation={forwardValidation}
-          recentAlertEvents={state?.recentAlertEvents || []}
-        />
-
-        {experience.showContextPanel && experience.contextFirst ? (
-          <section id="signal-context" className="signal-context-anchor">
-            <SignalContextPanel
-              context={signalContext}
-              asset={topSignal}
-              experience={experience}
-              collapsed={!panelState.signalContext}
-              onToggleCollapse={() => togglePanel('signalContext')}
-            />
-          </section>
-        ) : null}
-
-        {experience.highlightAlerts ? (
-          <section id="alert-center" className="alert-center-anchor">
-            <AlertCenterScaffold
-              state={state}
-              setState={setState}
-              experience={experience}
-              topSignal={topSignal}
-              watchlistHighlights={watchlistHighlights}
-              onOpenControls={() => {
-                setAlertAsset(null);
-                setControlOpen(true);
-              }}
-              onOpenAsset={(symbol) => openAlertAsset(symbol)}
-              user={user}
-              syncing={syncing}
-              status={status}
-              lastSyncedAt={lastSyncedAt}
-            />
-          </section>
-        ) : null}
-
-        {experience.showSinceLastVisit ? (
-        <section className={`since-panel card ${experience.modeClass} ${experience.intentClass} ${panelState.sinceLastVisit ? '' : 'since-panel-collapsed'}`} id="since-last-visit">
-          {panelState.sinceLastVisit ? (<>
-          <div className="since-panel-head">
-            <div>
-              <div className="eyebrow">{experience.sinceEyebrow}</div>
-              <h2 className="section-title">{experience.sinceTitle}</h2>
-            </div>
-            <div className="section-collapse-actions">
-              <span className="badge since-badge">{lastVisitLabel}</span>
-              <button type="button" className="ghost-button small section-collapse-toggle is-open" onClick={() => togglePanel('sinceLastVisit')} aria-expanded={true} aria-label="Collapse since last visit panel">Collapse</button>
-            </div>
-          </div>
-
-          <div className="since-chip-row">
-            {sinceLastVisitSummary.map((item) => (
-              <div key={item} className="since-chip">{item}</div>
-            ))}
-          </div>
-
-          <div className="since-intel-grid">
-            <div className="since-intel-card">
-              <div className="since-intel-label">Last time you checked {focusedAssetMemory.symbol}</div>
-              <div className="since-intel-list">
-                {focusedAssetMemory.bullets.map((item) => (
-                  <div key={item} className="since-intel-item">{item}</div>
-                ))}
-              </div>
-            </div>
-
-            <div className="since-intel-card">
-              <div className="since-intel-label">Watchlist first</div>
-              <div className="since-intel-list">
-                {watchlistFirstHighlights.length ? watchlistFirstHighlights.map((item) => (
-                  <div key={item.text} className="since-intel-item">{item.text}</div>
-                )) : <div className="since-intel-item muted">No major watchlist changes yet.</div>}
-              </div>
-            </div>
-
-            <div className="since-intel-card">
-              <div className="since-intel-label">Broader shift</div>
-              <div className="since-intel-list">
-                {visitIntelligence.highlights.length ? visitIntelligence.highlights.map((item) => (
-                  <div key={item} className="since-intel-item">{item}</div>
-                )) : <div className="since-intel-item muted">No major board-wide changes yet.</div>}
-              </div>
-            </div>
-          </div>
-
-          <div className="since-takeaway">
-            <div className="since-intel-label">Tonight&apos;s takeaway</div>
-            <div className="since-takeaway-copy">{focusedAssetMemory.takeaway}</div>
-          </div>
-          </>) : (
-            <div className="section-collapse-compact-shell">
-              <div className="section-collapse-compact-top">
-                <div className="section-collapse-compact-titleblock">
-                  <div className="eyebrow">{experience.sinceEyebrow}</div>
-                  <h2 className="section-title">{experience.sinceTitle}</h2>
-                </div>
-                <div className="section-collapse-actions">
-                  <span className="badge since-badge">{lastVisitLabel}</span>
-                  <button type="button" className="ghost-button small section-collapse-toggle is-collapsed" onClick={() => togglePanel('sinceLastVisit')} aria-expanded={false} aria-label="Expand since last visit panel">Expand</button>
-                </div>
-              </div>
-              <div className="section-collapse-summary muted small">Personal memory hidden. Expand to compare your last checked asset, watchlist shifts, and tonight&apos;s takeaway.</div>
-            </div>
-          )}
-        </section>
-        ) : null}
-
 
 <section className="flow-section" aria-label="Tonight">
   <div className="flow-section-kicker">Tonight</div>
@@ -1661,7 +1533,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.95.1.1 · performance + hierarchy pass · source: {marketSource}
+          Build v11.95.2 · duplicate cleanup + hierarchy pass · source: {marketSource}
         </div>
       </div>
 
