@@ -49,8 +49,8 @@ import {
 
 
 const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v2';
-const COLLAPSIBLE_PANELS_KEY = 'midnight-signal-collapsible-panels-v1';
-const DEFAULT_PANEL_STATE = { sinceLastVisit: true, marketScan: true, signalContext: true };
+const COLLAPSIBLE_PANELS_KEY = 'midnight-signal-collapsible-panels-v2';
+const DEFAULT_PANEL_STATE = { sinceLastVisit: true, marketScan: true, signalContext: false };
 
 function normalizeSignalLabel(label = '') {
   return String(label || '')
@@ -1437,24 +1437,16 @@ function handleOnboardingComplete(payload) {
           </section>
         ) : null}
 
-        <section className={`conversion-strip card conversion-strip-bottom ${experience.modeClass} ${experience.intentClass}`} aria-label="Why Midnight Signal">
-          <div className="conversion-intro">
-            <div className="eyebrow">Why Midnight Signal</div>
-            <h2 className="section-title">{experience.conversionTitle}</h2>
-            <p className="muted small">Midnight Signal helps you understand what is happening, why it matters, and what to watch next.</p>
+        <section className={`card compact-upgrade-strip ${experience.modeClass} ${experience.intentClass}`} aria-label="Midnight Signal Pro">
+          <div className="compact-upgrade-copy">
+            <div className="eyebrow">Midnight Signal Pro</div>
+            <h2 className="section-title">Keep the page clean. Open the deeper Pro details only when you want them.</h2>
+            <p className="muted small">Free stays focused on the nightly read. The full Pro breakdown lives behind the existing modal instead of taking over the main page.</p>
           </div>
-          <div className="conversion-grid">
-            {experience.conversionCards.map((card) => (
-              <div className="conversion-card" key={card.title}>
-                <div className="conversion-card-title">{card.title}</div>
-                <p className="muted small">{card.body}</p>
-              </div>
-            ))}
+          <div className="compact-upgrade-actions">
+            <a className="ghost-button" href="#top-signal">See what Pro adds</a>
           </div>
         </section>
-
-
-
 
         {upgradeNotice ? (
           <div className="upgrade-notice-banner">
@@ -1470,7 +1462,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v12.0.1 · session memory accuracy pass · source: {marketSource}
+          Build v12.0.2 · narrative collapse + sales copy cleanup · source: {marketSource}
         </div>
       </div>
 

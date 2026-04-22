@@ -4495,3 +4495,55 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* v12.0.2 narrative collapse + sales copy cleanup */
+.compact-pro-callout,
+.compact-upgrade-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.compact-pro-callout {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(110, 142, 255, 0.18);
+  border-radius: 16px;
+  background: rgba(8, 12, 24, 0.56);
+}
+
+.compact-pro-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.compact-upgrade-strip {
+  margin-top: 20px;
+  padding: 18px 20px;
+}
+
+.compact-upgrade-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.compact-upgrade-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .compact-pro-callout,
+  .compact-upgrade-strip {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .compact-upgrade-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

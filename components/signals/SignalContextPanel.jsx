@@ -117,7 +117,7 @@ function ContextBadges({ context, asset }) {
   );
 }
 
-export default function SignalContextPanel({ context, asset, experience = null, collapsed = false, onToggleCollapse }) {
+export default function SignalContextPanel({ context, asset, experience = null, collapsed = false, onToggleHide }) {
   if (!context || !asset) return null;
 
   const sourceTypes = context?.meta?.sourceTypes || {};
@@ -129,26 +129,26 @@ export default function SignalContextPanel({ context, asset, experience = null, 
         <div className="signal-context-collapsed-shell">
           <div className="signal-context-collapsed-top">
             <div className="signal-context-collapsed-titleblock">
-              <div className="eyebrow">Signal context</div>
-              <h2 className="section-title">News + X context layer</h2>
+              <div className="eyebrow">Optional context</div>
+              <h2 className="section-title">Why this signal?</h2>
             </div>
             <div className="signal-context-collapsed-actions">
               <ContextBadges context={context} asset={asset} />
-              {onToggleCollapse ? (
+              {onToggleHide ? (
                 <button
                   type="button"
                   className="ghost-button small section-collapse-toggle is-collapsed"
-                  onClick={onToggleCollapse}
+                  onClick={onToggleHide}
                   aria-expanded={false}
-                  aria-label="Expand signal context panel"
+                  aria-label="Open signal context panel"
                 >
-                  Expand
+                  Open
                 </button>
               ) : null}
             </div>
           </div>
           <div className="signal-context-collapsed-summary muted small">
-            Hidden right now: why {asset.symbol} is scoring here, what that usually means, and what to watch next.
+            Narrative context is tucked away so the main screen stays cleaner. Open it when you want the deeper why, what it means, and what to watch next.
           </div>
         </div>
       </section>
@@ -159,20 +159,20 @@ export default function SignalContextPanel({ context, asset, experience = null, 
     <section className="signal-context-panel card" id="signal-context">
       <div className="signal-context-head section-collapse-head">
         <div>
-          <div className="eyebrow">Signal context</div>
-          <h2 className="section-title">News + X context layer</h2>
+          <div className="eyebrow">Optional context</div>
+          <h2 className="section-title">Why this signal?</h2>
         </div>
         <div className="stack section-collapse-actions" style={{ alignItems: 'flex-end', gap: 8 }}>
           <ContextBadges context={context} asset={asset} />
-          {onToggleCollapse ? (
+          {onToggleHide ? (
             <button
               type="button"
               className="ghost-button small section-collapse-toggle is-open"
-              onClick={onToggleCollapse}
+              onClick={onToggleHide}
               aria-expanded={true}
-              aria-label="Collapse signal context panel"
+              aria-label="Hide signal context panel"
             >
-              Collapse
+              Hide
             </button>
           ) : null}
         </div>

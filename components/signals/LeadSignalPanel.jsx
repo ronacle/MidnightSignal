@@ -197,34 +197,12 @@ export default function LeadSignalPanel({
         </div>
 
         {planTier !== 'pro' ? (
-          <div className="pro-teaser-stack">
-            <div className="pro-teaser-card">
-              <div className="pro-teaser-blur" />
-              <div className="pro-teaser-content">
-                <div className="eyebrow">Available now vs Pro</div>
-                <div className="value">You already have Tonight’s Brief, board scan, watchlist, and alerts in the same midnight visual flow</div>
-                <div className="muted">Pro adds the deeper validation layer, forward tracking, and expanded regime context when you want more than the quick read.</div>
-                <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>See Pro plan</button>
-              </div>
+          <div className="compact-pro-callout">
+            <div className="compact-pro-copy">
+              <div className="eyebrow">Optional deeper view</div>
+              <div className="muted">Your free nightly read stays on the page. Pro details open only when you choose them.</div>
             </div>
-
-            <div className="pro-preview-grid" aria-hidden="true">
-              <div className="pro-preview-card">
-                <div className="eyebrow">Free now</div>
-                <div className="value">Brief + board</div>
-                <div className="muted">Fast read of the current setup</div>
-              </div>
-              <div className="pro-preview-card">
-                <div className="eyebrow">Pro adds</div>
-                <div className="value">Validation edge</div>
-                <div className="muted">Historical follow-through and score context</div>
-              </div>
-              <div className="pro-preview-card">
-                <div className="eyebrow">Pro adds</div>
-                <div className="value">Forward tracking</div>
-                <div className="muted">See how signals behave after the call</div>
-              </div>
-            </div>
+            <button type="button" className="ghost-button" onClick={() => setUpgradeOpen(true)}>See what Pro adds</button>
           </div>
         ) : null}
 
@@ -253,17 +231,6 @@ export default function LeadSignalPanel({
           </div>
         </div>
 
-        {planTier !== 'pro' ? (
-          <div className="upgrade-strip-inline">
-            <div className="upgrade-strip-copy">
-              <strong>Free gives you the quick read. Pro opens the deeper midnight lab.</strong>
-              <span>Upgrade only if you want validation scaffolding, forward tracking, and richer decision support.</span>
-            </div>
-            <button type="button" className="primary-button" onClick={() => setUpgradeOpen(true)}>
-              View Pro
-            </button>
-          </div>
-        ) : null}
       </section>
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
