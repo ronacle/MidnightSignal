@@ -4684,3 +4684,24 @@ html {
     flex-direction: column;
   }
 }
+
+
+.board-priority-note {
+  grid-column: 1 / -1;
+  margin-bottom: 6px;
+}
+
+.watchlist-status-badge.is-rising {
+  border-color: rgba(74, 222, 128, 0.35);
+  color: #b9fbcf;
+}
+
+.watchlist-status-badge.is-softening {
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+}
+
+.watchlist-status-badge.is-steady {
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #dbeafe;
+}

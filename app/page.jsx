@@ -1429,7 +1429,7 @@ function handleOnboardingComplete(payload) {
       <h2 className="section-title">{experience.boardTitle}</h2>
     </div>
     <div className="muted small market-header-copy">
-      Start with the lead signal, then scan the board only when you want wider comparison.
+      Your watchlist now gets priority inside the board, so the names you care about surface first.
     </div>
   </div>
 
@@ -1543,7 +1543,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.98 · signal impact + forward context · source: {marketSource}
+          Build v11.99 · watchlist intelligence + personal layer · source: {marketSource}
         </div>
       </div>
 
