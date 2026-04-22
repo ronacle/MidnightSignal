@@ -1533,7 +1533,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.95.2 · duplicate cleanup + hierarchy pass · source: {marketSource}
+          Build v11.96 · control layer redesign + breathing room · source: {marketSource}
         </div>
       </div>
 

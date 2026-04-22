@@ -254,8 +254,8 @@ export default function ControlDrawer({ open, onClose, state, setState, user, st
       <aside className="drawer drawer-right">
         <div className="drawer-header">
           <div>
-            <div className="eyebrow">Slide-out controls</div>
-            <h2 className="section-title">Control Panel</h2>
+            <div className="eyebrow">Session controls</div>
+            <h2 className="section-title">Control Center</h2>
           </div>
           <button className="ghost-button" type="button" onClick={onClose}>Close</button>
         </div>
