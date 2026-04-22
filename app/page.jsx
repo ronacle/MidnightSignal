@@ -1347,7 +1347,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.88 · Signal outcome tracking + trust dashboard · source: {marketSource}
+          Build v11.90 · Signal intelligence layer + trust polish · source: {marketSource}
         </div>
       </div>
 

@@ -4313,3 +4313,112 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* v11.90 signal intelligence */
+.compact-intelligence-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(107, 197, 255, 0.14);
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.compact-intelligence-panel.is-live {
+  box-shadow: 0 0 24px rgba(107, 197, 255, 0.10);
+}
+
+.compact-intelligence-panel.tone-rising {
+  border-color: rgba(126, 226, 168, 0.22);
+}
+
+.compact-intelligence-panel.tone-softening {
+  border-color: rgba(255, 143, 143, 0.22);
+}
+
+.compact-intelligence-panel.tone-shift {
+  border-color: rgba(255, 219, 128, 0.24);
+}
+
+.compact-intelligence-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.compact-intelligence-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(233, 246, 255, 0.96);
+}
+
+.compact-intelligence-badge.tone-rising {
+  color: #7ee2a8;
+  border-color: rgba(126, 226, 168, 0.28);
+}
+
+.compact-intelligence-badge.tone-softening {
+  color: #ff9b9b;
+  border-color: rgba(255, 143, 143, 0.28);
+}
+
+.compact-intelligence-badge.tone-shift {
+  color: #ffdb80;
+  border-color: rgba(255, 219, 128, 0.28);
+}
+
+.compact-intelligence-badge.tone-steady {
+  color: #9ddcff;
+  border-color: rgba(107, 197, 255, 0.24);
+}
+
+.compact-intelligence-list {
+  display: grid;
+  gap: 10px;
+}
+
+.compact-intelligence-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  line-height: 1.4;
+}
+
+.compact-intelligence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-top: 0.4rem;
+  flex: 0 0 auto;
+  background: rgba(107, 197, 255, 0.88);
+  box-shadow: 0 0 12px rgba(107, 197, 255, 0.25);
+}
+
+.compact-intelligence-panel.tone-rising .compact-intelligence-dot {
+  background: #7ee2a8;
+  box-shadow: 0 0 12px rgba(126, 226, 168, 0.24);
+}
+
+.compact-intelligence-panel.tone-softening .compact-intelligence-dot {
+  background: #ff9b9b;
+  box-shadow: 0 0 12px rgba(255, 143, 143, 0.24);
+}
+
+.compact-intelligence-panel.tone-shift .compact-intelligence-dot {
+  background: #ffdb80;
+  box-shadow: 0 0 12px rgba(255, 219, 128, 0.24);
+}
+
+@media (max-width: 900px) {
+  .compact-intelligence-header {
+    flex-direction: column;
+  }
+}

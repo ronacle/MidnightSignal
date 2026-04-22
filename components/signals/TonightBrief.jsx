@@ -76,6 +76,88 @@ function sortDriversByStrategy(drivers, strategy) {
   });
 }
 
+function formatFactorName(label = '') {
+  return String(label || '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (value) => value.toUpperCase());
+}
+
+function describeTimeframeShift(current = {}, previous = {}) {
+  const frames = [
+    ['5m', Number(current?.tf5m ?? 0), Number(previous?.tf5m ?? 0)],
+    ['15m', Number(current?.tf15m ?? 0), Number(previous?.tf15m ?? 0)],
+    ['1h', Number(current?.tf1h ?? 0), Number(previous?.tf1h ?? 0)],
+  ].filter(([, now, prev]) => Number.isFinite(now) && Number.isFinite(prev));
+
+  const strengthened = frames.filter(([, now, prev]) => now - prev >= 4).map(([label]) => label);
+  const softened = frames.filter(([, now, prev]) => prev - now >= 4).map(([label]) => label);
+
+  if (strengthened.length) {
+    return `${strengthened.join(' and ')} momentum strengthened.`;
+  }
+
+  if (softened.length) {
+    return `${softened.join(' and ')} momentum softened.`;
+  }
+
+  return null;
+}
+
+function describeFactorShift(asset, previousEntry = null) {
+  const currentFactors = asset?.factors || {};
+  const previousFactors = previousEntry?.factors || {};
+
+  const changes = Object.entries(currentFactors)
+    .map(([label, value]) => ({
+      label,
+      diff: Number(value || 0) - Number(previousFactors?.[label] || 0),
+    }))
+    .filter((entry) => Math.abs(entry.diff) >= 4)
+    .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+
+  if (!changes.length) return null;
+
+  const lead = changes[0];
+  return `${formatFactorName(lead.label)} ${lead.diff > 0 ? 'improved' : 'cooled'} most.`;
+}
+
+function buildSignalIntelligence(asset, signalHistory = [], state = null, decisionLayer = null, watchTrigger = null) {
+  const previousEntry = signalHistory?.[1] || state?.lastTopSignalSnapshot || null;
+  const currentScore = Number(asset?.signalScore ?? asset?.conviction ?? 0);
+  const previousScore = Number(previousEntry?.signalScore ?? currentScore);
+  const bullets = [];
+
+  if (previousEntry?.symbol && previousEntry.symbol !== asset?.symbol) {
+    bullets.push(`Leadership rotated ${previousEntry.symbol} → ${asset.symbol}.`);
+  } else if (Number.isFinite(currentScore) && Number.isFinite(previousScore) && Math.abs(currentScore - previousScore) >= 3) {
+    bullets.push(`${asset.symbol} conviction ${currentScore > previousScore ? 'strengthened' : 'softened'} by ${Math.abs(currentScore - previousScore)} pts.`);
+  } else {
+    bullets.push(`${asset.symbol} is still leading with a steadier read.`);
+  }
+
+  const timeframeShift = describeTimeframeShift(asset?.timeframe || {}, previousEntry?.timeframe || {});
+  if (timeframeShift) bullets.push(timeframeShift);
+
+  const factorShift = describeFactorShift(asset, previousEntry);
+  if (factorShift && !bullets.includes(factorShift)) bullets.push(factorShift);
+
+  if ((!timeframeShift && !factorShift) && Array.isArray(decisionLayer?.changeSummary)) {
+    const nextChange = decisionLayer.changeSummary.find((item) => !String(item || '').toLowerCase().includes('no major'));
+    if (nextChange) bullets.push(`${nextChange}.`);
+  }
+
+  if (watchTrigger?.text) {
+    bullets.push(`Watch next: ${watchTrigger.text}`);
+  }
+
+  return bullets.slice(0, 3);
+}
+
+function getSignalShiftTone(stateLabel = 'Stable', bullets = []) {
+  if (bullets.some((item) => item.includes('rotated'))) return 'shift';
+  if (stateLabel === 'Rising') return 'rising';
+  if (stateLabel === 'Weakening') return 'softening';
+  return 'steady';
+}
+
 function getConfidenceState(asset, validationSummary, state) {
   const snapshot = state?.lastTopSignalSnapshot;
   const currentScore = Number(asset?.signalScore ?? asset?.conviction ?? 0);
@@ -423,6 +505,8 @@ export default function TonightBrief({
   const signalAlerts = getSignalAlerts(asset, regimeSummary, state);
   const tonightPlan = getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers, profile);
   const confidenceState = getConfidenceState(asset, validationSummary, state);
+  const signalIntelligence = buildSignalIntelligence(asset, signalHistory, state, decisionLayer, watchTrigger);
+  const shiftTone = getSignalShiftTone(confidenceState, signalIntelligence);
   const performanceInsight = getPerformanceInsight(forwardScorecard, state);
   const pulseEnabled = Boolean(state?.livePulseEnabled);
   const sessionLabel = getSessionLabel();
@@ -545,6 +629,24 @@ export default function TonightBrief({
         <p className="muted compact-brief-story">
           {profile.isPro ? asset.story : asset.story}
         </p>
+      </div>
+
+      <div className={`compact-intelligence-panel tone-${shiftTone} ${(shiftTone !== 'steady' || pulseEnabled) ? 'is-live' : ''}`}>
+        <div className="compact-intelligence-header">
+          <div>
+            <div className="eyebrow">Signal Intelligence</div>
+            <div className="compact-intelligence-title">What changed since last update</div>
+          </div>
+          <span className={`badge compact-intelligence-badge tone-${shiftTone}`}>{shiftTone === 'shift' ? 'Leader changed' : shiftTone === 'rising' ? 'Strengthening' : shiftTone === 'softening' ? 'Cooling' : 'Steady read'}</span>
+        </div>
+        <div className="compact-intelligence-list">
+          {signalIntelligence.map((item) => (
+            <div className="compact-intelligence-item" key={item}>
+              <span className="compact-intelligence-dot" aria-hidden="true" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="compact-performance-panel">
