@@ -1242,24 +1242,9 @@ function handleOnboardingComplete(payload) {
           </section>
         ) : null}
 
-        <section className={`conversion-strip card ${experience.modeClass} ${experience.intentClass}`} aria-label="Why Midnight Signal">
-          <div className="conversion-intro">
-            <div className="eyebrow">Why Midnight Signal</div>
-            <h2 className="section-title">{experience.conversionTitle}</h2>
-            <p className="muted small">Midnight Signal helps you understand what is happening, why it matters, and what to watch next.</p>
-          </div>
-          <div className="conversion-grid">
-            {experience.conversionCards.map((card) => (
-              <div className="conversion-card" key={card.title}>
-                <div className="conversion-card-title">{card.title}</div>
-                <p className="muted small">{card.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-
-        <section className="top-grid lead-flow-grid">
+        <section className="experience-section-block experience-section-tonight" aria-label="Tonight">
+          <div className="experience-section-kicker">Tonight</div>
+          <section className="top-grid lead-flow-grid">
           <LeadSignalPanel
             asset={topSignal}
             state={state}
@@ -1275,6 +1260,7 @@ function handleOnboardingComplete(payload) {
             adaptiveSummary={adaptiveSummary}
             decisionLayer={decisionLayer}
           />
+          </section>
         </section>
 
         <TrustDashboardPanel
@@ -1387,7 +1373,9 @@ function handleOnboardingComplete(payload) {
         </section>
         ) : null}
 
-        <section className={`market-grid market-grid-single ${experience.modeClass} ${experience.intentClass}`} id="market-scan">
+        <section className="experience-section-block experience-section-board" aria-label="Market Board">
+          <div className="experience-section-kicker">Market Board</div>
+          <section className={`market-grid market-grid-single ${experience.modeClass} ${experience.intentClass}`} id="market-scan">
           <div className="market-scan-header">
             <div>
               <div className="eyebrow">{experience.marketEyebrow}</div>
@@ -1444,6 +1432,7 @@ function handleOnboardingComplete(payload) {
               />
             </div>
           ) : null}
+          </section>
         </section>
 
         {experience.showContextPanel && !experience.contextFirst ? (
@@ -1471,8 +1460,30 @@ function handleOnboardingComplete(payload) {
           </div>
         ) : null}
 
+        {state.planTier !== 'pro' ? (
+          <section className={`conversion-strip card conversion-strip-secondary ${experience.modeClass} ${experience.intentClass}`} aria-label="About Midnight Signal and Pro">
+            <div className="conversion-intro">
+              <div className="eyebrow">Why Midnight Signal</div>
+              <h2 className="section-title">{experience.conversionTitle}</h2>
+              <p className="muted small">Free stays useful. Pro simply adds deeper validation, more follow-through context, and richer tracking when you want a closer read.</p>
+            </div>
+            <div className="conversion-grid">
+              {experience.conversionCards.slice(0, 2).map((card) => (
+                <div className="conversion-card" key={card.title}>
+                  <div className="conversion-card-title">{card.title}</div>
+                  <p className="muted small">{card.body}</p>
+                </div>
+              ))}
+              <div className="conversion-card conversion-card-pro">
+                <div className="conversion-card-title">Pro when you want more depth</div>
+                <p className="muted small">Unlock deeper validation, forward tracking, and richer context without interrupting the nightly flow.</p>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <div className="footer-note">
-          Build v11.93 · premium gating pass + personal signal memory · source: {marketSource}
+          Build v11.94 · ux flow + conversion pass · source: {marketSource}
         </div>
       </div>
 
