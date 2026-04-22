@@ -1462,7 +1462,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v12.0.2 · narrative collapse + sales copy cleanup · source: {marketSource}
+          Build v12.0.3 · signal reliability redesign · source: {marketSource}
         </div>
       </div>
 
