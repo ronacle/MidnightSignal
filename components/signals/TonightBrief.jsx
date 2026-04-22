@@ -38,9 +38,9 @@ function getConfidenceDirectionLabel(confidenceState = 'Stable') {
 
 function getSessionLabel() {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Today's session';
-  if (hour < 17) return 'Today's session';
-  return 'Tonight's session';
+  if (hour < 12) return "Today's session";
+  if (hour < 17) return "Today's session";
+  return "Tonight's session";
 }
 
 function getUserProfile(state) {
