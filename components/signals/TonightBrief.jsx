@@ -25,11 +25,22 @@ function formatRelative(dateString) {
   return `${days}d ago`;
 }
 
+function formatUpdateStamp(dateString) {
+  if (!dateString) return 'Awaiting refresh';
+  return `Updated ${formatRelative(dateString)}`;
+}
+
+function getConfidenceDirectionLabel(confidenceState = 'Stable') {
+  if (confidenceState === 'Rising') return '↑ Rising';
+  if (confidenceState === 'Weakening') return '↓ Fading';
+  return '→ Steady';
+}
+
 function getSessionLabel() {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Morning scan';
-  if (hour < 17) return 'Midday check';
-  return 'Evening scan';
+  if (hour < 12) return 'Today's session';
+  if (hour < 17) return 'Today's session';
+  return 'Tonight's session';
 }
 
 function getUserProfile(state) {
@@ -251,7 +262,7 @@ function getSinceLastVisit(asset, state) {
   const previousScore = Number(snapshot?.signalScore ?? 0);
 
   if (!snapshot?.symbol || !current) {
-    return `Since your last visit · first snapshot on this device · viewed ${lastViewed}`;
+    return `Since your last visit · first tracked session on this device · viewed ${lastViewed}`;
   }
 
   if (snapshot.symbol !== current) {
@@ -275,16 +286,16 @@ function getSignalAlerts(asset, regimeSummary, state) {
   const previousRegime = snapshot?.regime || null;
 
   if (snapshot?.symbol && snapshot.symbol !== asset?.symbol) {
-    alerts.push(`🔔 ${asset.symbol} replaced ${snapshot.symbol} as the top signal`);
+    alerts.push(`🔔 ${asset.symbol} took over from ${snapshot.symbol} as tonight's lead signal`);
   }
 
   if (snapshot?.symbol === asset?.symbol && Number.isFinite(currentScore) && Number.isFinite(previousScore) && Math.abs(currentScore - previousScore) >= 4) {
     const delta = currentScore - previousScore;
-    alerts.push(`🔔 Conviction ${delta > 0 ? 'increased' : 'softened'} by ${Math.abs(delta)} pts`);
+    alerts.push(`🔔 Conviction ${delta > 0 ? 'improved' : 'softened'} by ${Math.abs(delta)} pts`);
   }
 
   if (previousRegime && currentRegime && previousRegime !== currentRegime) {
-    alerts.push(`🔔 Regime shifted to ${toSentence(currentRegime)}`);
+    alerts.push(`🔔 Market tone shifted to ${toSentence(currentRegime)}`);
   }
 
   return alerts.slice(0, 2);
@@ -510,6 +521,8 @@ export default function TonightBrief({
   const performanceInsight = getPerformanceInsight(forwardScorecard, state);
   const pulseEnabled = Boolean(state?.livePulseEnabled);
   const sessionLabel = getSessionLabel();
+  const updateStamp = formatUpdateStamp(asset?.lastUpdated || state?.marketUpdatedAt || null);
+  const confidenceDirection = getConfidenceDirectionLabel(confidenceState);
 
   const briefRows = useMemo(() => {
     const rows = [
@@ -576,6 +589,8 @@ export default function TonightBrief({
         <span className="compact-brief-session-label">Session</span>
         <span className="compact-brief-session-value">{sessionLabel}</span>
         <span className="compact-brief-session-divider">•</span>
+        <span className="compact-brief-session-value">{updateStamp}</span>
+        <span className="compact-brief-session-divider">•</span>
         <span className="compact-brief-session-value">{toSentence(profile.strategy)} style</span>
       </div>
 
@@ -623,7 +638,7 @@ export default function TonightBrief({
             24h {formatPct(asset.change24h || 0)}
           </span>
           <span className={`badge compact-confidence-badge state-${confidenceState.toLowerCase()} ${(confidenceState === 'Rising' || confidenceState === 'Weakening') ? 'is-pulsing' : ''}`}>
-            Confidence: {confidenceState}
+Confidence: {confidenceDirection}
           </span>
         </div>
         <p className="muted compact-brief-story">

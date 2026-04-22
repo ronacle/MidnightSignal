@@ -88,7 +88,7 @@ function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
       highlights: ['No prior session snapshot yet — tonight starts your first tracked rhythm.'],
       improved: [],
       weakened: [],
-      takeaway: 'Check the top signal, scan your watchlist, and your next visit will compare against tonight.',
+      takeaway: 'Start with the lead signal, then scan your watchlist so tomorrow has a clean comparison point.',
       changedCount: 0,
     };
   }
@@ -113,7 +113,7 @@ function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
   }
 
   if (previousTop?.signalLabel && currentTop?.signalLabel && previousTop.signalLabel !== currentTop.signalLabel) {
-    highlights.push(`${currentTop.symbol} shifted from ${previousTop.signalLabel} to ${currentTop.signalLabel}.`);
+    highlights.push(`${currentTop.symbol} posture shifted from ${previousTop.signalLabel} to ${currentTop.signalLabel}.`);
   }
 
   if (previousSnapshot.regime && currentSnapshot.regime && previousSnapshot.regime !== currentSnapshot.regime) {
@@ -570,19 +570,25 @@ const visitIntelligence = useMemo(
 const sinceLastVisitSummary = useMemo(() => {
   const fallbackBits = [];
   const previous = previousSignalEntry;
+  const improvedCount = visitIntelligence.improved?.length || 0;
+  const weakenedCount = visitIntelligence.weakened?.length || 0;
 
   if (previous?.symbol && previous.symbol !== topSignal?.symbol) {
-    fallbackBits.push(`Top signal flipped from ${previous.symbol} to ${topSignal.symbol}`);
+    fallbackBits.push(`${topSignal.symbol} replaced ${previous.symbol} at the top`);
   } else if (typeof previous?.conviction === 'number' && typeof topSignal?.conviction === 'number') {
     const delta = Math.round(topSignal.conviction - previous.conviction);
-    if (delta > 0) fallbackBits.push(`${topSignal.symbol} conviction is up ${delta} pts`);
-    else if (delta < 0) fallbackBits.push(`${topSignal.symbol} conviction cooled ${Math.abs(delta)} pts`);
+    if (delta > 0) fallbackBits.push(`${topSignal.symbol} conviction improved ${delta} pts`);
+    else if (delta < 0) fallbackBits.push(`${topSignal.symbol} conviction softened ${Math.abs(delta)} pts`);
+  }
+
+  if (improvedCount || weakenedCount) {
+    fallbackBits.push(`${improvedCount} strengthened · ${weakenedCount} faded`);
   }
 
   if (watchlistHighlights[0]) {
     const mover = watchlistHighlights[0];
     const direction = (mover.change24h || 0) >= 0 ? 'up' : 'down';
-    fallbackBits.push(`Watchlist: ${mover.symbol} ${direction} ${Math.abs(mover.change24h || 0).toFixed(1)}%`);
+    fallbackBits.push(`${mover.symbol} led your watchlist ${direction} ${Math.abs(mover.change24h || 0).toFixed(1)}%`);
   }
 
   if (regimeSummary?.regime) {
@@ -590,10 +596,10 @@ const sinceLastVisitSummary = useMemo(() => {
   }
 
   return visitIntelligence.highlights?.length
-    ? visitIntelligence.highlights
+    ? [...visitIntelligence.highlights.slice(0, 2), `${improvedCount} strengthened · ${weakenedCount} faded`].slice(0, 3)
     : fallbackBits.length
       ? fallbackBits.slice(0, 3)
-      : [`Top signal remains ${topSignal?.symbol || 'the same'} with ${topSignal?.conviction ?? '--'}% conviction`];
+      : [`${topSignal?.symbol || 'Lead signal'} stayed steady at ${topSignal?.conviction ?? '--'}% conviction`];
 }, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary, visitIntelligence]);
 
 
@@ -1213,7 +1219,7 @@ function handleOnboardingComplete(payload) {
 
           <div className="since-intel-grid">
             <div className="since-intel-card">
-              <div className="since-intel-label">What changed</div>
+              <div className="since-intel-label">What changed since your last visit</div>
               <div className="since-intel-list">
                 {visitIntelligence.highlights.map((item) => (
                   <div key={item} className="since-intel-item">{item}</div>
@@ -1222,7 +1228,7 @@ function handleOnboardingComplete(payload) {
             </div>
 
             <div className="since-intel-card">
-              <div className="since-intel-label">What improved</div>
+              <div className="since-intel-label">What strengthened</div>
               <div className="since-intel-list">
                 {visitIntelligence.improved.length ? visitIntelligence.improved.map((item) => (
                   <div key={item} className="since-intel-item">{item}</div>
@@ -1231,11 +1237,11 @@ function handleOnboardingComplete(payload) {
             </div>
 
             <div className="since-intel-card">
-              <div className="since-intel-label">What weakened</div>
+              <div className="since-intel-label">What faded</div>
               <div className="since-intel-list">
                 {visitIntelligence.weakened.length ? visitIntelligence.weakened.map((item) => (
                   <div key={item} className="since-intel-item">{item}</div>
-                )) : <div className="since-intel-item muted">No major weakening moves yet.</div>}
+                )) : <div className="since-intel-item muted">No major fading moves yet.</div>}
               </div>
             </div>
           </div>
@@ -1347,7 +1353,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.90 · Signal intelligence layer + trust polish · source: {marketSource}
+          Build v11.91 · Habit layer + signal intelligence · source: {marketSource}
         </div>
       </div>
 
