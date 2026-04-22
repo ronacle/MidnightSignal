@@ -58,17 +58,6 @@ function normalizeSignalLabel(label = '') {
     .trim() || 'Mixed posture';
 }
 
-function dedupeRecentAlertEvents(events = []) {
-  const seen = new Set();
-  return (Array.isArray(events) ? events : []).filter((event) => {
-    if (!event) return false;
-    const key = event.triggerId || event.id || `${event.symbol}:${event.text || event.body || event.title || ''}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
 function createSessionSnapshot({ topSignal, rankedAssets = [], watchlist = [], regimeSummary, marketUpdatedAt }) {
   const watchSymbols = Array.isArray(watchlist) ? watchlist.map((item) => String(item).toUpperCase()) : [];
   const watchAssets = rankedAssets.filter((item) => watchSymbols.includes(item.symbol));
@@ -655,10 +644,10 @@ const sinceLastVisitSummary = useMemo(() => {
         }
 
         if (configured.events.length) {
-          const recent = dedupeRecentAlertEvents([
+          const recent = [
             ...configured.events,
             ...(state?.recentAlertEvents || []),
-          ]).slice(0, 12);
+          ].slice(0, 12);
           setState((previous) => ({ ...previous, recentAlertEvents: recent }));
 
           if (state?.signalSoundsEnabled && typeof window !== 'undefined' && window.AudioContext) {
@@ -1132,7 +1121,7 @@ function handleOnboardingComplete(payload) {
           <div className="conversion-intro">
             <div className="eyebrow">Why Midnight Signal</div>
             <h2 className="section-title">{experience.conversionTitle}</h2>
-            <p className="muted small">Midnight Signal is designed to teach what the signal means, show why it appears, and let users stay useful on Free before deciding whether Pro depth is worth it.</p>
+            <p className="muted small">Midnight Signal helps you understand what is happening, why it matters, and what to watch next.</p>
           </div>
           <div className="conversion-grid">
             {experience.conversionCards.map((card) => (
@@ -1358,7 +1347,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.89 · Stability + signal presence · source: {marketSource}
+          Build v11.88 · Signal outcome tracking + trust dashboard · source: {marketSource}
         </div>
       </div>
 
