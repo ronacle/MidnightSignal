@@ -180,106 +180,6 @@ function getConfidenceState(asset, validationSummary, state) {
   return 'Stable';
 }
 
-
-function getTrendBias(asset = {}, validationSummary = null, regimeSummary = null) {
-  const sentiment = String(asset?.sentiment || '').toLowerCase();
-  const trend = Number(asset?.factors?.trend ?? 0);
-  const momentum = Number(asset?.factors?.momentum ?? 0);
-  const volume = Number(asset?.factors?.volume ?? 0);
-  const tf15 = Number(asset?.timeframe?.tf15m ?? 0);
-  const tf1h = Number(asset?.timeframe?.tf1h ?? 0);
-  const validation = String(validationSummary?.scoreTrend || '').toLowerCase();
-  const regime = String(regimeSummary?.regime || '').toLowerCase();
-
-  const bullish = sentiment === 'bullish';
-  const bearish = sentiment === 'bearish';
-  const aligned = tf15 >= 60 && tf1h >= 60;
-  const weakShort = tf15 <= 45 || tf1h <= 45;
-  const strongDrivers = trend >= 60 || momentum >= 60 || volume >= 60;
-  const weakDrivers = trend <= 42 || momentum <= 42;
-
-  return {
-    bullish,
-    bearish,
-    aligned,
-    weakShort,
-    strongDrivers,
-    weakDrivers,
-    validation,
-    regime,
-    trend,
-    momentum,
-    volume,
-    tf15,
-    tf1h,
-  };
-}
-
-function buildSignalImpact(asset, decisionLayer, regimeSummary, validationSummary, profile) {
-  const bias = getTrendBias(asset, validationSummary, regimeSummary);
-  const continuation = [];
-  const invalidation = [];
-  let whyNow = '';
-
-  if (bias.bullish) {
-    continuation.push(
-      bias.aligned
-        ? 'Short timeframes are aligned, so continuation can keep building if that alignment holds.'
-        : 'Upside remains viable, but the move still needs cleaner short-timeframe agreement.'
-    );
-    continuation.push(
-      bias.volume >= 58
-        ? 'Volume is supporting the move, which helps bullish follow-through feel more credible.'
-        : 'Watch for stronger volume confirmation before treating this as a higher-conviction push.'
-    );
-    invalidation.push('If 15m momentum slips or leadership rotates away, this read weakens quickly.');
-    invalidation.push(
-      bias.weakDrivers
-        ? 'Trend support is still fragile, so treat any stall as a pause until strength returns.'
-        : 'A clear loss of trend support would turn this from continuation into caution.'
-    );
-    whyNow = bias.aligned
-      ? '15m and 1h are leaning the same way, which gives the signal more follow-through potential right now.'
-      : 'The signal is constructive, but the edge still depends on short-timeframe confirmation improving.';
-  } else if (bias.bearish) {
-    continuation.push(
-      bias.aligned
-        ? 'Short timeframes are aligned to the downside, so defensive pressure can keep carrying if that holds.'
-        : 'Downside pressure is present, but it still wants cleaner short-timeframe confirmation.'
-    );
-    continuation.push(
-      bias.volume >= 58
-        ? 'Volume is backing the move, which makes the bearish read harder to ignore.'
-        : 'Watch for stronger participation before treating this as a more decisive unwind.'
-    );
-    invalidation.push('If short-term momentum stabilizes and leadership rotates, this bearish edge can fade fast.');
-    invalidation.push(
-      bias.strongDrivers
-        ? 'A rebound in trend support would weaken the downside case.'
-        : 'If weakness fails to expand soon, the read shifts from pressure to pause.'
-    );
-    whyNow = bias.aligned
-      ? '15m and 1h are leaning lower together, which gives the defensive posture more weight right now.'
-      : 'Weakness is showing, but the follow-through case still needs cleaner alignment.';
-  } else {
-    continuation.push('The setup is informative, but follow-through still needs a clearer directional push.');
-    continuation.push('Use patience here — edge improves only when momentum and trend start agreeing.');
-    invalidation.push('If the read stays mixed, the edge remains observational instead of actionable.');
-    invalidation.push('A fresh leadership change would matter more than small noise inside the current range.');
-    whyNow = 'The signal is mixed, so what matters now is whether alignment starts to expand or stays indecisive.';
-  }
-
-  if (String(decisionLayer?.stance || decisionLayer?.posture || '').toLowerCase().includes('aggressive')) {
-    continuation[0] = continuation[0].replace('can keep building', 'can keep extending').replace('can keep carrying', 'can keep pressing');
-  }
-
-  return {
-    continuation: continuation.slice(0, 2),
-    invalidation: invalidation.slice(0, 2),
-    whyNow,
-  };
-}
-
 function getTonightRead(asset, decisionLayer, regimeSummary, validationSummary, profile) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
   const regime = String(regimeSummary?.regime || '').toLowerCase();
@@ -617,7 +517,6 @@ export default function TonightBrief({
   const tonightPlan = getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers, profile);
   const confidenceState = getConfidenceState(asset, validationSummary, state);
   const signalIntelligence = buildSignalIntelligence(asset, signalHistory, state, decisionLayer, watchTrigger);
-  const signalImpact = buildSignalImpact(asset, decisionLayer, regimeSummary, validationSummary, profile);
   const shiftTone = getSignalShiftTone(confidenceState, signalIntelligence);
   const performanceInsight = getPerformanceInsight(forwardScorecard, state);
   const pulseEnabled = Boolean(state?.livePulseEnabled);
@@ -762,44 +661,6 @@ Confidence: {confidenceDirection}
               <span>{item}</span>
             </div>
           ))}
-        </div>
-      </div>
-
-      <div className={`compact-impact-panel tone-${shiftTone} ${(shiftTone !== 'steady' || pulseEnabled) ? 'is-live' : ''}`}>
-        <div className="compact-impact-header">
-          <div>
-            <div className="eyebrow">Signal Impact</div>
-            <div className="compact-impact-title">If this continues</div>
-          </div>
-          <span className="badge compact-impact-badge">Context, not advice</span>
-        </div>
-
-        <div className="compact-impact-section">
-          <div className="compact-impact-list">
-            {signalImpact.continuation.map((item) => (
-              <div className="compact-impact-item" key={`continue-${item}`}>
-                <span className="compact-impact-dot" aria-hidden="true" />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="compact-impact-section">
-          <div className="compact-impact-section-label">Invalidation</div>
-          <div className="compact-impact-list">
-            {signalImpact.invalidation.map((item) => (
-              <div className="compact-impact-item compact-impact-item-muted" key={`invalidate-${item}`}>
-                <span className="compact-impact-dot compact-impact-dot-muted" aria-hidden="true" />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="compact-impact-why">
-          <span className="compact-impact-why-label">Why this matters</span>
-          <span>{signalImpact.whyNow}</span>
         </div>
       </div>
 

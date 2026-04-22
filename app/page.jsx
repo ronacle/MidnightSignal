@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
 import TopNav from '@/components/layout/TopNav';
 import HeroSection from '@/components/layout/HeroSection';
+import Top20Grid from '@/components/signals/Top20Grid';
 import LeadSignalPanel from '@/components/signals/LeadSignalPanel';
 import SignalContextPanel from '@/components/signals/SignalContextPanel';
 import ControlDrawer from '@/components/panels/ControlDrawer';
@@ -51,40 +51,6 @@ import {
 const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v2';
 const COLLAPSIBLE_PANELS_KEY = 'midnight-signal-collapsible-panels-v1';
 const DEFAULT_PANEL_STATE = { sinceLastVisit: true, marketScan: true, signalContext: true };
-
-
-function mergeUniqueAlertEvents(...groups) {
-  const seen = new Set();
-  const merged = [];
-  groups.flat().filter(Boolean).forEach((event) => {
-    const key = event?.triggerId || event?.id || [event?.symbol || '', event?.title || '', event?.body || ''].join(':');
-    if (!key || seen.has(key)) return;
-    seen.add(key);
-    merged.push(event);
-  });
-  return merged;
-}
-
-const Top20Grid = dynamic(() => import('@/components/signals/Top20Grid'), {
-  ssr: false,
-  loading: () => (
-    <div className="panel stack premium-board-shell board-loading-shell">
-      <div className="row space-between board-loading-head">
-        <div>
-          <div className="eyebrow">Market Board</div>
-          <h2 className="section-title">Loading board</h2>
-        </div>
-        <span className="badge glow-badge">Preparing scan</span>
-      </div>
-      <div className="board-skeleton-grid">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="board-skeleton-card" />
-        ))}
-      </div>
-    </div>
-  ),
-});
-
 
 function normalizeSignalLabel(label = '') {
   return String(label || '')
@@ -441,7 +407,6 @@ export default function HomePage() {
   const [showStickyWatchlist, setShowStickyWatchlist] = useState(false);
   const watchlistTriggerRef = useRef(null);
   const [marketReady, setMarketReady] = useState(false);
-  const [showBoard, setShowBoard] = useState(false);
   const [signalHistory, setSignalHistory] = useState([]);
   const [forwardValidation, setForwardValidation] = useState([]);
   const [adaptiveWeights, setAdaptiveWeights] = useState({});
@@ -462,16 +427,6 @@ export default function HomePage() {
     setForwardValidation(readForwardValidation());
     setAdaptiveWeights(readAdaptiveWeights());
   }, []);
-
-  useEffect(() => {
-    if (!marketReady) return;
-
-    const timer = window.setTimeout(() => {
-      setShowBoard(true);
-    }, 450);
-
-    return () => window.clearTimeout(timer);
-  }, [marketReady]);
 
   useEffect(() => {
     const localAlertMemory = readAlertMemory();
@@ -801,16 +756,19 @@ const sinceLastVisitSummary = useMemo(() => {
           cooldownMinutes: Number(state?.alertCooldownMinutes || 30),
         });
 
-        const allAlerts = mergeUniqueAlertEvents(configured.events, systemAlerts)
+        const allAlerts = [...configured.events, ...systemAlerts]
           .filter((item) => !dismissed.includes(item.id))
-          .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+          .sort((a, b) => b.priority - a.priority);
 
         if (!cancelled) {
           setPriorityAlerts(allAlerts.slice(0, 4));
         }
 
         if (configured.events.length) {
-          const recent = mergeUniqueAlertEvents(configured.events, state?.recentAlertEvents || []).slice(0, 12);
+          const recent = [
+            ...configured.events,
+            ...(state?.recentAlertEvents || []),
+          ].slice(0, 12);
           setState((previous) => ({ ...previous, recentAlertEvents: recent }));
 
           if (state?.signalSoundsEnabled && typeof window !== 'undefined' && window.AudioContext) {
@@ -862,8 +820,8 @@ const sinceLastVisitSummary = useMemo(() => {
                     ? data?.mode === 'mock'
                       ? 'Delivery route ready in mock mode'
                       : digestMode === 'digest'
-                        ? 'Digest sent with filtered high-priority alerts'
-                        : 'Instant alert sent with the current highest-priority signal'
+                        ? 'Digest sent'
+                        : 'Instant alert sent'
                     : data?.message || 'Delivery failed',
                 }));
               }
@@ -1284,222 +1242,189 @@ function handleOnboardingComplete(payload) {
           </section>
         ) : null}
 
+        <section className={`flow-section flow-section-tonight ${experience.modeClass} ${experience.intentClass}`} aria-label="Tonight">
+          <div className="flow-section-head">
+            <div className="section-kicker">Tonight</div>
+            <p className="flow-section-sub muted small">Read the lead signal first, then move through what changed and why it matters.</p>
+          </div>
 
+          <div className="tonight-stack">
+            <section className="top-grid lead-flow-grid">
+              <LeadSignalPanel
+                asset={topSignal}
+                state={state}
+                setState={setState}
+                marketSource={marketSource}
+                marketUpdatedAt={marketUpdatedAt}
+                marketReady={marketReady}
+                signalHistory={signalHistory}
+                validationSummary={validationSummary}
+                regimeSummary={regimeSummary}
+                forwardValidation={forwardValidation}
+                forwardScorecard={forwardScorecard}
+                adaptiveSummary={adaptiveSummary}
+                decisionLayer={decisionLayer}
+              />
+            </section>
 
-<section className="flow-section" aria-label="Tonight">
-  <div className="flow-section-kicker">Tonight</div>
-</section>
+            {experience.showContextPanel && experience.contextFirst ? (
+              <section id="signal-context" className="signal-context-anchor">
+                <SignalContextPanel
+                  context={signalContext}
+                  asset={topSignal}
+                  experience={experience}
+                  collapsed={!panelState.signalContext}
+                  onToggleCollapse={() => togglePanel('signalContext')}
+                />
+              </section>
+            ) : null}
 
-<section className={`top-grid lead-flow-grid ${experience.modeClass} ${experience.intentClass}`}>
-  <LeadSignalPanel
-    asset={topSignal}
-    state={state}
-    setState={setState}
-    marketSource={marketSource}
-    marketUpdatedAt={marketUpdatedAt}
-    marketReady={marketReady}
-    signalHistory={signalHistory}
-    validationSummary={validationSummary}
-    regimeSummary={regimeSummary}
-    forwardValidation={forwardValidation}
-    forwardScorecard={forwardScorecard}
-    adaptiveSummary={adaptiveSummary}
-    decisionLayer={decisionLayer}
-  />
-</section>
+            {experience.showSinceLastVisit ? (
+            <section className={`since-panel card ${experience.modeClass} ${experience.intentClass} ${panelState.sinceLastVisit ? '' : 'since-panel-collapsed'}`} id="since-last-visit">
+              {panelState.sinceLastVisit ? (<> 
+              <div className="since-panel-head">
+                <div>
+                  <div className="eyebrow">{experience.sinceEyebrow}</div>
+                  <h2 className="section-title">{experience.sinceTitle}</h2>
+                </div>
+                <div className="section-collapse-actions">
+                  <span className="badge since-badge">{lastVisitLabel}</span>
+                  <button type="button" className="ghost-button small section-collapse-toggle is-open" onClick={() => togglePanel('sinceLastVisit')} aria-expanded={true} aria-label="Collapse since last visit panel">Collapse</button>
+                </div>
+              </div>
 
-<TrustDashboardPanel
-  mode={state.mode}
-  forwardValidation={forwardValidation}
-  recentAlertEvents={state?.recentAlertEvents || []}
-/>
+              <div className="since-chip-row">
+                {sinceLastVisitSummary.map((item) => (
+                  <div key={item} className="since-chip">{item}</div>
+                ))}
+              </div>
 
-{experience.showContextPanel && experience.contextFirst ? (
-  <section id="signal-context" className="signal-context-anchor">
-    <SignalContextPanel
-      context={signalContext}
-      asset={topSignal}
-      experience={experience}
-      collapsed={!panelState.signalContext}
-      onToggleCollapse={() => togglePanel('signalContext')}
-    />
-  </section>
-) : null}
+              <div className="since-intel-grid">
+                <div className="since-intel-card">
+                  <div className="since-intel-label">Last time you checked {focusedAssetMemory.symbol}</div>
+                  <div className="since-intel-list">
+                    {focusedAssetMemory.bullets.map((item) => (
+                      <div key={item} className="since-intel-item">{item}</div>
+                    ))}
+                  </div>
+                </div>
 
-{experience.highlightAlerts ? (
-  <section id="alert-center" className="alert-center-anchor">
-    <AlertCenterScaffold
-      state={state}
-      setState={setState}
-      experience={experience}
-      topSignal={topSignal}
-      watchlistHighlights={watchlistHighlights}
-      onOpenControls={() => {
-        setAlertAsset(null);
-        setControlOpen(true);
-      }}
-      onOpenAsset={(symbol) => openAlertAsset(symbol)}
-      user={user}
-      syncing={syncing}
-      status={status}
-      lastSyncedAt={lastSyncedAt}
-    />
-  </section>
-) : null}
+                <div className="since-intel-card">
+                  <div className="since-intel-label">Watchlist first</div>
+                  <div className="since-intel-list">
+                    {watchlistFirstHighlights.length ? watchlistFirstHighlights.map((item) => (
+                      <div key={item.text} className="since-intel-item">{item.text}</div>
+                    )) : <div className="since-intel-item muted">No major watchlist changes yet.</div>}
+                  </div>
+                </div>
 
-{experience.showSinceLastVisit ? (
-<section className={`since-panel card ${experience.modeClass} ${experience.intentClass} ${panelState.sinceLastVisit ? '' : 'since-panel-collapsed'}`} id="since-last-visit">
-  {panelState.sinceLastVisit ? (<>
-  <div className="since-panel-head">
-    <div>
-      <div className="eyebrow">Since your last visit</div>
-      <h2 className="section-title">Personal signal memory</h2>
-    </div>
-    <div className="section-collapse-actions">
-      <span className="badge since-badge">{lastVisitLabel}</span>
-      <button type="button" className="ghost-button small section-collapse-toggle is-open" onClick={() => togglePanel('sinceLastVisit')} aria-expanded={true} aria-label="Collapse since last visit panel">Collapse</button>
-    </div>
-  </div>
+                <div className="since-intel-card">
+                  <div className="since-intel-label">Broader shift</div>
+                  <div className="since-intel-list">
+                    {visitIntelligence.highlights.length ? visitIntelligence.highlights.map((item) => (
+                      <div key={item} className="since-intel-item">{item}</div>
+                    )) : <div className="since-intel-item muted">No major board-wide changes yet.</div>}
+                  </div>
+                </div>
+              </div>
 
-  <div className="since-chip-row">
-    {sinceLastVisitSummary.map((item) => (
-      <div key={item} className="since-chip">{item}</div>
-    ))}
-  </div>
+              <div className="since-takeaway">
+                <div className="since-intel-label">Tonight&apos;s takeaway</div>
+                <div className="since-takeaway-copy">{focusedAssetMemory.takeaway}</div>
+              </div>
+              </>) : (
+                <div className="section-collapse-compact-shell">
+                  <div className="section-collapse-compact-top">
+                    <div className="section-collapse-compact-titleblock">
+                      <div className="eyebrow">{experience.sinceEyebrow}</div>
+                      <h2 className="section-title">{experience.sinceTitle}</h2>
+                    </div>
+                    <div className="section-collapse-actions">
+                      <span className="badge since-badge">{lastVisitLabel}</span>
+                      <button type="button" className="ghost-button small section-collapse-toggle is-collapsed" onClick={() => togglePanel('sinceLastVisit')} aria-expanded={false} aria-label="Expand since last visit panel">Expand</button>
+                    </div>
+                  </div>
+                  <div className="section-collapse-summary muted small">Personal memory hidden. Expand to compare your last checked asset, watchlist shifts, and tonight&apos;s takeaway.</div>
+                </div>
+              )}
+            </section>
+            ) : null}
 
-  <div className="since-intel-grid">
-    <div className="since-intel-card">
-      <div className="since-intel-label">Last time you checked {focusedAssetMemory.symbol}</div>
-      <div className="since-intel-list">
-        {focusedAssetMemory.bullets.map((item) => (
-          <div key={item} className="since-intel-item">{item}</div>
-        ))}
-      </div>
-    </div>
+            <div className="secondary-stack">
+              <TrustDashboardPanel
+                mode={state.mode}
+                forwardValidation={forwardValidation}
+                recentAlertEvents={state?.recentAlertEvents || []}
+              />
 
-    <div className="since-intel-card">
-      <div className="since-intel-label">Watchlist first</div>
-      <div className="since-intel-list">
-        {watchlistFirstHighlights.length ? watchlistFirstHighlights.map((item) => (
-          <div key={item.text} className="since-intel-item">{item.text}</div>
-        )) : <div className="since-intel-item muted">No major watchlist changes yet.</div>}
-      </div>
-    </div>
+              {experience.highlightAlerts ? (
+                <section id="alert-center" className="alert-center-anchor">
+                  <AlertCenterScaffold
+                    state={state}
+                    setState={setState}
+                    experience={experience}
+                    topSignal={topSignal}
+                    watchlistHighlights={watchlistHighlights}
+                    onOpenControls={() => {
+                      setAlertAsset(null);
+                      setControlOpen(true);
+                    }}
+                    onOpenAsset={(symbol) => openAlertAsset(symbol)}
+                    user={user}
+                    syncing={syncing}
+                    status={status}
+                    lastSyncedAt={lastSyncedAt}
+                  />
+                </section>
+              ) : null}
+            </div>
+          </div>
+        </section>
 
-    <div className="since-intel-card">
-      <div className="since-intel-label">Broader shift</div>
-      <div className="since-intel-list">
-        {visitIntelligence.highlights.length ? visitIntelligence.highlights.map((item) => (
-          <div key={item} className="since-intel-item">{item}</div>
-        )) : <div className="since-intel-item muted">No major board-wide changes yet.</div>}
-      </div>
-    </div>
-  </div>
+        <section className={`flow-section flow-section-board ${experience.modeClass} ${experience.intentClass}`} id="market-scan">
+          <div className="flow-section-head">
+            <div className="section-kicker">Market Board</div>
+            <div className="flow-section-title-row">
+              <h2 className="section-title">{experience.boardTitle}</h2>
+              <div className="muted small">
+                {experience.boardSubtitle}
+              </div>
+            </div>
+          </div>
 
-  <div className="since-takeaway">
-    <div className="since-intel-label">Tonight&apos;s takeaway</div>
-    <div className="since-takeaway-copy">{focusedAssetMemory.takeaway}</div>
-  </div>
-  </>) : (
-    <div className="section-collapse-compact-shell">
-      <div className="section-collapse-compact-top">
-        <div className="section-collapse-compact-titleblock">
-          <div className="eyebrow">Since your last visit</div>
-          <h2 className="section-title">Personal signal memory</h2>
-        </div>
-        <div className="section-collapse-actions">
-          <span className="badge since-badge">{lastVisitLabel}</span>
-          <button type="button" className="ghost-button small section-collapse-toggle is-collapsed" onClick={() => togglePanel('sinceLastVisit')} aria-expanded={false} aria-label="Expand since last visit panel">Expand</button>
-        </div>
-      </div>
-      <div className="section-collapse-summary muted small">Personal memory hidden. Expand to compare your last checked asset, watchlist shifts, and tonight&apos;s takeaway.</div>
-    </div>
-  )}
-</section>
-) : null}
+          <div className="board-section-shell">
+            <Top20Grid
+              state={state}
+              setState={setState}
+              onAssetOpen={setDetailAsset}
+              assets={rankedAssets}
+              collapsed={!panelState.marketScan}
+              onToggleCollapse={() => togglePanel('marketScan')}
+            />
+          </div>
+        </section>
 
-<section className="flow-section flow-section-spaced" aria-label="Market Board">
-  <div className="flow-section-kicker">Market Board</div>
-</section>
+        <section className={`flow-section flow-section-view ${experience.modeClass} ${experience.intentClass}`} aria-label="Your View">
+          <div className="flow-section-head">
+            <div className="section-kicker">Your View</div>
+            <p className="flow-section-sub muted small">Keep your tracked names close and compare them after you read tonight&apos;s lead.</p>
+          </div>
 
-<section className={`market-grid market-grid-single ${experience.modeClass} ${experience.intentClass}`} id="market-scan">
-  <div className="market-scan-header">
-    <div>
-      <div className="eyebrow">Focused board</div>
-      <h2 className="section-title">{experience.boardTitle}</h2>
-    </div>
-    <div className="muted small market-header-copy">
-      Your watchlist now gets priority inside the board, so the names you care about surface first.
-    </div>
-  </div>
+          <div ref={watchlistTriggerRef} className="watchlist-section-shell">
+            <WatchlistPanel
+              state={state}
+              setState={setState}
+              onAssetOpen={setDetailAsset}
+              assets={rankedAssets}
+              user={user}
+              status={status}
+              syncing={syncing}
+              lastSyncedAt={lastSyncedAt}
+              experience={experience}
+            />
+          </div>
+        </section>
 
-  {showBoard ? (
-    <Top20Grid
-      state={state}
-      setState={setState}
-      onAssetOpen={setDetailAsset}
-      assets={rankedAssets}
-      collapsed={!panelState.marketScan}
-      onToggleCollapse={() => togglePanel('marketScan')}
-      initialVisibleCount={8}
-    />
-  ) : (
-    <div className="panel stack premium-board-shell board-loading-shell">
-      <div className="row space-between board-loading-head">
-        <div>
-          <div className="eyebrow">Focused board</div>
-          <h2 className="section-title">Loading market scan</h2>
-        </div>
-        <span className="badge glow-badge">Preparing board</span>
-      </div>
-      <div className="board-skeleton-grid">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="board-skeleton-card" />
-        ))}
-      </div>
-    </div>
-  )}
-</section>
-
-<section className="flow-section flow-section-spaced" aria-label="Your View">
-  <div className="flow-section-kicker">Your View</div>
-</section>
-
-<section className={`watchlist-section ${experience.modeClass} ${experience.intentClass}`}>
-  <div className="watchlist-inline-fullbleed watchlist-inline-static">
-    <div ref={watchlistTriggerRef} className="watchlist-inline-anchor">
-      <WatchlistPanel
-        state={state}
-        setState={setState}
-        onAssetOpen={setDetailAsset}
-        assets={rankedAssets}
-        user={user}
-        status={status}
-        syncing={syncing}
-        lastSyncedAt={lastSyncedAt}
-        experience={experience}
-      />
-    </div>
-  </div>
-
-  {showStickyWatchlist ? (
-    <div className="floating-sticky-watchlist-shell">
-      <WatchlistPanel
-        state={state}
-        setState={setState}
-        onAssetOpen={setDetailAsset}
-        assets={rankedAssets}
-        user={user}
-        status={status}
-        syncing={syncing}
-        lastSyncedAt={lastSyncedAt}
-        experience={experience}
-        compact
-        sticky
-      />
-    </div>
-  ) : null}
-</section>
         {experience.showContextPanel && !experience.contextFirst ? (
           <section id="signal-context" className="signal-context-anchor">
             <SignalContextPanel
@@ -1512,8 +1437,7 @@ function handleOnboardingComplete(payload) {
           </section>
         ) : null}
 
-
-        <section className={`conversion-strip card ${experience.modeClass} ${experience.intentClass}`} aria-label="Why Midnight Signal">
+        <section className={`conversion-strip card conversion-strip-bottom ${experience.modeClass} ${experience.intentClass}`} aria-label="Why Midnight Signal">
           <div className="conversion-intro">
             <div className="eyebrow">Why Midnight Signal</div>
             <h2 className="section-title">{experience.conversionTitle}</h2>
@@ -1529,6 +1453,9 @@ function handleOnboardingComplete(payload) {
           </div>
         </section>
 
+
+
+
         {upgradeNotice ? (
           <div className="upgrade-notice-banner">
             <span>{upgradeNotice}</span>
@@ -1543,7 +1470,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.99 · watchlist intelligence + personal layer · source: {marketSource}
+          Build v12.0 · layout cleanup calm mode · source: {marketSource}
         </div>
       </div>
 
