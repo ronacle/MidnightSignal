@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { formatCompactNumber, formatPct, formatPrice, getConvictionTier } from '@/lib/utils';
 import { deriveExperienceProfile } from '@/lib/mode-engine';
@@ -29,10 +30,15 @@ function getSummaryLine(asset, experience) {
   return asset.signalLabel || 'Trend posture snapshot with less focus on short-term noise.';
 }
 
-export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS, collapsed = false, onToggleCollapse }) {
-  const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
-  const experience = deriveExperienceProfile(state);
-  const visibleAssets = (assets?.length ? assets : FALLBACK_ASSETS).slice(0, experience.boardAssetCount);
+export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS, collapsed = false, onToggleCollapse, initialVisibleCount = 8 }) {
+
+const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
+const experience = deriveExperienceProfile(state);
+const [expanded, setExpanded] = useState(false);
+const assetPool = useMemo(() => (assets?.length ? assets : FALLBACK_ASSETS).slice(0, experience.boardAssetCount), [assets, experience.boardAssetCount]);
+const collapsedCount = Math.min(initialVisibleCount, assetPool.length);
+const visibleAssets = expanded ? assetPool : assetPool.slice(0, collapsedCount);
+const hiddenCount = Math.max(assetPool.length - visibleAssets.length, 0);
   if (collapsed) {
     return (
       <div className={`panel stack premium-board-shell premium-board-shell-collapsed ${experience.boardCardStyle} is-collapsed`}>
@@ -68,7 +74,21 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
             <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : experience.intent === 'alerts' ? 'Tap for watchlist context, detail, and future alert setup.' : 'Tap for brief + asset detail. Pro adds deeper validation and forward tracking.'}</div>
           </button>
         ))}
+
       </div>
+      {hiddenCount > 0 ? (
+        <div className="board-expand-row">
+          <button
+            type="button"
+            className="ghost-button small"
+            onClick={() => setExpanded((value) => !value)}
+            aria-expanded={expanded}
+          >
+            {expanded ? 'Show fewer' : `Show ${hiddenCount} more`}
+          </button>
+          <div className="muted small">Open the rest only when a wider compare really deserves your attention.</div>
+        </div>
+      ) : null}
     </div>
   );
 }
