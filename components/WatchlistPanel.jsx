@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { MARKET_FIXTURES } from '@/lib/default-state';
 
-const AVAILABLE = ['BTC', 'ETH', 'ADA', 'SOL', 'XRP', 'DOGE', 'LINK', 'AVAX'];
+
 
 export default function WatchlistPanel({ state, setState, onAssetOpen, assets = [], user, status, syncing = false, lastSyncedAt = null, experience, compact = false, sticky = false }) {
   const [newSymbol, setNewSymbol] = useState('LINK');
@@ -11,7 +11,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
 
   function addSymbol() {
     if (state.watchlist.includes(newSymbol)) return;
-    setState((previous) => ({ ...previous, watchlist: [...previous.watchlist, newSymbol] }));
+    setState((previous) => ({ ...previous, watchlist: [...previous.watchlist, newSymbol], selectedAsset: newSymbol }));
   }
 
   function removeSymbol(symbol) {
@@ -26,7 +26,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
   }
 
   function selectSymbol(symbol) {
-    setState((previous) => ({ ...previous, selectedAsset: symbol }));
+    setState((previous) => ({ ...previous, selectedAsset: symbol, watchlist: previous.watchlist.includes(symbol) ? [symbol, ...previous.watchlist.filter((item) => item !== symbol)] : previous.watchlist }));
     const asset = assetPool.find((item) => item.symbol === symbol) || {
       symbol,
       name: symbol,
@@ -60,7 +60,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
       {!compact ? (
       <div className="watchlist-add-row">
         <select className="select compact-select" value={newSymbol} onChange={(e) => setNewSymbol(e.target.value)}>
-          {AVAILABLE.map((symbol) => <option key={symbol}>{symbol}</option>)}
+          {assetPool.map((asset) => <option key={asset.symbol} value={asset.symbol}>{asset.symbol}</option>)}
         </select>
         <button className="button compact-action" onClick={addSymbol}>Add</button>
       </div>

@@ -48,7 +48,7 @@ import {
 } from '@/lib/alert-engine';
 
 
-const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v1';
+const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v2';
 const COLLAPSIBLE_PANELS_KEY = 'midnight-signal-collapsible-panels-v1';
 const DEFAULT_PANEL_STATE = { sinceLastVisit: true, marketScan: true, signalContext: true };
 
@@ -58,9 +58,11 @@ function normalizeSignalLabel(label = '') {
     .trim() || 'Mixed posture';
 }
 
-function createSessionSnapshot({ topSignal, rankedAssets = [], watchlist = [], regimeSummary, marketUpdatedAt }) {
+function createSessionSnapshot({ topSignal, rankedAssets = [], watchlist = [], selectedAsset = 'BTC', regimeSummary, marketUpdatedAt }) {
   const watchSymbols = Array.isArray(watchlist) ? watchlist.map((item) => String(item).toUpperCase()) : [];
   const watchAssets = rankedAssets.filter((item) => watchSymbols.includes(item.symbol));
+  const selectedSymbol = String(selectedAsset || topSignal?.symbol || 'BTC').toUpperCase();
+  const focusedAsset = rankedAssets.find((item) => item.symbol === selectedSymbol) || topSignal || null;
 
   return {
     capturedAt: marketUpdatedAt || new Date().toISOString(),
@@ -72,6 +74,14 @@ function createSessionSnapshot({ topSignal, rankedAssets = [], watchlist = [], r
       change24h: Number(topSignal.change24h || 0),
     } : null,
     regime: regimeSummary?.regime || 'Mixed',
+    focusedAsset: focusedAsset ? {
+      symbol: focusedAsset.symbol,
+      conviction: Number(focusedAsset.conviction ?? focusedAsset.signalScore ?? 0),
+      signalLabel: normalizeSignalLabel(focusedAsset.signalLabel),
+      sentiment: focusedAsset.sentiment || 'neutral',
+      change24h: Number(focusedAsset.change24h || 0),
+      timeframe: focusedAsset.timeframe || {},
+    } : null,
     watchlist: watchAssets.map((asset) => ({
       symbol: asset.symbol,
       conviction: Number(asset.conviction ?? asset.signalScore ?? 0),
@@ -183,6 +193,100 @@ function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
     takeaway,
     changedCount: uniqueHighlights.length + improved.length + weakened.length,
   };
+}
+
+function buildFocusedAssetMemory(previousSnapshot, currentSnapshot, selectedAsset = 'BTC') {
+  const symbol = String(selectedAsset || currentSnapshot?.focusedAsset?.symbol || currentSnapshot?.topSignal?.symbol || 'BTC').toUpperCase();
+  const currentFocus = currentSnapshot?.focusedAsset?.symbol === symbol
+    ? currentSnapshot.focusedAsset
+    : (currentSnapshot?.watchlist || []).find((asset) => asset.symbol === symbol) || currentSnapshot?.topSignal || null;
+  const previousFocus = previousSnapshot?.focusedAsset?.symbol === symbol
+    ? previousSnapshot.focusedAsset
+    : (previousSnapshot?.watchlist || []).find((asset) => asset.symbol === symbol) || (previousSnapshot?.topSignal?.symbol === symbol ? previousSnapshot.topSignal : null);
+
+  if (!currentFocus) {
+    return {
+      symbol,
+      chips: ['No stored focus yet'],
+      bullets: ['Select an asset a few times and Midnight Signal will start comparing it across visits.'],
+      takeaway: 'Open a watchlist name or board card to make that asset your personal reference point.'
+    };
+  }
+
+  if (!previousFocus) {
+    return {
+      symbol,
+      chips: [`Watching ${symbol}`],
+      bullets: [`${symbol} is now your reference asset for future visits.`],
+      takeaway: `Check ${symbol} again later and this panel will show what strengthened, softened, or changed.`
+    };
+  }
+
+  const bullets = [];
+  const chips = [`Last checked ${symbol}`];
+  const currentConviction = Number(currentFocus.conviction || 0);
+  const previousConviction = Number(previousFocus.conviction || 0);
+  const convictionDiff = Math.round(currentConviction - previousConviction);
+
+  if (Math.abs(convictionDiff) >= 3) {
+    bullets.push(`Confidence ${convictionDiff > 0 ? 'rose' : 'slipped'} from ${previousConviction}% to ${currentConviction}%.`);
+    chips.push(`${convictionDiff > 0 ? '+' : ''}${convictionDiff} pts`);
+  } else {
+    bullets.push(`Confidence is holding near ${currentConviction}% with no major swing since your last check.`);
+  }
+
+  if (previousFocus.signalLabel && currentFocus.signalLabel && previousFocus.signalLabel !== currentFocus.signalLabel) {
+    bullets.push(`Posture shifted from ${previousFocus.signalLabel} to ${currentFocus.signalLabel}.`);
+  }
+
+  const currentFrames = currentFocus.timeframe || {};
+  const previousFrames = previousFocus.timeframe || {};
+  const strengthened = [];
+  const softened = [];
+  [['5m', currentFrames.tf5m, previousFrames.tf5m], ['15m', currentFrames.tf15m, previousFrames.tf15m], ['1h', currentFrames.tf1h, previousFrames.tf1h]].forEach(([label, now, prev]) => {
+    const n = Number(now);
+    const p = Number(prev);
+    if (!Number.isFinite(n) || !Number.isFinite(p)) return;
+    if (n - p >= 4) strengthened.push(label);
+    if (p - n >= 4) softened.push(label);
+  });
+
+  if (strengthened.length) bullets.push(`${strengthened.join(' + ')} momentum strengthened.`);
+  else if (softened.length) bullets.push(`${softened.join(' + ')} momentum faded.`);
+
+  const changeDiff = Number(currentFocus.change24h || 0) - Number(previousFocus.change24h || 0);
+  if (Math.abs(changeDiff) >= 1.5) {
+    bullets.push(`24h move ${changeDiff > 0 ? 'improved' : 'cooled'} by ${Math.abs(changeDiff).toFixed(1)} pts.`);
+  }
+
+  const takeaway = convictionDiff >= 4
+    ? `${symbol} is gaining conviction faster than your last read, so it deserves an earlier check tonight.`
+    : convictionDiff <= -4
+      ? `${symbol} has softened since your last check, so treat it with more patience tonight.`
+      : `${symbol} is relatively steady, so use the broader board for the next change worth acting on.`;
+
+  return {
+    symbol,
+    chips: chips.slice(0, 3),
+    bullets: bullets.slice(0, 3),
+    takeaway,
+  };
+}
+
+function buildWatchlistFirstHighlights(currentSnapshot, previousSnapshot) {
+  const previousMap = new Map((previousSnapshot?.watchlist || []).map((asset) => [asset.symbol, asset]));
+  return (currentSnapshot?.watchlist || [])
+    .map((asset) => {
+      const prev = previousMap.get(asset.symbol);
+      if (!prev) return { symbol: asset.symbol, text: `${asset.symbol} is newly being tracked in your watchlist.` , score: 2};
+      const diff = Math.round(Number(asset.conviction || 0) - Number(prev.conviction || 0));
+      if (Math.abs(diff) < 3 && asset.signalLabel === prev.signalLabel) return null;
+      if (Math.abs(diff) >= 3) return { symbol: asset.symbol, text: `${asset.symbol} ${diff > 0 ? 'strengthened' : 'softened'} ${Math.abs(diff)} pts.`, score: Math.abs(diff) };
+      return { symbol: asset.symbol, text: `${asset.symbol} moved from ${prev.signalLabel} to ${asset.signalLabel}.`, score: 3 };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
 }
 
 const EXTRA_SCAN_ASSETS = [
@@ -555,15 +659,26 @@ const currentSessionSnapshot = useMemo(
     topSignal,
     rankedAssets,
     watchlist: state?.watchlist || [],
+    selectedAsset: state?.selectedAsset || topSignal?.symbol || 'BTC',
     regimeSummary,
     marketUpdatedAt,
   }),
-  [topSignal, rankedAssets, state?.watchlist, regimeSummary, marketUpdatedAt]
+  [topSignal, rankedAssets, state?.watchlist, state?.selectedAsset, regimeSummary, marketUpdatedAt]
 );
 
 const visitIntelligence = useMemo(
   () => buildVisitIntelligence(previousSessionSnapshot, currentSessionSnapshot),
   [previousSessionSnapshot, currentSessionSnapshot]
+);
+
+const focusedAssetMemory = useMemo(
+  () => buildFocusedAssetMemory(previousSessionSnapshot, currentSessionSnapshot, state?.selectedAsset || topSignal?.symbol || 'BTC'),
+  [previousSessionSnapshot, currentSessionSnapshot, state?.selectedAsset, topSignal?.symbol]
+);
+
+const watchlistFirstHighlights = useMemo(
+  () => buildWatchlistFirstHighlights(currentSessionSnapshot, previousSessionSnapshot),
+  [currentSessionSnapshot, previousSessionSnapshot]
 );
 
 
@@ -596,11 +711,11 @@ const sinceLastVisitSummary = useMemo(() => {
   }
 
   return visitIntelligence.highlights?.length
-    ? [...visitIntelligence.highlights.slice(0, 2), `${improvedCount} strengthened · ${weakenedCount} faded`].slice(0, 3)
+    ? [...focusedAssetMemory.chips.slice(0, 1), ...visitIntelligence.highlights.slice(0, 1), `${improvedCount} strengthened · ${weakenedCount} faded`].slice(0, 3)
     : fallbackBits.length
       ? fallbackBits.slice(0, 3)
       : [`${topSignal?.symbol || 'Lead signal'} stayed steady at ${topSignal?.conviction ?? '--'}% conviction`];
-}, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary, visitIntelligence]);
+}, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary, visitIntelligence, focusedAssetMemory]);
 
 
   const lastVisitLabel = useMemo(() => {
@@ -769,8 +884,11 @@ const sinceLastVisitSummary = useMemo(() => {
     if (typeof window === 'undefined') return;
     try {
       setLastVisitAt(window.localStorage.getItem('midnight-signal-last-visit-at'));
+      const snapshotRaw = window.localStorage.getItem(SESSION_SNAPSHOT_KEY) || window.localStorage.getItem('midnight-signal-session-snapshot-v1');
+      if (snapshotRaw) setPreviousSessionSnapshot(JSON.parse(snapshotRaw));
     } catch {
       setLastVisitAt(null);
+      setPreviousSessionSnapshot(null);
     }
   }, []);
 
@@ -805,6 +923,7 @@ const sinceLastVisitSummary = useMemo(() => {
     const asset = rankedAssets.find((item) => item.symbol === symbol);
     if (!asset) return;
     setDetailAsset(asset);
+    setState((previous) => ({ ...previous, selectedAsset: symbol, watchlist: previous.watchlist.includes(symbol) ? [symbol, ...previous.watchlist.filter((item) => item !== symbol)] : previous.watchlist }));
     if (typeof document !== 'undefined') {
       document.getElementById('market-scan')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -1219,36 +1338,36 @@ function handleOnboardingComplete(payload) {
 
           <div className="since-intel-grid">
             <div className="since-intel-card">
-              <div className="since-intel-label">What changed since your last visit</div>
+              <div className="since-intel-label">Last time you checked {focusedAssetMemory.symbol}</div>
               <div className="since-intel-list">
-                {visitIntelligence.highlights.map((item) => (
+                {focusedAssetMemory.bullets.map((item) => (
                   <div key={item} className="since-intel-item">{item}</div>
                 ))}
               </div>
             </div>
 
             <div className="since-intel-card">
-              <div className="since-intel-label">What strengthened</div>
+              <div className="since-intel-label">Watchlist first</div>
               <div className="since-intel-list">
-                {visitIntelligence.improved.length ? visitIntelligence.improved.map((item) => (
-                  <div key={item} className="since-intel-item">{item}</div>
-                )) : <div className="since-intel-item muted">No major strengthening moves yet.</div>}
+                {watchlistFirstHighlights.length ? watchlistFirstHighlights.map((item) => (
+                  <div key={item.text} className="since-intel-item">{item.text}</div>
+                )) : <div className="since-intel-item muted">No major watchlist changes yet.</div>}
               </div>
             </div>
 
             <div className="since-intel-card">
-              <div className="since-intel-label">What faded</div>
+              <div className="since-intel-label">Broader shift</div>
               <div className="since-intel-list">
-                {visitIntelligence.weakened.length ? visitIntelligence.weakened.map((item) => (
+                {visitIntelligence.highlights.length ? visitIntelligence.highlights.map((item) => (
                   <div key={item} className="since-intel-item">{item}</div>
-                )) : <div className="since-intel-item muted">No major fading moves yet.</div>}
+                )) : <div className="since-intel-item muted">No major board-wide changes yet.</div>}
               </div>
             </div>
           </div>
 
           <div className="since-takeaway">
             <div className="since-intel-label">Tonight&apos;s takeaway</div>
-            <div className="since-takeaway-copy">{visitIntelligence.takeaway}</div>
+            <div className="since-takeaway-copy">{focusedAssetMemory.takeaway}</div>
           </div>
           </>) : (
             <div className="section-collapse-compact-shell">
@@ -1262,7 +1381,7 @@ function handleOnboardingComplete(payload) {
                   <button type="button" className="ghost-button small section-collapse-toggle is-collapsed" onClick={() => togglePanel('sinceLastVisit')} aria-expanded={false} aria-label="Expand since last visit panel">Expand</button>
                 </div>
               </div>
-              <div className="section-collapse-summary muted small">Since-last-visit intel hidden. Expand to compare leadership changes, improvements, and tonight&apos;s takeaway.</div>
+              <div className="section-collapse-summary muted small">Personal memory hidden. Expand to compare your last checked asset, watchlist shifts, and tonight&apos;s takeaway.</div>
             </div>
           )}
         </section>
@@ -1353,7 +1472,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.91 · Habit layer + signal intelligence · source: {marketSource}
+          Build v11.92 · Personal signal memory · source: {marketSource}
         </div>
       </div>
 
