@@ -52,6 +52,19 @@ const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v2';
 const COLLAPSIBLE_PANELS_KEY = 'midnight-signal-collapsible-panels-v1';
 const DEFAULT_PANEL_STATE = { sinceLastVisit: true, marketScan: true, signalContext: true };
 
+
+function mergeUniqueAlertEvents(...groups) {
+  const seen = new Set();
+  const merged = [];
+  groups.flat().filter(Boolean).forEach((event) => {
+    const key = event?.triggerId || event?.id || [event?.symbol || '', event?.title || '', event?.body || ''].join(':');
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(event);
+  });
+  return merged;
+}
+
 const Top20Grid = dynamic(() => import('@/components/signals/Top20Grid'), {
   ssr: false,
   loading: () => (
@@ -788,19 +801,16 @@ const sinceLastVisitSummary = useMemo(() => {
           cooldownMinutes: Number(state?.alertCooldownMinutes || 30),
         });
 
-        const allAlerts = [...configured.events, ...systemAlerts]
+        const allAlerts = mergeUniqueAlertEvents(configured.events, systemAlerts)
           .filter((item) => !dismissed.includes(item.id))
-          .sort((a, b) => b.priority - a.priority);
+          .sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
         if (!cancelled) {
           setPriorityAlerts(allAlerts.slice(0, 4));
         }
 
         if (configured.events.length) {
-          const recent = [
-            ...configured.events,
-            ...(state?.recentAlertEvents || []),
-          ].slice(0, 12);
+          const recent = mergeUniqueAlertEvents(configured.events, state?.recentAlertEvents || []).slice(0, 12);
           setState((previous) => ({ ...previous, recentAlertEvents: recent }));
 
           if (state?.signalSoundsEnabled && typeof window !== 'undefined' && window.AudioContext) {
@@ -852,8 +862,8 @@ const sinceLastVisitSummary = useMemo(() => {
                     ? data?.mode === 'mock'
                       ? 'Delivery route ready in mock mode'
                       : digestMode === 'digest'
-                        ? 'Digest sent'
-                        : 'Instant alert sent'
+                        ? 'Digest sent with filtered high-priority alerts'
+                        : 'Instant alert sent with the current highest-priority signal'
                     : data?.message || 'Delivery failed',
                 }));
               }
@@ -1533,7 +1543,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.96 · control layer redesign + breathing room · source: {marketSource}
+          Build v11.97 · alert quality + smarter delivery · source: {marketSource}
         </div>
       </div>
 

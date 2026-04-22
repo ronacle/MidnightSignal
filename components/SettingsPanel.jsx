@@ -92,7 +92,7 @@ export default function SettingsPanel({ state, setState }) {
           <h2 className="section-title">Session Settings</h2>
           <div className="muted small">Primary controls stay visible, secondary preferences get cleaner grouping, and profile tools stay one layer below.</div>
         </div>
-        <span className="badge">v11.96 control redesign</span>
+        <span className="badge">v11.97 alert quality</span>
       </div>
 
       <div className="control-layer-shell stack">
