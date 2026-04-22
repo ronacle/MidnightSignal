@@ -451,6 +451,16 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (!marketReady) return;
+
+    const timer = window.setTimeout(() => {
+      setShowBoard(true);
+    }, 450);
+
+    return () => window.clearTimeout(timer);
+  }, [marketReady]);
+
+  useEffect(() => {
     const localAlertMemory = readAlertMemory();
     const localDigestMemory = readDigestMemory();
     const cloudAlertMemory = state?.alertMemory || { assetMap: {}, triggerLog: {} };
@@ -1651,7 +1661,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v11.95 · performance + hierarchy pass · source: {marketSource}
+          Build v11.95.1.1 · performance + hierarchy pass · source: {marketSource}
         </div>
       </div>
 
