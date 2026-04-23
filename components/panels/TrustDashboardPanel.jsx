@@ -79,6 +79,24 @@ export default function TrustDashboardPanel({ mode = 'Beginner', forwardValidati
         ) : null}
       </div>
 
+      <div className="trust-impact-banner trust-impact-banner-premium decision-feedback-banner">
+        <div>
+          <div className="eyebrow trust-impact-eyebrow">Decision feedback</div>
+          <div className="trust-impact-copy">{dashboard.decisionTakeaway}</div>
+        </div>
+        {dashboard.bestDecision ? (
+          <div className="trust-impact-pill worked">
+            <span>{dashboard.bestDecision.action}</span>
+            <strong>{dashboard.bestDecision.effectivenessRate}% effective</strong>
+          </div>
+        ) : (
+          <div className="trust-impact-pill developing">
+            <span>Tracking</span>
+            <strong>Building samples</strong>
+          </div>
+        )}
+      </div>
+
       <div className="trust-dual-grid">
         <div className="trust-surface-card trust-section-card">
           <div className="trust-card-head">
@@ -91,6 +109,7 @@ export default function TrustDashboardPanel({ mode = 'Beginner', forwardValidati
             <span>Result</span>
             <span>Impact</span>
             <span>Type</span>
+            <span>Decision</span>
           </div>
 
           <div className="trust-table-body">
@@ -106,6 +125,7 @@ export default function TrustDashboardPanel({ mode = 'Beginner', forwardValidati
                 </span>
                 <span className={`trust-impact-tag ${impactToneClass(entry.impact)}`}>{entry.impact?.label || 'Developing impact'}</span>
                 <span className="trust-cell-muted trust-type-cell">{entry.regime}</span>
+                <span className="trust-cell-muted trust-decision-cell">{entry.decisionAction || 'WAIT'} · {entry.decisionResult || 'Building'}</span>
               </div>
             )) : <div className="muted small">Recent signal outcomes will appear here as checkpoints close.</div>}
           </div>
@@ -141,6 +161,22 @@ export default function TrustDashboardPanel({ mode = 'Beginner', forwardValidati
           <div className="trust-footnote-row">
             <span>Based on average move after signal</span>
           </div>
+        </div>
+      </div>
+
+      <div className="trust-surface-card trust-section-card trust-decision-performance-card">
+        <div className="trust-card-head">
+          <div className="eyebrow">Decision performance</div>
+        </div>
+        <div className="trust-decision-performance-list">
+          {dashboard.decisionPerformance?.length ? dashboard.decisionPerformance.map((entry) => (
+            <div className="trust-decision-performance-row" key={entry.action}>
+              <span className="trust-symbol">{entry.action}</span>
+              <span>{entry.effectivenessRate !== null ? entry.effectivenessRate + '% effective' : 'Building'}</span>
+              <span className="trust-cell-muted">{entry.samples} sample{entry.samples === 1 ? '' : 's'}</span>
+              <span className="trust-cell-muted">Avg directional {formatSignedPct(entry.avgDirectionalReturn)}</span>
+            </div>
+          )) : <div className="muted small">Decision feedback appears after a few signals resolve.</div>}
         </div>
       </div>
 

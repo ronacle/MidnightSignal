@@ -4807,7 +4807,7 @@ html {
 
 .trust-table-head-outcomes,
 .trust-table-row-outcomes {
-  grid-template-columns: minmax(160px, 1.2fr) 90px 110px 150px minmax(80px, 0.8fr);
+  grid-template-columns: minmax(130px, 1.1fr) 76px 92px 130px minmax(72px, 0.75fr) minmax(120px, 1fr);
 }
 
 .trust-table-head-leaders,
@@ -6179,7 +6179,7 @@ html {
   font-size: 0.78rem;
 }
 
-/* v12.5.0 decision layer */
+/* v12.5.1 decision layer */
 .signal-narrative-card-decision { position: relative; overflow: hidden; }
 .signal-narrative-card-decision::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(135deg, rgba(123, 92, 255, 0.12), transparent 54%); opacity: 0.7; }
 .decision-action-badge { letter-spacing: 0.08em; font-weight: 800; border: 1px solid rgba(255,255,255,0.14); }
@@ -6190,3 +6190,63 @@ html {
 .signal-trigger-list { margin-top: 0.85rem; display: grid; gap: 0.35rem; }
 .signal-trigger-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(214, 224, 255, 0.58); font-weight: 800; }
 .signal-trigger-item { display: flex; gap: 0.45rem; align-items: flex-start; color: rgba(235, 240, 255, 0.88); font-size: 0.9rem; line-height: 1.35; }
+
+/* v12.5.1 decision feedback + outcome tracking */
+.signal-decision-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.55rem 0 0.4rem;
+  padding: 0.6rem 0.72rem;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(124, 58, 237, 0.06));
+}
+.signal-decision-feedback span {
+  font-size: 0.68rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: rgba(203, 213, 225, 0.72);
+}
+.signal-decision-feedback strong {
+  font-size: 0.78rem;
+  color: rgba(226, 232, 240, 0.96);
+  text-align: right;
+}
+.decision-feedback-banner {
+  margin-top: 0.8rem;
+}
+.trust-decision-performance-card {
+  margin-top: 1rem;
+}
+.trust-decision-performance-list {
+  display: grid;
+  gap: 0.55rem;
+}
+.trust-decision-performance-row {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.8fr) minmax(110px, 1fr) minmax(90px, 0.85fr) minmax(140px, 1.2fr);
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.35);
+}
+.trust-decision-cell {
+  font-size: 0.74rem;
+}
+@media (max-width: 760px) {
+  .signal-decision-feedback,
+  .trust-decision-performance-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .signal-decision-feedback {
+    flex-direction: column;
+  }
+  .signal-decision-feedback strong {
+    text-align: left;
+  }
+}

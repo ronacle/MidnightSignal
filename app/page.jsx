@@ -977,7 +977,7 @@ const sinceLastVisitSummary = useMemo(() => {
     if (!topSignal || !marketReady) return;
 
     setForwardValidation((previous) => {
-      const seeded = upsertForwardSignal(previous, topSignal, regimeSummary?.regime, marketSource);
+      const seeded = upsertForwardSignal(previous, topSignal, regimeSummary?.regime, marketSource, decisionLayer);
       const updated = updateForwardCheckpoints(seeded, liveItems);
       writeForwardValidation(updated);
 
@@ -987,7 +987,7 @@ const sinceLastVisitSummary = useMemo(() => {
 
       return updated;
     });
-  }, [topSignal, regimeSummary, marketSource, marketReady, liveItems]);
+  }, [topSignal, regimeSummary, marketSource, marketReady, liveItems, decisionLayer]);
 
 
   useEffect(() => {

@@ -901,6 +901,10 @@ export default function TonightBrief({
               <span className={`badge decision-action-badge tone-${decisionState.tone}`}>{decisionState.action}</span>
             </div>
             <div className="signal-narrative-card-title">{decisionState.rationale}</div>
+            <div className="signal-decision-feedback">
+              <span>Feedback loop</span>
+              <strong>{decisionLayer?.decisionConfidence || 'Decision tracking in progress'}</strong>
+            </div>
             <div className="signal-decision-context muted small">{planSummary}</div>
             <div className="signal-trigger-list">
               <div className="signal-trigger-label">Triggers</div>
