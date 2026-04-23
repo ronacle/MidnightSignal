@@ -619,6 +619,29 @@ export default function TonightBrief({
         <span suppressHydrationWarning>{sinceLastVisit}</span>
       </div>
 
+
+      <div className="top-signal-hero">
+        <div className="top-signal-hero-header">
+          <div className="eyebrow top-signal-hero-kicker">Tonight&apos;s top signal</div>
+          <div className={`top-signal-hero-symbol ${pulseEnabled ? 'live-signal-value' : ''}`}>
+            {asset.symbol} — {toSentence(asset.sentiment)}
+          </div>
+        </div>
+        <div className="compact-brief-price-row top-signal-hero-price-row">
+          <span className="badge compact-brief-price-badge">{formatPrice(asset.price)}</span>
+          <span className={`badge compact-brief-change-badge ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>
+            24h {formatPct(asset.change24h || 0)}
+          </span>
+          <span className={`badge compact-confidence-badge state-${confidenceState.toLowerCase()} ${(confidenceState === 'Rising' || confidenceState === 'Weakening') ? 'is-pulsing' : ''}`}>
+            Confidence: {confidenceDirection}
+          </span>
+        </div>
+        <p className="muted compact-brief-story top-signal-hero-story">
+          {asset.story}
+        </p>
+      </div>
+
+
       <div className={`live-intelligence-strip tone-${liveStatus.tone} ${liveStatus.justChanged ? 'is-updating' : ''}`}>
         <div className="live-intelligence-strip-copy">
           <div className="eyebrow">Live intelligence</div>
@@ -661,28 +684,11 @@ export default function TonightBrief({
       </div>
 
       <div className="compact-brief-main">
-        <div className={`value brief-value ${pulseEnabled ? 'live-signal-value' : ''}`}>
-          {asset.symbol} · {asset.sentiment}
-        </div>
-        <div className="compact-brief-price-row">
-          <span className="badge compact-brief-price-badge">{formatPrice(asset.price)}</span>
-          <span className={`badge compact-brief-change-badge ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>
-            24h {formatPct(asset.change24h || 0)}
-          </span>
-          <span className={`badge compact-confidence-badge state-${confidenceState.toLowerCase()} ${(confidenceState === 'Rising' || confidenceState === 'Weakening') ? 'is-pulsing' : ''}`}>
-Confidence: {confidenceDirection}
-          </span>
-        </div>
-        <p className="muted compact-brief-story">
-          {profile.isPro ? asset.story : asset.story}
-        </p>
-      </div>
-
-      <div className={`compact-intelligence-panel tone-${shiftTone} ${(shiftTone !== 'steady' || pulseEnabled) ? 'is-live' : ''}`}>
-        <div className="compact-intelligence-header">
+      <div className={`compact-intelligence-panel compact-intelligence-panel-merged tone-${shiftTone} ${(shiftTone !== 'steady' || pulseEnabled) ? 'is-live' : ''}`}>
+        <div className="compact-intelligence-header compact-intelligence-header-merged">
           <div>
-            <div className="eyebrow">Signal Intelligence</div>
-            <div className="compact-intelligence-title">What changed since last update</div>
+            <div className="eyebrow">Why this signal is leading</div>
+            <div className="compact-intelligence-title">What to do, what changed, and what matters next</div>
           </div>
           <span className={`badge compact-intelligence-badge tone-${shiftTone}`}>{liveStatus.status}</span>
         </div>
@@ -691,6 +697,22 @@ Confidence: {confidenceDirection}
             <div className="compact-intelligence-item" key={item}>
               <span className="compact-intelligence-dot" aria-hidden="true" />
               <span>{item}</span>
+            </div>
+          ))}
+        </div>
+        <div className="compact-brief-rows compact-brief-rows-merged">
+          {briefRows.map((row) => row.trigger ? (
+            <div className="compact-brief-row compact-brief-watch-row" key={row.key}>
+              <span className="compact-brief-label compact-brief-watch-label">{row.label}</span>
+              <span className="compact-brief-text compact-brief-watch-text">
+                <strong>{row.text}</strong>
+                <span className="compact-brief-watch-note">{row.note}</span>
+              </span>
+            </div>
+          ) : (
+            <div className="compact-brief-row" key={row.key}>
+              <span className="compact-brief-label">{row.label}</span>
+              <span className="compact-brief-text">{row.content}</span>
             </div>
           ))}
         </div>
@@ -739,22 +761,6 @@ Confidence: {confidenceDirection}
         )}
       </div>
 
-      <div className="compact-brief-rows">
-        {briefRows.map((row) => row.trigger ? (
-          <div className="compact-brief-row compact-brief-watch-row" key={row.key}>
-            <span className="compact-brief-label compact-brief-watch-label">{row.label}</span>
-            <span className="compact-brief-text compact-brief-watch-text">
-              <strong>{row.text}</strong>
-              <span className="compact-brief-watch-note">{row.note}</span>
-            </span>
-          </div>
-        ) : (
-          <div className="compact-brief-row" key={row.key}>
-            <span className="compact-brief-label">{row.label}</span>
-            <span className="compact-brief-text">{row.content}</span>
-          </div>
-        ))}
-      </div>
     </section>
   );
 }
