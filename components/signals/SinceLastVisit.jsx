@@ -22,11 +22,11 @@ export default function SinceLastVisit({ state, lastSyncedAt, onJump, onDismiss 
 
       <div className="since-content">
         <span className="since-main">
-          {getReturnSignal(state.lastViewedAt)} · {state.selectedAsset} · {state.strategy} · {state.timeframe}
+          <span suppressHydrationWarning>{getReturnSignal(state.lastViewedAt)}</span> · {state.selectedAsset} · {state.strategy} · {state.timeframe}
         </span>
         <span className="since-chip">Watchlist: {state.watchlist.length}</span>
-        <span className="since-chip">Viewed: {formatTime(state.lastViewedAt)}</span>
-        <span className="since-chip">Sync: {formatTime(lastSyncedAt)}</span>
+        <span className="since-chip" suppressHydrationWarning>Viewed: {formatTime(state.lastViewedAt)}</span>
+        <span className="since-chip" suppressHydrationWarning>Sync: {formatTime(lastSyncedAt)}</span>
       </div>
 
       <div className="since-actions">

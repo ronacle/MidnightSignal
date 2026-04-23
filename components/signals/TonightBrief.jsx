@@ -38,10 +38,7 @@ function getConfidenceDirectionLabel(confidenceState = 'Stable') {
 }
 
 function getSessionLabel() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Today's session";
-  if (hour < 17) return "Today's session";
-  return "Tonight's session";
+  return 'Current session';
 }
 
 function getUserProfile(state) {
@@ -610,16 +607,16 @@ export default function TonightBrief({
 
       <div className="compact-brief-session">
         <span className="compact-brief-session-label">Session</span>
-        <span className="compact-brief-session-value">{sessionLabel}</span>
+        <span className="compact-brief-session-value" suppressHydrationWarning>{sessionLabel}</span>
         <span className="compact-brief-session-divider">•</span>
-        <span className="compact-brief-session-value">{updateStamp}</span>
+        <span className="compact-brief-session-value" suppressHydrationWarning>{updateStamp}</span>
         <span className="compact-brief-session-divider">•</span>
         <span className="compact-brief-session-value">{toSentence(profile.strategy)} style</span>
       </div>
 
       <div className="compact-brief-since">
         <span className="signal-dot brief-signal-dot" aria-hidden="true" />
-        <span>{sinceLastVisit}</span>
+        <span suppressHydrationWarning>{sinceLastVisit}</span>
       </div>
 
       <div className={`live-intelligence-strip tone-${liveStatus.tone} ${liveStatus.justChanged ? 'is-updating' : ''}`}>
