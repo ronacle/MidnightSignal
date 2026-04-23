@@ -9,6 +9,13 @@ const SNAPSHOT_STORAGE_KEY = 'midnight-signal-last-top-signal';
 const USER_BIAS_STORAGE_KEY = 'midnight-signal-user-bias';
 const PLAN_STORAGE_KEY = 'midnight-signal-plan';
 
+function getSessionMemoryKey(prefix, state = {}) {
+  const timeframe = String(state?.timeframe || '1H').toUpperCase();
+  const strategy = String(state?.strategy || 'swing').toLowerCase();
+  const mode = String(state?.mode || 'beginner').toLowerCase();
+  return `${prefix}-${timeframe}-${strategy}-${mode}`;
+}
+
 function UpgradeModal({ open, onClose }) {
   if (!open) return null;
 
@@ -63,6 +70,7 @@ export default function LeadSignalPanel({
   forwardScorecard = null,
   adaptiveSummary = [],
   decisionLayer = null,
+  onOpenSessionSettings = null,
 }) {
   const [expanded, setExpanded] = useState(false);
   const [sessionState, setSessionState] = useState(state || {});
@@ -71,6 +79,11 @@ export default function LeadSignalPanel({
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [planTier, setPlanTier] = useState(state?.planTier || 'basic');
   const breakdownRef = useRef(null);
+
+  const sessionMemoryKeys = useMemo(() => ({
+    visit: getSessionMemoryKey(VISIT_STORAGE_KEY, state),
+    snapshot: getSessionMemoryKey(SNAPSHOT_STORAGE_KEY, state),
+  }), [state?.timeframe, state?.strategy, state?.mode]);
 
   const awarenessState = useMemo(() => {
     return {
@@ -85,8 +98,8 @@ export default function LeadSignalPanel({
     if (typeof window === 'undefined') return;
 
     try {
-      const storedVisit = window.localStorage.getItem(VISIT_STORAGE_KEY);
-      const storedSnapshot = window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
+      const storedVisit = window.localStorage.getItem(sessionMemoryKeys.visit) || window.localStorage.getItem(VISIT_STORAGE_KEY);
+      const storedSnapshot = window.localStorage.getItem(sessionMemoryKeys.snapshot) || window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
       const storedBias = window.localStorage.getItem(USER_BIAS_STORAGE_KEY);
       const storedPlan = window.localStorage.getItem(PLAN_STORAGE_KEY);
       const resolvedPlan = state?.planTier || storedPlan || 'basic';
@@ -103,7 +116,7 @@ export default function LeadSignalPanel({
     } catch {
       setSessionState((current) => ({ ...(current || {}), ...(state || {}) }));
     }
-  }, [state]);
+  }, [state, sessionMemoryKeys]);
 
   useEffect(() => {
     setPlanTier(state?.planTier || 'basic');
@@ -122,25 +135,28 @@ export default function LeadSignalPanel({
     };
 
     try {
-      const existingVisit = window.localStorage.getItem(VISIT_STORAGE_KEY);
-      const existingSnapshotRaw = window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
+      const existingVisit = window.localStorage.getItem(sessionMemoryKeys.visit) || window.localStorage.getItem(VISIT_STORAGE_KEY);
+      const existingSnapshotRaw = window.localStorage.getItem(sessionMemoryKeys.snapshot) || window.localStorage.getItem(SNAPSHOT_STORAGE_KEY);
       const existingSnapshot = existingSnapshotRaw ? JSON.parse(existingSnapshotRaw) : null;
       const existingAgeMs = existingSnapshot?.timestamp ? now - new Date(existingSnapshot.timestamp).getTime() : null;
       const canRollForwardSnapshot = !Number.isFinite(existingAgeMs) || existingAgeMs > 1000 * 60 * 2;
 
       if (canRollForwardSnapshot) {
+        window.localStorage.setItem(sessionMemoryKeys.snapshot, JSON.stringify(snapshot));
         window.localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot));
       }
 
       if (!existingVisit || canRollForwardSnapshot) {
-        window.localStorage.setItem(VISIT_STORAGE_KEY, new Date(now).toISOString());
+        const visitStamp = new Date(now).toISOString();
+        window.localStorage.setItem(sessionMemoryKeys.visit, visitStamp);
+        window.localStorage.setItem(VISIT_STORAGE_KEY, visitStamp);
       }
 
       window.localStorage.setItem(PLAN_STORAGE_KEY, planTier);
     } catch {
       // no-op
     }
-  }, [asset, regimeSummary, planTier]);
+  }, [asset, regimeSummary, planTier, sessionMemoryKeys]);
 
   useEffect(() => {
     if (!expanded || !breakdownRef.current || typeof window === 'undefined') return;
@@ -181,6 +197,7 @@ export default function LeadSignalPanel({
           decisionLayer={decisionLayer}
           state={awarenessState}
           forwardScorecard={forwardScorecard}
+          onOpenSessionSettings={onOpenSessionSettings}
         />
 
         <div className="lead-signal-actions">

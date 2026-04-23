@@ -53,6 +53,20 @@ const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v2';
 const COLLAPSIBLE_PANELS_KEY = 'midnight-signal-collapsible-panels-v2';
 const DEFAULT_PANEL_STATE = { sinceLastVisit: true, marketScan: true, signalContext: false };
 
+function getSessionSnapshotStorageKey(state = {}) {
+  const timeframe = String(state?.timeframe || '1H').toUpperCase();
+  const strategy = String(state?.strategy || 'swing').toLowerCase();
+  const mode = String(state?.mode || 'beginner').toLowerCase();
+  return `${SESSION_SNAPSHOT_KEY}-${timeframe}-${strategy}-${mode}`;
+}
+
+function getLastVisitStorageKey(state = {}) {
+  const timeframe = String(state?.timeframe || '1H').toUpperCase();
+  const strategy = String(state?.strategy || 'swing').toLowerCase();
+  const mode = String(state?.mode || 'beginner').toLowerCase();
+  return `midnight-signal-last-visit-at-${timeframe}-${strategy}-${mode}`;
+}
+
 function normalizeSignalLabel(label = '') {
   return String(label || '')
     .replace(/\s+/g, ' ')
@@ -715,8 +729,10 @@ useEffect(() => {
       .slice(0, 2);
   }, [rankedAssets, state?.watchlist]);
 
+  const sessionSnapshotStorageKey = useMemo(() => getSessionSnapshotStorageKey(state), [state?.timeframe, state?.strategy, state?.mode]);
+  const lastVisitStorageKey = useMemo(() => getLastVisitStorageKey(state), [state?.timeframe, state?.strategy, state?.mode]);
 
-const currentSessionSnapshot = useMemo(
+  const currentSessionSnapshot = useMemo(
   () => createSessionSnapshot({
     topSignal,
     rankedAssets,
@@ -956,28 +972,31 @@ const sinceLastVisitSummary = useMemo(() => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      setLastVisitAt(window.localStorage.getItem('midnight-signal-last-visit-at'));
-      const snapshotRaw = window.localStorage.getItem(SESSION_SNAPSHOT_KEY) || window.localStorage.getItem('midnight-signal-session-snapshot-v1');
+      setLastVisitAt(window.localStorage.getItem(lastVisitStorageKey) || window.localStorage.getItem('midnight-signal-last-visit-at'));
+      const snapshotRaw = window.localStorage.getItem(sessionSnapshotStorageKey) || window.localStorage.getItem(SESSION_SNAPSHOT_KEY) || window.localStorage.getItem('midnight-signal-session-snapshot-v1');
       if (snapshotRaw) setPreviousSessionSnapshot(JSON.parse(snapshotRaw));
     } catch {
       setLastVisitAt(null);
       setPreviousSessionSnapshot(null);
     }
-  }, []);
+  }, [lastVisitStorageKey, sessionSnapshotStorageKey]);
 
   useEffect(() => {
     if (!marketReady || typeof window === 'undefined' || !currentSessionSnapshot) return;
     try {
       const stamp = new Date().toISOString();
+      window.localStorage.setItem(lastVisitStorageKey, stamp);
       window.localStorage.setItem('midnight-signal-last-visit-at', stamp);
-      window.localStorage.setItem(SESSION_SNAPSHOT_KEY, JSON.stringify({
+      const nextSnapshot = JSON.stringify({
         ...currentSessionSnapshot,
         capturedAt: stamp,
-      }));
+      });
+      window.localStorage.setItem(sessionSnapshotStorageKey, nextSnapshot);
+      window.localStorage.setItem(SESSION_SNAPSHOT_KEY, nextSnapshot);
     } catch {
       // no-op
     }
-  }, [marketReady, currentSessionSnapshot, topSignal?.symbol, topSignal?.conviction]);
+  }, [marketReady, currentSessionSnapshot, topSignal?.symbol, topSignal?.conviction, lastVisitStorageKey, sessionSnapshotStorageKey]);
 
 
   function dismissPriorityAlert(alertId) {
@@ -1337,6 +1356,7 @@ function handleOnboardingComplete(payload) {
                 forwardScorecard={forwardScorecard}
                 adaptiveSummary={adaptiveSummary}
                 decisionLayer={decisionLayer}
+                onOpenSessionSettings={() => setControlOpen(true)}
               />
             </section>
 
@@ -1535,7 +1555,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v12.0.4 · board spacing + card rhythm polish · source: {marketSource}
+          Build v12.3.2 · session controls clarity + memory accuracy · source: {marketSource}
         </div>
       </div>
 

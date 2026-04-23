@@ -38,8 +38,8 @@ function getConfidenceDirectionLabel(confidenceState = 'Stable') {
   return '→ Steady';
 }
 
-function getSessionLabel() {
-  return 'Current session';
+function getSessionLabel(timeframe = '1H', strategy = 'swing') {
+  return `${String(timeframe || '1H').toUpperCase()} · ${toSentence(strategy)}`;
 }
 
 function getUserProfile(state) {
@@ -547,6 +547,7 @@ export default function TonightBrief({
   decisionLayer = null,
   state = null,
   forwardScorecard = null,
+  onOpenSessionSettings = null,
 }) {
   if (!asset) return null;
 
@@ -586,7 +587,7 @@ export default function TonightBrief({
   });
   const performanceInsight = getPerformanceInsight(forwardScorecard, state);
   const pulseEnabled = Boolean(state?.livePulseEnabled);
-  const sessionLabel = getSessionLabel();
+  const sessionLabel = getSessionLabel(timeframe, profile.strategy);
   const updateStamp = formatUpdateStamp(asset?.lastUpdated || state?.marketUpdatedAt || null);
   const convictionRow = getConvictionRow(asset, state, confidenceState);
   const planSummary = getNarrativePlanSummary(tonightPlan, profile);
@@ -623,12 +624,18 @@ export default function TonightBrief({
       </div>
 
       <div className="compact-brief-session">
-        <span className="compact-brief-session-label">Session</span>
-        <span className="compact-brief-session-value" suppressHydrationWarning>{sessionLabel}</span>
-        <span className="compact-brief-session-divider">•</span>
-        <span className="compact-brief-session-value" suppressHydrationWarning>{updateStamp}</span>
-        <span className="compact-brief-session-divider">•</span>
-        <span className="compact-brief-session-value">{toSentence(profile.strategy)} style</span>
+        <span className="compact-brief-session-label">Session controls</span>
+        <button
+          type="button"
+          className="compact-brief-session-link"
+          onClick={() => onOpenSessionSettings?.()}
+          aria-label="Edit session settings"
+        >
+          <span className="compact-brief-session-value">{sessionLabel}</span>
+          <span className="compact-brief-session-divider">•</span>
+          <span className="compact-brief-session-value" suppressHydrationWarning>{updateStamp}</span>
+          <span className="compact-brief-session-edit">Edit</span>
+        </button>
       </div>
 
       <div className="compact-brief-since">

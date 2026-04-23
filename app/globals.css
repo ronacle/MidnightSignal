@@ -5702,3 +5702,45 @@ html {
     transform: translateX(-50%) scale(1.03);
   }
 }
+
+
+/* v12.3.2 session controls clarity + memory accuracy */
+.compact-brief-session {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.compact-brief-session-link {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.compact-brief-session-link:hover .compact-brief-session-edit,
+.compact-brief-session-link:focus-visible .compact-brief-session-edit {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.compact-brief-session-link:focus-visible {
+  outline: 2px solid rgba(124, 140, 255, 0.5);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.compact-brief-session-edit {
+  margin-left: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.82;
+}
