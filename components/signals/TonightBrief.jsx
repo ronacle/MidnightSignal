@@ -760,6 +760,7 @@ export default function TonightBrief({
           </div>
         )}
       </div>
+    </div>
 
     </section>
   );
