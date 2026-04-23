@@ -38,7 +38,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
   }
 
   return (
-    <aside className={`panel stack watchlist-rail compact-watchlist-panel ${compact ? 'is-compact' : ''} ${sticky ? 'is-sticky-floating' : ''}`}>
+    <aside className={`panel stack watchlist-rail compact-watchlist-panel ${compact ? 'is-compact' : ''} ${sticky ? 'is-sticky-floating' : ''} ${state?.livePulseEnabled ? 'watchlist-live' : ''}`}>
       <div className="row space-between">
         <div>
           <h2 className="section-title compact-title">{compact ? 'Quick Watchlist' : 'Watchlist'}</h2>
@@ -77,7 +77,7 @@ export default function WatchlistPanel({ state, setState, onAssetOpen, assets = 
           };
 
           return (
-            <div className={`watchlist-rail-card ${compact ? 'is-compact' : ''}`} key={symbol}>
+            <div className={`watchlist-rail-card ${compact ? 'is-compact' : ''} ${state?.livePulseEnabled ? 'is-live' : ''} ${state?.selectedAsset === symbol ? 'is-focused' : ''}`} key={symbol}>
               <div className="watchlist-rail-top">
                 <div className="watchlist-rail-identity">
                   <span className="watchlist-rail-symbol">{asset.symbol}</span>

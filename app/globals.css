@@ -5010,3 +5010,130 @@ html {
     gap: 18px;
   }
 }
+
+
+/* v12.0.6 liveliness + pulse feedback */
+@keyframes ms-breathe-card {
+  0%, 100% { transform: translateY(0); box-shadow: 0 16px 34px rgba(0,0,0,0.18), 0 0 0 rgba(107,197,255,0); }
+  50% { transform: translateY(-1px); box-shadow: 0 18px 38px rgba(0,0,0,0.22), 0 0 28px rgba(107,197,255,0.08); }
+}
+
+@keyframes ms-scanline {
+  0% { background-position: -220% 0; }
+  100% { background-position: 220% 0; }
+}
+
+@keyframes ms-focused-pop {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-1px) scale(1.01); }
+}
+
+.top-signal-motion {
+  overflow: hidden;
+}
+
+.top-signal-motion::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(107, 197, 255, 0.06), transparent);
+  background-size: 180% 100%;
+  animation: ms-scanline 7.2s linear infinite;
+  opacity: 0.45;
+}
+
+.top-signal-motion .list-item,
+.top-signal-motion .decision-card-premium {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.top-signal-motion .list-item:hover,
+.top-signal-motion .decision-card-premium:hover {
+  transform: translateY(-2px);
+  border-color: rgba(107, 197, 255, 0.26);
+  box-shadow: 0 18px 36px rgba(0,0,0,0.20), 0 0 26px rgba(107, 197, 255, 0.09);
+}
+
+.top-signal-strong {
+  box-shadow: 0 18px 44px rgba(0,0,0,0.28), 0 0 34px rgba(107, 197, 255, 0.08);
+}
+
+.top-signal-strong .signal-price {
+  text-shadow: 0 0 18px rgba(107, 197, 255, 0.22);
+}
+
+.decision-card-premium {
+  position: relative;
+  overflow: hidden;
+}
+
+.decision-card-premium::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(107, 197, 255, 0.0), rgba(107, 197, 255, 0.48), rgba(107, 197, 255, 0.0));
+  opacity: 0.7;
+}
+
+.watchlist-live .watchlist-rail-card,
+.top20-card.is-live-scan {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.watchlist-live .watchlist-rail-card:hover,
+.top20-card.is-live-scan:hover {
+  transform: translateY(-2px);
+  border-color: rgba(107, 197, 255, 0.24);
+  background: rgba(255,255,255,0.04);
+}
+
+.watchlist-live .watchlist-rail-card.is-focused {
+  animation: ms-focused-pop 2.6s ease-in-out infinite;
+  border-color: rgba(107, 197, 255, 0.30);
+  box-shadow: 0 16px 32px rgba(0,0,0,0.18), 0 0 24px rgba(107, 197, 255, 0.10);
+}
+
+.watchlist-live .watchlist-rail-symbol,
+.top20-card.is-live-scan .asset-name {
+  transition: text-shadow 180ms ease, color 180ms ease;
+}
+
+.watchlist-live .watchlist-rail-card.is-focused .watchlist-rail-symbol,
+.top20-card.is-scan-lead .asset-name {
+  text-shadow: 0 0 18px rgba(107, 197, 255, 0.18);
+}
+
+.top20-card.is-scan-lead.is-live-scan {
+  animation: ms-breathe-card 3.8s ease-in-out infinite;
+  border-color: rgba(107, 197, 255, 0.18);
+}
+
+.top20-card.active {
+  box-shadow: 0 18px 36px rgba(0,0,0,0.22), 0 0 24px rgba(107, 197, 255, 0.12);
+}
+
+.badge,
+.rail-icon-action,
+.ghost-button,
+.button {
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.rail-icon-action:hover,
+.button:hover,
+.ghost-button:hover {
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-signal-motion::after,
+  .watchlist-live .watchlist-rail-card.is-focused,
+  .top20-card.is-scan-lead.is-live-scan {
+    animation: none !important;
+  }
+}
