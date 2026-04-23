@@ -629,7 +629,7 @@ export default function TonightBrief({
           <div className="live-intelligence-strip-text">{liveStatus.explanation}</div>
         </div>
         <div className="live-intelligence-strip-side">
-          <span className={`badge live-intelligence-status tone-${liveStatus.tone}`}>{liveStatus.justChanged ? 'Just changed' : 'Watching'}</span>
+          <span className={`badge live-intelligence-status tone-${liveStatus.tone}`}>{liveStatus.freshness}</span>
           <div className="live-intelligence-strip-cue">{liveStatus.cue}</div>
         </div>
       </div>
