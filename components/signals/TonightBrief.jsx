@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import { formatPct, formatPrice } from '@/lib/utils';
 import { buildLeadLiveIntelligence } from '@/lib/live-intelligence';
+import { getConvictionComparison, getConvictionPointLabel } from '@/lib/conviction-intelligence';
 
 function toSentence(value) {
   if (!value) return '';
@@ -256,35 +257,35 @@ function getSinceLastVisit(asset, state) {
   const snapshot = state?.lastTopSignalSnapshot;
   const lastViewed = state?.lastViewedAt ? formatRelative(state.lastViewedAt) : 'this session';
   const current = asset?.symbol;
-  const currentScoreRaw = Number(asset?.signalScore ?? asset?.conviction);
-  const previousScoreRaw = Number(snapshot?.signalScore);
-  const currentScore = Number.isFinite(currentScoreRaw) ? currentScoreRaw : null;
-  const previousScore = Number.isFinite(previousScoreRaw) ? previousScoreRaw : null;
-  const snapshotAgeMs = snapshot?.timestamp ? Date.now() - new Date(snapshot.timestamp).getTime() : null;
-  const snapshotIsFresh = Number.isFinite(snapshotAgeMs) && snapshotAgeMs >= 0 && snapshotAgeMs < 1000 * 60 * 15;
+  const comparison = getConvictionComparison({
+    currentSymbol: current,
+    previousSymbol: snapshot?.symbol,
+    currentScore: asset?.signalScore ?? asset?.conviction,
+    previousScore: snapshot?.signalScore ?? snapshot?.conviction,
+    currentCapturedAt: asset?.lastUpdated,
+    previousCapturedAt: snapshot?.timestamp,
+  });
 
   if (!snapshot?.symbol || !current) {
     return `Since your last visit · first tracked session on this device · viewed ${lastViewed}`;
   }
 
-  if (snapshot.symbol !== current) {
+  if (comparison.mode === 'rotation') {
     return `Since your last visit · leadership rotated ${snapshot.symbol} → ${current} · viewed ${lastViewed}`;
   }
 
-  if (currentScore === null || previousScore === null || snapshotIsFresh) {
-    return `Since your last visit · ${current} remains in front with a steady read · viewed ${lastViewed}`;
+  if (comparison.mode === 'improving') {
+    const pointLabel = getConvictionPointLabel(comparison);
+    return `Since your last visit · ${current} stayed in front and conviction is improving${pointLabel ? ` (${pointLabel})` : ''} · viewed ${lastViewed}`;
   }
 
-  const delta = currentScore - previousScore;
-  const absDelta = Math.abs(delta);
-
-  if (absDelta >= 3 && absDelta <= 25) {
-    const direction = delta > 0 ? 'conviction increased' : 'conviction softened';
-    return `Since your last visit · ${current} stayed in front and ${direction} by ${absDelta} pts · viewed ${lastViewed}`;
+  if (comparison.mode === 'fading') {
+    const pointLabel = getConvictionPointLabel(comparison);
+    return `Since your last visit · ${current} stayed in front but conviction is softening${pointLabel ? ` (${pointLabel})` : ''} · viewed ${lastViewed}`;
   }
 
-  if (absDelta > 25) {
-    return `Since your last visit · ${current} stayed in front, but the prior conviction read was too far apart for a clean point comparison · viewed ${lastViewed}`;
+  if (comparison.mode === 'too-far-apart') {
+    return `Since your last visit · ${current} stayed in front, but the prior read is too far apart for a clean point comparison · viewed ${lastViewed}`;
   }
 
   return `Since your last visit · ${current} remains in front with a steady read · viewed ${lastViewed}`;
@@ -293,18 +294,27 @@ function getSinceLastVisit(asset, state) {
 function getSignalAlerts(asset, regimeSummary, state) {
   const alerts = [];
   const snapshot = state?.lastTopSignalSnapshot;
-  const currentScore = Number(asset?.signalScore ?? asset?.conviction ?? 0);
-  const previousScore = Number(snapshot?.signalScore ?? 0);
   const currentRegime = regimeSummary?.regime || asset?.marketRegime || null;
   const previousRegime = snapshot?.regime || null;
+  const comparison = getConvictionComparison({
+    currentSymbol: asset?.symbol,
+    previousSymbol: snapshot?.symbol,
+    currentScore: asset?.signalScore ?? asset?.conviction,
+    previousScore: snapshot?.signalScore ?? snapshot?.conviction,
+    currentCapturedAt: asset?.lastUpdated,
+    previousCapturedAt: snapshot?.timestamp,
+  });
 
-  if (snapshot?.symbol && snapshot.symbol !== asset?.symbol) {
+  if (comparison.mode === 'rotation') {
     alerts.push(`🔔 ${asset.symbol} took over from ${snapshot.symbol} as tonight's lead signal`);
   }
 
-  if (snapshot?.symbol === asset?.symbol && Number.isFinite(currentScore) && Number.isFinite(previousScore) && Math.abs(currentScore - previousScore) >= 4) {
-    const delta = currentScore - previousScore;
-    alerts.push(`🔔 Conviction ${delta > 0 ? 'improved' : 'softened'} by ${Math.abs(delta)} pts`);
+  if (comparison.mode === 'improving') {
+    const pointLabel = getConvictionPointLabel(comparison);
+    alerts.push(`🔔 Conviction improving${pointLabel ? ` (${pointLabel})` : ''}`);
+  } else if (comparison.mode === 'fading') {
+    const pointLabel = getConvictionPointLabel(comparison);
+    alerts.push(`🔔 Conviction fading${pointLabel ? ` (${pointLabel})` : ''}`);
   }
 
   if (previousRegime && currentRegime && previousRegime !== currentRegime) {
@@ -760,7 +770,6 @@ export default function TonightBrief({
           </div>
         )}
       </div>
-    </div>
 
     </section>
   );

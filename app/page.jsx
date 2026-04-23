@@ -20,6 +20,7 @@ import { shouldRefreshEntitlement } from '@/lib/entitlements';
 import { rankAssets, buildSignalSnapshot, detectMarketRegime } from '@/lib/signal-engine';
 import { appendSignalSnapshot, buildValidationSummary, readSignalHistory } from '@/lib/signal-history';
 import { buildSignalContext } from '@/lib/news-context';
+import { getConvictionComparison, getConvictionPointLabel } from '@/lib/conviction-intelligence';
 import { applyModePreset, deriveExperienceProfile, normalizeIntent, normalizeUserType } from '@/lib/mode-engine';
 import {
   buildForwardScorecard,
@@ -56,6 +57,22 @@ function normalizeSignalLabel(label = '') {
   return String(label || '')
     .replace(/\s+/g, ' ')
     .trim() || 'Mixed posture';
+}
+
+function getSessionConvictionSnapshot(snapshot = null, asset = null) {
+  if (!asset) return { symbol: '', conviction: null, capturedAt: snapshot?.capturedAt || null };
+  const watchAsset = (snapshot?.watchlist || []).find((item) => item.symbol === asset.symbol);
+  const matched = snapshot?.topSignal?.symbol === asset.symbol
+    ? snapshot.topSignal
+    : snapshot?.focusedAsset?.symbol === asset.symbol
+      ? snapshot.focusedAsset
+      : watchAsset || null;
+
+  return {
+    symbol: asset.symbol,
+    conviction: Number(matched?.conviction),
+    capturedAt: snapshot?.capturedAt || null,
+  };
 }
 
 function createSessionSnapshot({ topSignal, rankedAssets = [], watchlist = [], selectedAsset = 'BTC', regimeSummary, marketUpdatedAt }) {
@@ -114,12 +131,23 @@ function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
     highlights.push(`Top signal changed from ${previousTop.symbol} to ${currentTop.symbol}.`);
   }
 
-  if (typeof previousTop?.conviction === 'number' && typeof currentTop?.conviction === 'number') {
-    const diff = Math.round(currentTop.conviction - previousTop.conviction);
-    if (Math.abs(diff) >= 3) {
-      const verb = diff > 0 ? 'improved' : 'cooled';
-      highlights.push(`${currentTop.symbol} conviction ${verb} from ${previousTop.conviction}% to ${currentTop.conviction}%.`);
-    }
+  const topComparison = getConvictionComparison({
+    currentSymbol: currentTop?.symbol,
+    previousSymbol: previousTop?.symbol,
+    currentScore: currentTop?.conviction,
+    previousScore: previousTop?.conviction,
+    currentCapturedAt: currentSnapshot?.capturedAt,
+    previousCapturedAt: previousSnapshot?.capturedAt,
+  });
+
+  if (topComparison.mode === 'improving') {
+    const pointLabel = getConvictionPointLabel(topComparison);
+    highlights.push(`${currentTop.symbol} stayed in front and conviction is improving${pointLabel ? ` (${pointLabel})` : ''}.`);
+  } else if (topComparison.mode === 'fading') {
+    const pointLabel = getConvictionPointLabel(topComparison);
+    highlights.push(`${currentTop.symbol} stayed in front but conviction is fading${pointLabel ? ` (${pointLabel})` : ''}.`);
+  } else if (topComparison.mode === 'too-far-apart') {
+    highlights.push(`${currentTop.symbol} stayed in front, but the prior conviction read is too far apart for a clean point comparison.`);
   }
 
   if (previousTop?.signalLabel && currentTop?.signalLabel && previousTop.signalLabel !== currentTop.signalLabel) {
@@ -135,25 +163,34 @@ function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
   const deltas = currentWatchlist
     .map((asset) => {
       const previous = previousWatchMap.get(asset.symbol);
-      const delta = previous ? Math.round(asset.conviction - previous.conviction) : 0;
-      return { asset, previous, delta };
+      const comparison = getConvictionComparison({
+        currentSymbol: asset.symbol,
+        previousSymbol: previous?.symbol,
+        currentScore: asset.conviction,
+        previousScore: previous?.conviction,
+        currentCapturedAt: currentSnapshot?.capturedAt,
+        previousCapturedAt: previousSnapshot?.capturedAt,
+      });
+      return { asset, previous, delta: comparison.delta, comparison };
     })
     .filter((entry) => entry.previous);
 
   deltas
-    .filter((entry) => entry.delta >= 4)
+    .filter((entry) => entry.comparison.mode === 'improving')
     .sort((a, b) => b.delta - a.delta)
     .slice(0, 2)
     .forEach((entry) => {
-      improved.push(`${entry.asset.symbol} strengthened from ${entry.previous.conviction}% to ${entry.asset.conviction}%.`);
+      const pointLabel = getConvictionPointLabel(entry.comparison);
+      improved.push(`${entry.asset.symbol} is improving${pointLabel ? ` (${pointLabel})` : ''}.`);
     });
 
   deltas
-    .filter((entry) => entry.delta <= -4)
+    .filter((entry) => entry.comparison.mode === 'fading')
     .sort((a, b) => a.delta - b.delta)
     .slice(0, 2)
     .forEach((entry) => {
-      weakened.push(`${entry.asset.symbol} softened from ${entry.previous.conviction}% to ${entry.asset.conviction}%.`);
+      const pointLabel = getConvictionPointLabel(entry.comparison);
+      weakened.push(`${entry.asset.symbol} is fading${pointLabel ? ` (${pointLabel})` : ''}.`);
     });
 
   deltas
@@ -175,11 +212,11 @@ function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
 
   let takeaway = `Focus first on ${currentTop.symbol}: ${currentTop.signalLabel}.`;
   if (strongestImprover && biggestDrop) {
-    takeaway = `${strongestImprover.asset.symbol} improved most since your last visit, while ${biggestDrop.asset.symbol} weakened and deserves caution tonight.`;
+    takeaway = `${strongestImprover.asset.symbol} is building while ${biggestDrop.asset.symbol} is fading, so anchor tonight around the cleaner read.`;
   } else if (strongestImprover) {
-    takeaway = `${strongestImprover.asset.symbol} improved most since your last visit, so it deserves the first look tonight.`;
+    takeaway = `${strongestImprover.asset.symbol} is building fastest since your last visit, so it deserves the first look tonight.`;
   } else if (biggestDrop) {
-    takeaway = `${biggestDrop.asset.symbol} weakened most since your last visit, so treat rallies there with more caution tonight.`;
+    takeaway = `${biggestDrop.asset.symbol} has faded since your last visit, so treat rallies there with more patience tonight.`;
   } else if (previousTop?.symbol !== currentTop?.symbol) {
     takeaway = `Leadership changed from ${previousTop?.symbol || 'the prior leader'} to ${currentTop.symbol}, so re-anchor tonight around the new top signal.`;
   }
@@ -226,11 +263,26 @@ function buildFocusedAssetMemory(previousSnapshot, currentSnapshot, selectedAsse
   const chips = [`Last checked ${symbol}`];
   const currentConviction = Number(currentFocus.conviction || 0);
   const previousConviction = Number(previousFocus.conviction || 0);
-  const convictionDiff = Math.round(currentConviction - previousConviction);
+  const focusComparison = getConvictionComparison({
+    currentSymbol: currentFocus?.symbol,
+    previousSymbol: previousFocus?.symbol,
+    currentScore: currentConviction,
+    previousScore: previousConviction,
+    currentCapturedAt: currentSnapshot?.capturedAt,
+    previousCapturedAt: previousSnapshot?.capturedAt,
+  });
+  const convictionDiff = focusComparison.delta;
 
-  if (Math.abs(convictionDiff) >= 3) {
-    bullets.push(`Confidence ${convictionDiff > 0 ? 'rose' : 'slipped'} from ${previousConviction}% to ${currentConviction}%.`);
-    chips.push(`${convictionDiff > 0 ? '+' : ''}${convictionDiff} pts`);
+  if (focusComparison.mode === 'improving') {
+    bullets.push(`Confidence is improving on ${symbol}.`);
+    const pointLabel = getConvictionPointLabel(focusComparison);
+    if (pointLabel) chips.push(pointLabel);
+  } else if (focusComparison.mode === 'fading') {
+    bullets.push(`Confidence is fading on ${symbol}.`);
+    const pointLabel = getConvictionPointLabel(focusComparison);
+    if (pointLabel) chips.push(pointLabel);
+  } else if (focusComparison.mode === 'too-far-apart') {
+    bullets.push(`Confidence is still comparable in tone, but the prior read is too far apart for a clean point comparison.`);
   } else {
     bullets.push(`Confidence is holding near ${currentConviction}% with no major swing since your last check.`);
   }
@@ -259,10 +311,10 @@ function buildFocusedAssetMemory(previousSnapshot, currentSnapshot, selectedAsse
     bullets.push(`24h move ${changeDiff > 0 ? 'improved' : 'cooled'} by ${Math.abs(changeDiff).toFixed(1)} pts.`);
   }
 
-  const takeaway = convictionDiff >= 4
-    ? `${symbol} is gaining conviction faster than your last read, so it deserves an earlier check tonight.`
-    : convictionDiff <= -4
-      ? `${symbol} has softened since your last check, so treat it with more patience tonight.`
+  const takeaway = focusComparison.mode === 'improving'
+    ? `${symbol} is building conviction faster than your last clean read, so it deserves an earlier check tonight.`
+    : focusComparison.mode === 'fading'
+      ? `${symbol} has softened since your last clean read, so treat it with more patience tonight.`
       : `${symbol} is relatively steady, so use the broader board for the next change worth acting on.`;
 
   return {
@@ -279,9 +331,19 @@ function buildWatchlistFirstHighlights(currentSnapshot, previousSnapshot) {
     .map((asset) => {
       const prev = previousMap.get(asset.symbol);
       if (!prev) return { symbol: asset.symbol, text: `${asset.symbol} is newly being tracked in your watchlist.` , score: 2};
-      const diff = Math.round(Number(asset.conviction || 0) - Number(prev.conviction || 0));
-      if (Math.abs(diff) < 3 && asset.signalLabel === prev.signalLabel) return null;
-      if (Math.abs(diff) >= 3) return { symbol: asset.symbol, text: `${asset.symbol} ${diff > 0 ? 'strengthened' : 'softened'} ${Math.abs(diff)} pts.`, score: Math.abs(diff) };
+      const comparison = getConvictionComparison({
+        currentSymbol: asset.symbol,
+        previousSymbol: prev.symbol,
+        currentScore: asset.conviction,
+        previousScore: prev.conviction,
+        currentCapturedAt: currentSnapshot?.capturedAt,
+        previousCapturedAt: previousSnapshot?.capturedAt,
+      });
+      if (comparison.mode === 'steady' && asset.signalLabel === prev.signalLabel) return null;
+      if (comparison.mode === 'improving' || comparison.mode === 'fading') {
+        const pointLabel = getConvictionPointLabel(comparison);
+        return { symbol: asset.symbol, text: `${asset.symbol} is ${comparison.mode}${pointLabel ? ` (${pointLabel})` : ''}.`, score: comparison.absDelta || 3 };
+      }
       return { symbol: asset.symbol, text: `${asset.symbol} moved from ${prev.signalLabel} to ${asset.signalLabel}.`, score: 3 };
     })
     .filter(Boolean)
@@ -688,12 +750,23 @@ const sinceLastVisitSummary = useMemo(() => {
   const improvedCount = visitIntelligence.improved?.length || 0;
   const weakenedCount = visitIntelligence.weakened?.length || 0;
 
-  if (previous?.symbol && previous.symbol !== topSignal?.symbol) {
+  const leadComparison = getConvictionComparison({
+    currentSymbol: topSignal?.symbol,
+    previousSymbol: previous?.symbol,
+    currentScore: topSignal?.conviction,
+    previousScore: previous?.conviction,
+    currentCapturedAt: currentSessionSnapshot?.capturedAt,
+    previousCapturedAt: previousSessionSnapshot?.capturedAt,
+  });
+
+  if (leadComparison.mode === 'rotation') {
     fallbackBits.push(`${topSignal.symbol} replaced ${previous.symbol} at the top`);
-  } else if (typeof previous?.conviction === 'number' && typeof topSignal?.conviction === 'number') {
-    const delta = Math.round(topSignal.conviction - previous.conviction);
-    if (delta > 0) fallbackBits.push(`${topSignal.symbol} conviction improved ${delta} pts`);
-    else if (delta < 0) fallbackBits.push(`${topSignal.symbol} conviction softened ${Math.abs(delta)} pts`);
+  } else if (leadComparison.mode === 'improving') {
+    const pointLabel = getConvictionPointLabel(leadComparison);
+    fallbackBits.push(`${topSignal.symbol} conviction is improving${pointLabel ? ` (${pointLabel})` : ''}`);
+  } else if (leadComparison.mode === 'fading') {
+    const pointLabel = getConvictionPointLabel(leadComparison);
+    fallbackBits.push(`${topSignal.symbol} conviction is fading${pointLabel ? ` (${pointLabel})` : ''}`);
   }
 
   if (improvedCount || weakenedCount) {
@@ -715,7 +788,7 @@ const sinceLastVisitSummary = useMemo(() => {
     : fallbackBits.length
       ? fallbackBits.slice(0, 3)
       : [`${topSignal?.symbol || 'Lead signal'} stayed steady at ${topSignal?.conviction ?? '--'}% conviction`];
-}, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary, visitIntelligence, focusedAssetMemory]);
+}, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary, visitIntelligence, focusedAssetMemory, currentSessionSnapshot, previousSessionSnapshot]);
 
 
   const lastVisitLabel = useMemo(() => {
