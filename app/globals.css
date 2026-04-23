@@ -5328,3 +5328,75 @@ html {
     padding-top: 10px;
   }
 }
+
+
+/* v12.2.0 signal impact layer */
+.trust-impact-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+}
+
+.trust-impact-copy {
+  color: rgba(232, 238, 255, 0.9);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.trust-impact-pill,
+.trust-impact-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  line-height: 1;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  white-space: nowrap;
+}
+
+.trust-impact-pill strong {
+  font-size: 0.78rem;
+}
+
+.trust-impact-pill.worked,
+.trust-impact-tag.worked {
+  color: rgba(131, 239, 184, 0.98);
+  border-color: rgba(85, 206, 137, 0.35);
+  background: rgba(18, 68, 42, 0.28);
+}
+
+.trust-impact-pill.mixed,
+.trust-impact-tag.mixed {
+  color: rgba(255, 214, 124, 0.98);
+  border-color: rgba(255, 196, 85, 0.28);
+  background: rgba(78, 56, 15, 0.28);
+}
+
+.trust-impact-pill.failed,
+.trust-impact-tag.failed {
+  color: rgba(255, 157, 157, 0.98);
+  border-color: rgba(255, 111, 111, 0.28);
+  background: rgba(77, 20, 20, 0.28);
+}
+
+.trust-impact-pill.developing,
+.trust-impact-tag.developing {
+  color: rgba(198, 208, 255, 0.92);
+  border-color: rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.035);
+}
+
+@media (max-width: 980px) {
+  .trust-impact-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

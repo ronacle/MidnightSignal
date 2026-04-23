@@ -46,6 +46,19 @@ export default function TrustDashboardPanel({ mode = 'Beginner', forwardValidati
         </div>
       </div>
 
+      <div className="trust-impact-banner">
+        <div>
+          <div className="eyebrow">Impact summary</div>
+          <div className="trust-impact-copy">{dashboard.impactSummary}</div>
+        </div>
+        {dashboard.mostMeaningful ? (
+          <div className={`trust-impact-pill ${dashboard.mostMeaningful.impact?.tone || 'developing'}`}>
+            <span>{dashboard.mostMeaningful.symbol}</span>
+            <strong>{dashboard.mostMeaningful.impact?.label || 'Developing impact'}</strong>
+          </div>
+        ) : null}
+      </div>
+
       <div className="trust-soft-divider" aria-hidden="true" />
 
       <div className="trust-stack">
@@ -62,6 +75,7 @@ export default function TrustDashboardPanel({ mode = 'Beginner', forwardValidati
                   <span className={`trust-return-pill ${entry.outcomeTone}`}>
                     {entry.latestHorizon === 'developing' ? 'Early read' : `${entry.latestHorizon} ${formatSignedPct(entry.latestReturnPct)}`}
                   </span>
+                  <span className={`trust-impact-tag ${entry.impact?.tone || 'developing'}`}>{entry.impact?.label || 'Developing impact'}</span>
                   <span className="trust-regime">{entry.regime}</span>
                 </div>
               </div>
@@ -79,6 +93,7 @@ export default function TrustDashboardPanel({ mode = 'Beginner', forwardValidati
                 </div>
                 <div className="trust-list-meta">
                   <span className="trust-leader-return">{formatSignedPct(entry.avgReturn)} avg</span>
+                  <span className={`trust-impact-tag ${entry.avgImpact >= 52 ? 'worked' : entry.avgImpact >= 26 ? 'mixed' : 'developing'}`}>{entry.strongestImpact || 'Developing impact'}</span>
                   <span className="trust-regime">{entry.samples} {entry.samples === 1 ? 'sample' : 'samples'}</span>
                 </div>
               </div>
