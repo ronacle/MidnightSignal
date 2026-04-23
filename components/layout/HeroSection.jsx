@@ -2,6 +2,7 @@
 
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
+import { APP_VERSION } from '@/lib/version';
 import { deriveExperienceProfile } from '@/lib/mode-engine';
 
 export default function HeroSection({ selected, user, status, syncing, lastSyncedAt, watchlistCount, onOpenControls, state }) {
@@ -24,7 +25,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
         <div className="brand-row brand-row-large premium-brand-row">
           <div className="beacon-wrap premium-beacon-wrap"><BeaconLogo size={118} animated={Boolean(state?.livePulseEnabled)} /></div>
           <div className="brand-copy">
-            <div className="eyebrow eyebrow-glow">Midnight Signal · v11.81.6</div>
+            <div className="eyebrow eyebrow-glow">Midnight Signal · v{APP_VERSION}</div>
             <h1>{experience.heroTitle}</h1>
             <p>Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.{` ${experience.heroSubtitle}`}</p>
             <div className="hero-support-copy"><p>{experience.heroSupport}</p><p>{experience.userType} mode with a {experience.intent === 'track' ? 'track signals' : experience.intent === 'alerts' ? 'get alerts' : 'learn'} focus is active.</p></div>
@@ -42,13 +43,13 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           <div className="hero-conversion-card trust-card premium-callout-card"><div className="eyebrow">Midnight method</div><ul className="hero-trust-list premium-trust-list">{experience.heroChecklist.map((item) => <li key={item}>{item}</li>)}</ul></div>
         </div>
       </div>
-      <div className="hero-stat-grid premium-stat-grid">
-        <div className="mini premium-mini accent-mini"><div className="eyebrow">Tonight’s lead</div><div className="value">{selected.symbol}</div><div className="muted small">{selected.name}</div></div>
-        <div className="mini premium-mini"><div className="eyebrow">Direction</div><div className="value sentiment-word">{selected.sentiment}</div><div className="muted small">{experience.userType === 'Long-term' ? 'Broader posture read' : 'Directional posture'}</div></div>
-        <div className="mini premium-mini"><div className="eyebrow">Conviction</div><div className="value">{selected.conviction}%</div><div className="muted small">{experience.userType === 'Beginner' ? 'Alignment of the setup' : experience.userType === 'Active trader' ? 'Tactical alignment now' : 'Trend quality alignment'}</div></div>
-        <div className="mini premium-mini sync-mini"><div className="eyebrow">Sync state</div><div className="value">{syncLabel}</div><div className="muted small">{syncDetail}</div><button className="ghost-button sync-inline-action" onClick={onOpenControls} type="button">{isLocalOnly ? 'Open setup' : 'Manage account'}</button></div>
-        <div className="mini premium-mini"><div className="eyebrow">Watchlist</div><div className="value">{watchlistCount}</div><div className="muted small">{experience.intent === 'alerts' ? 'Tracked alert candidates' : 'Tracked assets'}</div></div>
-        <div className="mini premium-mini onboarding-mini"><div className="eyebrow">Plan view</div><div className="value">{planTier === 'pro' ? 'Pro active' : 'Free plan'}</div><div className="muted small">{planTier === 'pro' ? 'Full breakdowns, validation, and forward tracking are unlocked.' : experience.intent === 'alerts' ? 'Free already supports board scan, watchlist, and alert setup. Pro adds deeper validation and forward tracking.' : "You can already use Tonight's Brief, board scan, watchlist, and alerts. Pro adds deeper validation and follow-through tools."}</div><button className="ghost-button sync-inline-action" onClick={onOpenControls} type="button">{planTier === 'pro' ? 'Manage billing' : 'See plan details'}</button></div>
+      <div className="hero-stat-grid premium-stat-grid layout-hierarchy-grid">
+        <div className="mini premium-mini accent-mini stat-card stat-lead"><div className="eyebrow">Tonight’s lead</div><div className="value">{selected.symbol}</div><div className="muted small">{selected.name}</div></div>
+        <div className="mini premium-mini stat-card stat-direction"><div className="eyebrow">Direction</div><div className="value sentiment-word">{selected.sentiment}</div><div className="muted small">{experience.userType === 'Long-term' ? 'Broader posture read' : 'Directional posture'}</div></div>
+        <div className="mini premium-mini stat-card stat-conviction"><div className="eyebrow">Conviction</div><div className="value">{selected.conviction}%</div><div className="muted small">{experience.userType === 'Beginner' ? 'Alignment of the setup' : experience.userType === 'Active trader' ? 'Tactical alignment now' : 'Trend quality alignment'}</div></div>
+        <div className="mini premium-mini stat-card stat-watchlist"><div className="eyebrow">Watchlist</div><div className="value">{watchlistCount}</div><div className="muted small">{experience.intent === 'alerts' ? 'Tracked alert candidates' : 'Tracked assets'}</div></div>
+        <div className="mini premium-mini sync-mini system-mini stat-card stat-sync"><div className="eyebrow">Sync state</div><div className="value">{syncLabel}</div><div className="muted small">{syncDetail}</div><button className="ghost-button sync-inline-action" onClick={onOpenControls} type="button">{isLocalOnly ? 'Open setup' : 'Manage account'}</button></div>
+        <div className="mini premium-mini onboarding-mini system-mini stat-card stat-plan"><div className="eyebrow">Plan view</div><div className="value">{planTier === 'pro' ? 'Pro active' : 'Free plan'}</div><div className="muted small">{planTier === 'pro' ? 'Full breakdowns, validation, and forward tracking are unlocked.' : experience.intent === 'alerts' ? 'Free already supports board scan, watchlist, and alert setup. Pro adds deeper validation and forward tracking.' : "You can already use Tonight's Brief, board scan, watchlist, and alerts. Pro adds deeper validation and follow-through tools."}</div><button className="ghost-button sync-inline-action" onClick={onOpenControls} type="button">{planTier === 'pro' ? 'Manage billing' : 'See plan details'}</button></div>
       </div>
     </section>
   );

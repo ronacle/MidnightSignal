@@ -1580,7 +1580,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v12.3.5 · signal reliability premium redesign · source: {marketSource}
+          Build v12.3.6 · layout hierarchy pass · source: {marketSource}
         </div>
       </div>
 
