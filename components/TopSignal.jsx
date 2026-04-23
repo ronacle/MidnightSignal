@@ -91,20 +91,41 @@ export default function TopSignal({
       </div>
 
       {decisionLayer ? (
-        <div className="decision-card">
-          <div className="row space-between">
+        <div className="decision-card decision-card-premium">
+          <div className="row space-between decision-card-topline">
             <div>
-              <div className="eyebrow">Decision layer</div>
+              <div className="eyebrow">Suggested posture</div>
               <div className="value">{decisionLayer.posture}</div>
+              <div className="muted small">{decisionLayer.supportingRead}</div>
             </div>
             <span className="badge">{asset.marketRegime || 'Mixed'} regime</span>
           </div>
-          <div className="muted">{beginner ? `This posture helps translate the signal into a simpler read: ${decisionLayer.posture}.` : decisionLayer.riskContext}</div>
-          <div className="notice small">{decisionLayer.bestFor}</div>
-          <div className="history-stack">
+
+          <div className="decision-card-grid">
+            <div className="decision-metric">
+              <span className="eyebrow">Confidence context</span>
+              <strong>{decisionLayer.confidenceContext}</strong>
+            </div>
+            <div className="decision-metric">
+              <span className="eyebrow">Bias</span>
+              <strong>{decisionLayer.actionBias}</strong>
+            </div>
+          </div>
+
+          <div className="notice small">{beginner ? decisionLayer.bestFor : decisionLayer.riskContext}</div>
+
+          {Array.isArray(decisionLayer.cues) && decisionLayer.cues.length ? (
+            <div className="decision-cues">
+              {decisionLayer.cues.map((item, index) => (
+                <div className="decision-cue" key={`${item}-${index}`}>→ {item}</div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="history-stack decision-change-stack">
             {decisionLayer.changeSummary.map((item, index) => (
               <div className="history-row" key={`${item}-${index}`}>
-                <span>Change</span>
+                <span>Shift</span>
                 <span>{item}</span>
               </div>
             ))}
