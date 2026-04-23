@@ -6178,3 +6178,15 @@ html {
 .tiny {
   font-size: 0.78rem;
 }
+
+/* v12.5.0 decision layer */
+.signal-narrative-card-decision { position: relative; overflow: hidden; }
+.signal-narrative-card-decision::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(135deg, rgba(123, 92, 255, 0.12), transparent 54%); opacity: 0.7; }
+.decision-action-badge { letter-spacing: 0.08em; font-weight: 800; border: 1px solid rgba(255,255,255,0.14); }
+.decision-action-badge.tone-lean, .decision-action-badge.tone-building { background: rgba(92, 217, 168, 0.13); color: #b9ffe2; border-color: rgba(92, 217, 168, 0.25); }
+.decision-action-badge.tone-wait { background: rgba(125, 170, 255, 0.12); color: #d7e5ff; border-color: rgba(125, 170, 255, 0.24); }
+.decision-action-badge.tone-reduce, .decision-action-badge.tone-avoid { background: rgba(255, 120, 120, 0.12); color: #ffd3d3; border-color: rgba(255, 120, 120, 0.25); }
+.signal-decision-context { margin-top: 0.35rem; }
+.signal-trigger-list { margin-top: 0.85rem; display: grid; gap: 0.35rem; }
+.signal-trigger-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(214, 224, 255, 0.58); font-weight: 800; }
+.signal-trigger-item { display: flex; gap: 0.45rem; align-items: flex-start; color: rgba(235, 240, 255, 0.88); font-size: 0.9rem; line-height: 1.35; }

@@ -362,6 +362,62 @@ function getNarrativePlanSummary(tonightPlan, profile) {
   return profile.isPro ? 'Stay patient and let the next move sharpen the read.' : 'Wait for clearer confirmation before committing harder.';
 }
 
+
+function getDecisionState(tonightPlan, confidenceState, asset) {
+  const mode = String(tonightPlan?.actionMode || 'Wait').toLowerCase();
+  const score = Number(asset?.signalScore ?? asset?.conviction ?? 50);
+
+  if (mode === 'attack' && score >= 70) {
+    return {
+      action: 'LEAN IN',
+      tone: 'lean',
+      rationale: 'Strength is present, but only while confirmation stays intact.',
+    };
+  }
+
+  if (mode === 'probe') {
+    return {
+      action: 'WAIT',
+      tone: confidenceState === 'Rising' ? 'building' : 'wait',
+      rationale: 'The setup is improving, but it still needs confirmation before leaning harder.',
+    };
+  }
+
+  if (mode === 'defend') {
+    return {
+      action: 'REDUCE',
+      tone: 'reduce',
+      rationale: 'Pressure is still unresolved, so risk control matters more than forcing the setup.',
+    };
+  }
+
+  if (score < 42) {
+    return {
+      action: 'AVOID',
+      tone: 'avoid',
+      rationale: 'The edge is too thin right now, so the better move is patience.',
+    };
+  }
+
+  return {
+    action: 'WAIT',
+    tone: 'wait',
+    rationale: 'Let the next move sharpen the read before committing harder.',
+  };
+}
+
+function getDecisionTriggers(watchTrigger, tonightPlan, asset) {
+  const sentiment = String(asset?.sentiment || 'neutral').toLowerCase();
+  const baseConfirm = watchTrigger?.text || tonightPlan?.focus || 'Cleaner confirmation on the next move.';
+  const invalidation = sentiment === 'bearish'
+    ? 'Strong reclaim weakens the defensive read.'
+    : sentiment === 'bullish'
+      ? 'Weak follow-through invalidates the setup.'
+      : 'Failed resolution keeps the read neutral.';
+
+  return [baseConfirm, invalidation];
+}
+
 function getTonightRead(asset, decisionLayer, regimeSummary, validationSummary, profile) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
   const regime = String(regimeSummary?.regime || '').toLowerCase();
@@ -730,6 +786,8 @@ export default function TonightBrief({
     fallbackState: confidenceState,
   });
   const planSummary = getNarrativePlanSummary(tonightPlan, profile);
+  const decisionState = getDecisionState(tonightPlan, confidenceState, asset);
+  const decisionTriggers = getDecisionTriggers(watchTrigger, tonightPlan, asset);
   const factorRows = getFactorRows(asset, profile.strategy);
   const factorSummary = getFactorSummary(factorRows, asset);
 
@@ -837,16 +895,25 @@ export default function TonightBrief({
             <div className="signal-narrative-card-title">{watchTrigger.text}</div>
             <div className="signal-narrative-card-text">{watchTrigger.note}</div>
           </div>
-          <div className="signal-narrative-card signal-narrative-card-plan">
+          <div className={`signal-narrative-card signal-narrative-card-decision tone-${decisionState.tone}`}>
             <div className="signal-narrative-card-headline">
-              <div className="eyebrow">Plan</div>
-              <span className={`badge compact-brief-plan-badge mode-${tonightPlan.actionMode.toLowerCase()}`}>{tonightPlan.actionMode}</span>
+              <div className="eyebrow">Decision</div>
+              <span className={`badge decision-action-badge tone-${decisionState.tone}`}>{decisionState.action}</span>
             </div>
-            <div className="signal-narrative-card-title">{planSummary}</div>
+            <div className="signal-narrative-card-title">{decisionState.rationale}</div>
+            <div className="signal-decision-context muted small">{planSummary}</div>
+            <div className="signal-trigger-list">
+              <div className="signal-trigger-label">Triggers</div>
+              {decisionTriggers.map((trigger) => (
+                <div className="signal-trigger-item" key={trigger}>
+                  <span aria-hidden="true">•</span>
+                  <span>{trigger}</span>
+                </div>
+              ))}
+            </div>
             <div className="signal-narrative-plan-pills">
               <span className="signal-narrative-pill"><strong><LearnLink term="Posture" onOpenLearning={onOpenLearning}>Posture</LearnLink></strong>{tonightPlan.posture}</span>
               <span className="signal-narrative-pill"><strong>Approach</strong>{tonightPlan.approach}</span>
-              <span className="signal-narrative-pill"><strong>Focus</strong>{tonightPlan.focus}</span>
             </div>
           </div>
         </div>
@@ -894,7 +961,7 @@ export default function TonightBrief({
         <details className="signal-drawer">
           <summary>
             <span>What matters next</span>
-            <span className="signal-drawer-meta">Execution cue</span>
+            <span className="signal-drawer-meta">Decision cue</span>
           </summary>
           <div className="signal-drawer-body">
             <p>{watchTrigger.text}</p>
