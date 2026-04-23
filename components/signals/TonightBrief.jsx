@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { formatPct, formatPrice } from '@/lib/utils';
 import { buildLeadLiveIntelligence } from '@/lib/live-intelligence';
 import { getConvictionComparison, getConvictionPointLabel } from '@/lib/conviction-intelligence';
@@ -161,12 +161,6 @@ function buildSignalIntelligence(asset, signalHistory = [], state = null, decisi
   return bullets.slice(0, 3);
 }
 
-function getSignalShiftTone(stateLabel = 'Stable', bullets = []) {
-  if (bullets.some((item) => item.includes('rotated'))) return 'shift';
-  if (stateLabel === 'Rising') return 'rising';
-  if (stateLabel === 'Weakening') return 'softening';
-  return 'steady';
-}
 
 function getConfidenceState(asset, validationSummary, state) {
   const snapshot = state?.lastTopSignalSnapshot;
@@ -177,6 +171,82 @@ function getConfidenceState(asset, validationSummary, state) {
   if (validation.includes('improv') || currentScore - previousScore >= 4) return 'Rising';
   if (validation.includes('weak') || previousScore - currentScore >= 4) return 'Weakening';
   return 'Stable';
+}
+
+function getConvictionRow(asset, state, confidenceState) {
+  const snapshot = state?.lastTopSignalSnapshot;
+  const comparison = getConvictionComparison({
+    currentSymbol: asset?.symbol,
+    previousSymbol: snapshot?.symbol,
+    currentScore: asset?.signalScore ?? asset?.conviction,
+    previousScore: snapshot?.signalScore ?? snapshot?.conviction,
+    currentCapturedAt: asset?.lastUpdated,
+    previousCapturedAt: snapshot?.timestamp,
+  });
+
+  const points = getConvictionPointLabel(comparison);
+
+  if (comparison.mode === 'rotation') {
+    return {
+      tone: 'shift',
+      label: 'Conviction rotated',
+      note: `${asset?.symbol || 'This asset'} took over from ${snapshot?.symbol || 'the prior leader'}, so treat this as a fresh read instead of a clean point comparison.`,
+    };
+  }
+
+  if (comparison.mode === 'improving') {
+    return {
+      tone: 'rising',
+      label: `Conviction building${points ? ` ${points}` : ''}`,
+      note: 'The read is gaining support without needing exaggerated point jumps.',
+    };
+  }
+
+  if (comparison.mode === 'fading') {
+    return {
+      tone: 'softening',
+      label: `Conviction easing${points ? ` ${points}` : ''}`,
+      note: 'The leader is still intact, but the setup needs fresh confirmation before leaning harder.',
+    };
+  }
+
+  if (comparison.mode === 'too-far-apart') {
+    return {
+      tone: 'steady',
+      label: 'Conviction reset',
+      note: 'The prior read is too far apart for a clean point comparison, so the app is favoring signal language over fake precision.',
+    };
+  }
+
+  if (confidenceState === 'Rising') {
+    return {
+      tone: 'rising',
+      label: 'Conviction improving',
+      note: 'The setup is leaning better, but it still wants the next move to confirm the read.',
+    };
+  }
+
+  if (confidenceState === 'Weakening') {
+    return {
+      tone: 'softening',
+      label: 'Conviction softening',
+      note: 'The posture is still usable, but the read is losing urgency rather than expanding.',
+    };
+  }
+
+  return {
+    tone: 'steady',
+    label: 'Conviction steady',
+    note: 'Nothing is breaking here, but the next move still matters more than the current print.',
+  };
+}
+
+function getNarrativePlanSummary(tonightPlan, profile) {
+  const mode = String(tonightPlan?.actionMode || 'Wait');
+  if (mode === 'Attack') return profile.isPro ? 'Lean with strength only while confirmation stays intact.' : 'Lean in only while strength stays confirmed.';
+  if (mode === 'Probe') return profile.isPro ? 'Treat this as a test position until conviction expands.' : 'Stay small until the market proves the setup deserves more trust.';
+  if (mode === 'Defend') return profile.isPro ? 'Protect capital first and let failed bounces prove otherwise.' : 'Risk control matters more than forcing a reversal here.';
+  return profile.isPro ? 'Stay patient and let the next move sharpen the read.' : 'Wait for clearer confirmation before committing harder.';
 }
 
 function getTonightRead(asset, decisionLayer, regimeSummary, validationSummary, profile) {
@@ -291,38 +361,6 @@ function getSinceLastVisit(asset, state) {
   return `Since your last visit · ${current} remains in front with a steady read · viewed ${lastViewed}`;
 }
 
-function getSignalAlerts(asset, regimeSummary, state) {
-  const alerts = [];
-  const snapshot = state?.lastTopSignalSnapshot;
-  const currentRegime = regimeSummary?.regime || asset?.marketRegime || null;
-  const previousRegime = snapshot?.regime || null;
-  const comparison = getConvictionComparison({
-    currentSymbol: asset?.symbol,
-    previousSymbol: snapshot?.symbol,
-    currentScore: asset?.signalScore ?? asset?.conviction,
-    previousScore: snapshot?.signalScore ?? snapshot?.conviction,
-    currentCapturedAt: asset?.lastUpdated,
-    previousCapturedAt: snapshot?.timestamp,
-  });
-
-  if (comparison.mode === 'rotation') {
-    alerts.push(`🔔 ${asset.symbol} took over from ${snapshot.symbol} as tonight's lead signal`);
-  }
-
-  if (comparison.mode === 'improving') {
-    const pointLabel = getConvictionPointLabel(comparison);
-    alerts.push(`🔔 Conviction improving${pointLabel ? ` (${pointLabel})` : ''}`);
-  } else if (comparison.mode === 'fading') {
-    const pointLabel = getConvictionPointLabel(comparison);
-    alerts.push(`🔔 Conviction fading${pointLabel ? ` (${pointLabel})` : ''}`);
-  }
-
-  if (previousRegime && currentRegime && previousRegime !== currentRegime) {
-    alerts.push(`🔔 Market tone shifted to ${toSentence(currentRegime)}`);
-  }
-
-  return alerts.slice(0, 2);
-}
 
 function getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers, profile) {
   const sentiment = String(asset?.sentiment || '').toLowerCase();
@@ -536,11 +574,9 @@ export default function TonightBrief({
   const whatChanged = getWhatChanged(asset, signalHistory, state?.lastTopSignalSnapshot, profile);
   const watchTrigger = getWatchTrigger(asset, validationSummary, regimeSummary, topDrivers, profile);
   const sinceLastVisit = getSinceLastVisit(asset, state);
-  const signalAlerts = getSignalAlerts(asset, regimeSummary, state);
   const tonightPlan = getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers, profile);
   const confidenceState = getConfidenceState(asset, validationSummary, state);
   const signalIntelligence = buildSignalIntelligence(asset, signalHistory, state, decisionLayer, watchTrigger);
-  const shiftTone = getSignalShiftTone(confidenceState, signalIntelligence);
   const liveStatus = buildLeadLiveIntelligence({
     asset,
     snapshot: state?.lastTopSignalSnapshot,
@@ -552,40 +588,11 @@ export default function TonightBrief({
   const pulseEnabled = Boolean(state?.livePulseEnabled);
   const sessionLabel = getSessionLabel();
   const updateStamp = formatUpdateStamp(asset?.lastUpdated || state?.marketUpdatedAt || null);
-  const confidenceDirection = getConfidenceDirectionLabel(confidenceState);
+  const convictionRow = getConvictionRow(asset, state, confidenceState);
+  const planSummary = getNarrativePlanSummary(tonightPlan, profile);
 
-  const briefRows = useMemo(() => {
-    const rows = [
-      {
-        key: 'read',
-        label: "Tonight's Read",
-        content: tonightRead,
-      },
-      {
-        key: 'why',
-        label: 'Why It Matters',
-        content: whyItMatters,
-      },
-      {
-        key: 'changed',
-        label: 'What Changed',
-        content: whatChanged,
-      },
-      {
-        key: 'trigger',
-        label: watchTrigger.label,
-        trigger: true,
-        text: watchTrigger.text,
-        note: watchTrigger.note,
-      },
-    ];
 
-    if (profile.isPro) {
-      return [rows[0], rows[3], rows[1], rows[2]];
-    }
 
-    return rows;
-  }, [tonightRead, whyItMatters, whatChanged, watchTrigger, profile.isPro]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !asset?.symbol) return;
@@ -643,7 +650,7 @@ export default function TonightBrief({
             24h {formatPct(asset.change24h || 0)}
           </span>
           <span className={`badge compact-confidence-badge state-${confidenceState.toLowerCase()} ${(confidenceState === 'Rising' || confidenceState === 'Weakening') ? 'is-pulsing' : ''}`}>
-            Confidence: {confidenceDirection}
+            Confidence: {getConfidenceDirectionLabel(confidenceState)}
           </span>
         </div>
         <p className="muted compact-brief-story top-signal-hero-story">
@@ -652,82 +659,91 @@ export default function TonightBrief({
       </div>
 
 
-      <div className={`live-intelligence-strip tone-${liveStatus.tone} ${liveStatus.justChanged ? 'is-updating' : ''}`}>
-        <div className="live-intelligence-strip-copy">
-          <div className="eyebrow">Live intelligence</div>
-          <div className="live-intelligence-strip-title">{liveStatus.status}</div>
-          <div className="live-intelligence-strip-text">{liveStatus.explanation}</div>
-        </div>
-        <div className="live-intelligence-strip-side">
-          <span className={`badge live-intelligence-status tone-${liveStatus.tone}`}>{liveStatus.freshness}</span>
-          <div className="live-intelligence-strip-cue">{liveStatus.cue}</div>
-        </div>
-      </div>
-
-      {signalAlerts.length ? (
-        <div className="signal-alerts">
-          {signalAlerts.map((alert) => (
-            <div className="signal-alert-chip" key={alert}>{alert}</div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="compact-brief-plan">
-        <div className="compact-brief-plan-header">
-          <div className="eyebrow">Tonight&apos;s Plan</div>
-          <span className={`badge compact-brief-plan-badge mode-${tonightPlan.actionMode.toLowerCase()}`}>{tonightPlan.actionMode}</span>
-        </div>
-        <div className="compact-brief-plan-grid">
-          <div className="compact-brief-plan-item">
-            <span className="compact-brief-plan-label">Posture</span>
-            <span className="compact-brief-plan-text">{tonightPlan.posture}</span>
-          </div>
-          <div className="compact-brief-plan-item">
-            <span className="compact-brief-plan-label">Approach</span>
-            <span className="compact-brief-plan-text">{tonightPlan.approach}</span>
-          </div>
-          <div className="compact-brief-plan-item">
-            <span className="compact-brief-plan-label">Focus</span>
-            <span className="compact-brief-plan-text">{tonightPlan.focus}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="compact-brief-main">
-      <div className={`compact-intelligence-panel compact-intelligence-panel-merged tone-${shiftTone} ${(shiftTone !== 'steady' || pulseEnabled) ? 'is-live' : ''}`}>
-        <div className="compact-intelligence-header compact-intelligence-header-merged">
+      <div className={`signal-narrative-shell tone-${convictionRow.tone} ${pulseEnabled ? 'is-live' : ''}`}>
+        <div className="signal-narrative-header">
           <div>
-            <div className="eyebrow">Why this signal is leading</div>
-            <div className="compact-intelligence-title">What to do, what changed, and what matters next</div>
+            <div className="eyebrow">Tonight&apos;s Read</div>
+            <div className="signal-narrative-title">{liveStatus.status}</div>
           </div>
-          <span className={`badge compact-intelligence-badge tone-${shiftTone}`}>{liveStatus.status}</span>
+          <span className={`badge signal-narrative-status tone-${liveStatus.tone}`}>{liveStatus.freshness}</span>
         </div>
-        <div className="compact-intelligence-list">
-          {signalIntelligence.map((item) => (
-            <div className="compact-intelligence-item" key={item}>
-              <span className="compact-intelligence-dot" aria-hidden="true" />
-              <span>{item}</span>
+
+        <div className="signal-narrative-lead">{tonightRead}</div>
+        <div className="signal-narrative-support">{liveStatus.explanation}</div>
+
+        <div className={`signal-conviction-row tone-${convictionRow.tone}`}>
+          <div className="signal-conviction-copy">
+            <span className="signal-conviction-icon" aria-hidden="true">🔔</span>
+            <div>
+              <div className="signal-conviction-label">{convictionRow.label}</div>
+              <div className="signal-conviction-note">{convictionRow.note}</div>
             </div>
-          ))}
+          </div>
+          <div className="signal-conviction-cue">{liveStatus.cue}</div>
         </div>
-        <div className="compact-brief-rows compact-brief-rows-merged">
-          {briefRows.map((row) => row.trigger ? (
-            <div className="compact-brief-row compact-brief-watch-row" key={row.key}>
-              <span className="compact-brief-label compact-brief-watch-label">{row.label}</span>
-              <span className="compact-brief-text compact-brief-watch-text">
-                <strong>{row.text}</strong>
-                <span className="compact-brief-watch-note">{row.note}</span>
-              </span>
+
+        <div className="signal-narrative-grid">
+          <div className="signal-narrative-card signal-narrative-card-watch">
+            <div className="eyebrow">What we&apos;re watching</div>
+            <div className="signal-narrative-card-title">{watchTrigger.text}</div>
+            <div className="signal-narrative-card-text">{watchTrigger.note}</div>
+          </div>
+          <div className="signal-narrative-card signal-narrative-card-plan">
+            <div className="signal-narrative-card-headline">
+              <div className="eyebrow">Plan</div>
+              <span className={`badge compact-brief-plan-badge mode-${tonightPlan.actionMode.toLowerCase()}`}>{tonightPlan.actionMode}</span>
             </div>
-          ) : (
-            <div className="compact-brief-row" key={row.key}>
-              <span className="compact-brief-label">{row.label}</span>
-              <span className="compact-brief-text">{row.content}</span>
+            <div className="signal-narrative-card-title">{planSummary}</div>
+            <div className="signal-narrative-plan-pills">
+              <span className="signal-narrative-pill"><strong>Posture</strong>{tonightPlan.posture}</span>
+              <span className="signal-narrative-pill"><strong>Approach</strong>{tonightPlan.approach}</span>
+              <span className="signal-narrative-pill"><strong>Focus</strong>{tonightPlan.focus}</span>
             </div>
-          ))}
+          </div>
         </div>
       </div>
 
+      <div className="signal-drawer-stack">
+        <details className="signal-drawer" open>
+          <summary>
+            <span>Why this signal is leading</span>
+            <span className="signal-drawer-meta">{asset.symbol} · {toSentence(asset.sentiment)}</span>
+          </summary>
+          <div className="signal-drawer-body">
+            <p>{whyItMatters}</p>
+            <div className="compact-intelligence-list">
+              {signalIntelligence.map((item) => (
+                <div className="compact-intelligence-item" key={item}>
+                  <span className="compact-intelligence-dot" aria-hidden="true" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
+
+        <details className="signal-drawer">
+          <summary>
+            <span>What changed</span>
+            <span className="signal-drawer-meta">Since your last visit</span>
+          </summary>
+          <div className="signal-drawer-body">
+            <p>{whatChanged}</p>
+            <p>{sinceLastVisit}</p>
+          </div>
+        </details>
+
+        <details className="signal-drawer">
+          <summary>
+            <span>What matters next</span>
+            <span className="signal-drawer-meta">Execution cue</span>
+          </summary>
+          <div className="signal-drawer-body">
+            <p>{watchTrigger.text}</p>
+            <p>{watchTrigger.note}</p>
+          </div>
+        </details>
+      </div>
       <div className="compact-performance-panel">
         <div className="compact-performance-header">
           <div className="eyebrow">Your Signal Performance</div>
@@ -770,7 +786,6 @@ export default function TonightBrief({
           </div>
         )}
       </div>
-    </div>
 
     </section>
   );
