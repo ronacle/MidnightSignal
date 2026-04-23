@@ -39,14 +39,14 @@ export default function TrustDashboardPanel({ mode = 'Beginner', forwardValidati
             <div className="trust-progress-ring" style={progressStyle}>
               <div className="trust-progress-core">
                 <strong>{dashboard.hitRate !== null ? `${dashboard.hitRate}%` : '—'}</strong>
-                <span>{dashboard.hitRate !== null ? 'accurate recently' : 'building reliability'}</span>
+                <span>{dashboard.hitRate !== null ? dashboard.reliabilityLabel.toLowerCase() : 'building reliability'}</span>
               </div>
             </div>
           </div>
 
           <div className="trust-hero-copy">
             <div className="trust-headline-value">
-              {dashboard.hitRate !== null ? `${dashboard.hitRate}% accurate recently` : 'Reliability building'}
+              {dashboard.hitRate !== null ? `${dashboard.hitRate}% · ${dashboard.reliabilityLabel}` : 'Reliability building'}
             </div>
             <div className="trust-headline-copy">{dashboard.takeaway}</div>
           </div>

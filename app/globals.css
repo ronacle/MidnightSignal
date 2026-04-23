@@ -6167,3 +6167,14 @@ html {
     min-height: 0;
   }
 }
+
+
+.signal-conviction-meta {
+  margin-top: 2px;
+  color: rgba(157, 193, 232, 0.9);
+  letter-spacing: 0.02em;
+}
+
+.tiny {
+  font-size: 0.78rem;
+}

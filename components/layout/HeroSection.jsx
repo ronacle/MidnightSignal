@@ -2,6 +2,7 @@
 
 import BeaconLogo from '@/components/BeaconLogo';
 import { formatTime } from '@/lib/utils';
+import { getConvictionComparison, getConvictionDescriptor } from '@/lib/conviction-intelligence';
 import { APP_VERSION } from '@/lib/version';
 import { deriveExperienceProfile } from '@/lib/mode-engine';
 
@@ -16,6 +17,18 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
   const disclaimerAccepted = Boolean(state?.acceptedDisclaimer);
   const setupCount = [Boolean(user), disclaimerAccepted, planTier === 'pro'].filter(Boolean).length;
   const setupLabel = `${setupCount}/3 setup steps complete`;
+  const leadComparison = getConvictionComparison({
+    currentSymbol: selected?.symbol,
+    previousSymbol: state?.lastTopSignalSnapshot?.symbol,
+    currentScore: selected?.conviction ?? selected?.signalScore,
+    previousScore: state?.lastTopSignalSnapshot?.conviction ?? state?.lastTopSignalSnapshot?.signalScore,
+    currentCapturedAt: selected?.lastUpdated,
+    previousCapturedAt: state?.lastTopSignalSnapshot?.timestamp,
+  });
+  const convictionDescriptor = getConvictionDescriptor({
+    score: selected?.conviction ?? selected?.signalScore,
+    comparison: leadComparison,
+  });
 
   return (
     <section className={`hero hero-shell premium-hero-shell ${experience.modeClass} ${experience.intentClass}`}>
@@ -46,7 +59,7 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
       <div className="hero-stat-grid premium-stat-grid layout-hierarchy-grid">
         <div className="mini premium-mini accent-mini stat-card stat-lead"><div className="eyebrow">Tonight’s lead</div><div className="value">{selected.symbol}</div><div className="muted small">{selected.name}</div></div>
         <div className="mini premium-mini stat-card stat-direction"><div className="eyebrow">Direction</div><div className="value sentiment-word">{selected.sentiment}</div><div className="muted small">{experience.userType === 'Long-term' ? 'Broader posture read' : 'Directional posture'}</div></div>
-        <div className="mini premium-mini stat-card stat-conviction"><div className="eyebrow">Conviction</div><div className="value">{selected.conviction}%</div><div className="muted small">{experience.userType === 'Beginner' ? 'Alignment of the setup' : experience.userType === 'Active trader' ? 'Tactical alignment now' : 'Trend quality alignment'}</div></div>
+        <div className="mini premium-mini stat-card stat-conviction"><div className="eyebrow">Conviction</div><div className="value">{selected.conviction}%</div><div className="muted small">{convictionDescriptor}</div><div className="muted tiny">{experience.userType === 'Beginner' ? 'Alignment of the setup' : experience.userType === 'Active trader' ? 'Tactical alignment now' : 'Trend quality alignment'}</div></div>
         <div className="mini premium-mini stat-card stat-watchlist"><div className="eyebrow">Watchlist</div><div className="value">{watchlistCount}</div><div className="muted small">{experience.intent === 'alerts' ? 'Tracked alert candidates' : 'Tracked assets'}</div></div>
         <div className="mini premium-mini sync-mini system-mini stat-card stat-sync"><div className="eyebrow">Sync state</div><div className="value">{syncLabel}</div><div className="muted small">{syncDetail}</div><button className="ghost-button sync-inline-action" onClick={onOpenControls} type="button">{isLocalOnly ? 'Open setup' : 'Manage account'}</button></div>
         <div className="mini premium-mini onboarding-mini system-mini stat-card stat-plan"><div className="eyebrow">Plan view</div><div className="value">{planTier === 'pro' ? 'Pro active' : 'Free plan'}</div><div className="muted small">{planTier === 'pro' ? 'Full breakdowns, validation, and forward tracking are unlocked.' : experience.intent === 'alerts' ? 'Free already supports board scan, watchlist, and alert setup. Pro adds deeper validation and forward tracking.' : "You can already use Tonight's Brief, board scan, watchlist, and alerts. Pro adds deeper validation and follow-through tools."}</div><button className="ghost-button sync-inline-action" onClick={onOpenControls} type="button">{planTier === 'pro' ? 'Manage billing' : 'See plan details'}</button></div>

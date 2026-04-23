@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { formatPct, formatPrice } from '@/lib/utils';
 import { buildLeadLiveIntelligence } from '@/lib/live-intelligence';
-import { getConvictionComparison, getConvictionPointLabel } from '@/lib/conviction-intelligence';
+import { getConvictionComparison, getConvictionDescriptor, getConvictionPointLabel } from '@/lib/conviction-intelligence';
 
 function toSentence(value) {
   if (!value) return '';
@@ -310,7 +310,7 @@ function getConvictionRow(asset, state, confidenceState) {
   if (comparison.mode === 'improving') {
     return {
       tone: 'rising',
-      label: `Conviction building${points ? ` ${points}` : ''}`,
+      label: `Confidence building${points ? ` ${points}` : ''}`,
       note: 'The read is gaining support without needing exaggerated point jumps.',
     };
   }
@@ -318,7 +318,7 @@ function getConvictionRow(asset, state, confidenceState) {
   if (comparison.mode === 'fading') {
     return {
       tone: 'softening',
-      label: `Conviction easing${points ? ` ${points}` : ''}`,
+      label: `Confidence weakening${points ? ` ${points}` : ''}`,
       note: 'The leader is still intact, but the setup needs fresh confirmation before leaning harder.',
     };
   }
@@ -326,7 +326,7 @@ function getConvictionRow(asset, state, confidenceState) {
   if (comparison.mode === 'too-far-apart') {
     return {
       tone: 'steady',
-      label: 'Conviction reset',
+      label: 'Confidence reset',
       note: 'The prior read is too far apart for a clean point comparison, so the app is favoring signal language over fake precision.',
     };
   }
@@ -334,7 +334,7 @@ function getConvictionRow(asset, state, confidenceState) {
   if (confidenceState === 'Rising') {
     return {
       tone: 'rising',
-      label: 'Conviction improving',
+      label: 'Confidence building',
       note: 'The setup is leaning better, but it still wants the next move to confirm the read.',
     };
   }
@@ -342,14 +342,14 @@ function getConvictionRow(asset, state, confidenceState) {
   if (confidenceState === 'Weakening') {
     return {
       tone: 'softening',
-      label: 'Conviction softening',
+      label: 'Confidence weakening',
       note: 'The posture is still usable, but the read is losing urgency rather than expanding.',
     };
   }
 
   return {
     tone: 'steady',
-    label: 'Conviction steady',
+    label: 'Confidence stable',
     note: 'Nothing is breaking here, but the next move still matters more than the current print.',
   };
 }
@@ -468,7 +468,7 @@ function getSinceLastVisit(asset, state) {
   }
 
   if (comparison.mode === 'too-far-apart') {
-    return `Since your last visit · ${current} stayed in front, but the prior read is too far apart for a clean point comparison · viewed ${lastViewed}`;
+    return `Since your last visit · new context for ${current}, so the app is avoiding a fake point comparison · viewed ${lastViewed}`;
   }
 
   return `Since your last visit · ${current} remains in front with a steady read · viewed ${lastViewed}`;
@@ -717,6 +717,18 @@ export default function TonightBrief({
   const sessionLabel = getSessionLabel(timeframe, profile.strategy);
   const updateStamp = formatUpdateStamp(asset?.lastUpdated || state?.marketUpdatedAt || null);
   const convictionRow = getConvictionRow(asset, state, confidenceState);
+  const convictionDescriptor = getConvictionDescriptor({
+    score: asset?.signalScore ?? asset?.conviction,
+    comparison: getConvictionComparison({
+      currentSymbol: asset?.symbol,
+      previousSymbol: state?.lastTopSignalSnapshot?.symbol,
+      currentScore: asset?.signalScore ?? asset?.conviction,
+      previousScore: state?.lastTopSignalSnapshot?.signalScore ?? state?.lastTopSignalSnapshot?.conviction,
+      currentCapturedAt: asset?.lastUpdated,
+      previousCapturedAt: state?.lastTopSignalSnapshot?.timestamp,
+    }),
+    fallbackState: confidenceState,
+  });
   const planSummary = getNarrativePlanSummary(tonightPlan, profile);
   const factorRows = getFactorRows(asset, profile.strategy);
   const factorSummary = getFactorSummary(factorRows, asset);
@@ -812,6 +824,7 @@ export default function TonightBrief({
             <span className="signal-conviction-icon" aria-hidden="true">🔔</span>
             <div>
               <div className="signal-conviction-label"><LearnLink term="Conviction" onOpenLearning={onOpenLearning}>{convictionRow.label}</LearnLink></div>
+              <div className="signal-conviction-meta muted small">{convictionDescriptor}</div>
               <div className="signal-conviction-note">{convictionRow.note}</div>
             </div>
           </div>

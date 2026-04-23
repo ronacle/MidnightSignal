@@ -161,7 +161,7 @@ function buildVisitIntelligence(previousSnapshot, currentSnapshot) {
     const pointLabel = getConvictionPointLabel(topComparison);
     highlights.push(`${currentTop.symbol} stayed in front but conviction is fading${pointLabel ? ` (${pointLabel})` : ''}.`);
   } else if (topComparison.mode === 'too-far-apart') {
-    highlights.push(`${currentTop.symbol} stayed in front, but the prior conviction read is too far apart for a clean point comparison.`);
+    highlights.push(`${currentTop.symbol} stayed in front, but this is a new context so the app is skipping a fake point comparison.`);
   }
 
   if (previousTop?.signalLabel && currentTop?.signalLabel && previousTop.signalLabel !== currentTop.signalLabel) {
@@ -800,10 +800,10 @@ const sinceLastVisitSummary = useMemo(() => {
     fallbackBits.push(`${topSignal.symbol} replaced ${previous.symbol} at the top`);
   } else if (leadComparison.mode === 'improving') {
     const pointLabel = getConvictionPointLabel(leadComparison);
-    fallbackBits.push(`${topSignal.symbol} conviction is improving${pointLabel ? ` (${pointLabel})` : ''}`);
+    fallbackBits.push(`${topSignal.symbol} confidence is building${pointLabel ? ` (${pointLabel})` : ''}`);
   } else if (leadComparison.mode === 'fading') {
     const pointLabel = getConvictionPointLabel(leadComparison);
-    fallbackBits.push(`${topSignal.symbol} conviction is fading${pointLabel ? ` (${pointLabel})` : ''}`);
+    fallbackBits.push(`${topSignal.symbol} confidence is weakening${pointLabel ? ` (${pointLabel})` : ''}`);
   }
 
   if (improvedCount || weakenedCount) {
@@ -824,7 +824,7 @@ const sinceLastVisitSummary = useMemo(() => {
     ? [...focusedAssetMemory.chips.slice(0, 1), ...visitIntelligence.highlights.slice(0, 1), `${improvedCount} strengthened · ${weakenedCount} faded`].slice(0, 3)
     : fallbackBits.length
       ? fallbackBits.slice(0, 3)
-      : [`${topSignal?.symbol || 'Lead signal'} stayed steady at ${topSignal?.conviction ?? '--'}% conviction`];
+      : [`${topSignal?.symbol || 'Lead signal'} is holding a ${Number(topSignal?.conviction ?? 0) >= 75 ? 'high' : Number(topSignal?.conviction ?? 0) >= 55 ? 'moderate' : 'cautious'} confidence read`];
 }, [previousSignalEntry, topSignal, watchlistHighlights, regimeSummary, visitIntelligence, focusedAssetMemory, currentSessionSnapshot, previousSessionSnapshot]);
 
 
