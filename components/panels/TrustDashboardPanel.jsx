@@ -25,26 +25,28 @@ export default function TrustDashboardPanel({ mode = 'Beginner', forwardValidati
       </div>
 
       <div className="trust-headline-card">
-        <div className="trust-headline-value">
-          {dashboard.hitRate !== null ? `${dashboard.hitRate}% accurate recently` : 'Reliability building'}
-        </div>
-        <div className="trust-headline-copy">{dashboard.takeaway}</div>
+        <div className="trust-headline-grid">
+          <div className="trust-headline-main">
+            <div className="trust-headline-value">
+              {dashboard.hitRate !== null ? `${dashboard.hitRate}% accurate recently` : 'Reliability building'}
+            </div>
+            <div className="trust-headline-copy">{dashboard.takeaway}</div>
+          </div>
 
-        <div className="trust-mini-stats" aria-label="Signal reliability details">
-          <div className="trust-mini-stat">
-            <span>Avg follow-through</span>
-            <strong>{formatPct(dashboard.avgFollowThrough)}</strong>
-          </div>
-          <div className="trust-mini-stat">
-            <span>Alert follow-through</span>
-            <strong>{formatPct(dashboard.alertFollowThrough)}</strong>
-          </div>
-          <div className="trust-mini-stat">
-            <span>Confirmed / Inconsistent / Faded</span>
-            <strong>{dashboard.workedCount} / {dashboard.mixedCount} / {dashboard.failedCount}</strong>
+          <div className="trust-mini-stats" aria-label="Signal reliability details">
+            <div className="trust-mini-stat">
+              <span>Average follow-through</span>
+              <strong>{formatPct(dashboard.avgFollowThrough)}</strong>
+            </div>
+            <div className="trust-mini-stat">
+              <span>Resolved outcomes</span>
+              <strong>{dashboard.workedCount} / {dashboard.mixedCount} / {dashboard.failedCount}</strong>
+            </div>
           </div>
         </div>
       </div>
+
+      <div className="trust-soft-divider" aria-hidden="true" />
 
       <div className="trust-stack">
         <div className="factor-block trust-section-block">

@@ -5137,3 +5137,122 @@ html {
     animation: none !important;
   }
 }
+
+
+/* v12.0.7 tighten pass + reliability balance fix */
+.trust-dashboard-redesign {
+  gap: 18px;
+}
+
+.trust-headline-card {
+  padding: 20px 0 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.trust-headline-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.trust-headline-main {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trust-headline-copy {
+  max-width: 54ch;
+}
+
+.trust-mini-stats {
+  grid-template-columns: 1fr;
+  gap: 0;
+  align-self: stretch;
+  min-width: 0;
+}
+
+.trust-mini-stat {
+  padding: 0 0 0 16px;
+  border: 0;
+  border-left: 1px solid rgba(255,255,255,0.08);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.trust-mini-stat + .trust-mini-stat {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  padding-left: 16px;
+}
+
+.trust-mini-stat span {
+  font-size: 0.72rem;
+}
+
+.trust-mini-stat strong {
+  font-size: 1.02rem;
+}
+
+.trust-soft-divider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+}
+
+.trust-stack {
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  gap: 22px;
+}
+
+.trust-section-block {
+  padding: 12px 0 0;
+}
+
+.trust-list {
+  gap: 6px;
+}
+
+.trust-list-row {
+  padding: 12px 0;
+}
+
+.flow-section,
+.flow-section + .flow-section,
+.flow-section-board,
+.flow-section-view {
+  margin-top: 48px;
+}
+
+.secondary-stack {
+  gap: 18px;
+}
+
+@media (max-width: 980px) {
+  .trust-headline-grid,
+  .trust-stack {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .trust-mini-stat,
+  .trust-mini-stat + .trust-mini-stat {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .trust-mini-stat {
+    padding-top: 0;
+  }
+
+  .trust-mini-stat + .trust-mini-stat {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+}
