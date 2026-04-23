@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { deriveExperienceProfile } from '@/lib/mode-engine';
 
 const GLOSSARY = [
@@ -19,9 +20,25 @@ const GLOSSARY = [
   { term: 'Signal Change Summary', beginner: 'A short explanation of what changed since the prior signal, like momentum improving or regime shifting.', pro: 'Delta summary vs prior top signal snapshot.' },
 ];
 
-export default function LearningDrawer({ open, onClose, state, focusAsset }) {
+function toTopicId(term = '') {
+  return `learning-topic-${String(term || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+export default function LearningDrawer({ open, onClose, state, focusAsset, focusTerm = '' }) {
   const experience = deriveExperienceProfile(state);
   const beginner = experience.learningTone;
+
+  useEffect(() => {
+    if (!open || !focusTerm || typeof window === 'undefined') return;
+    const timer = window.setTimeout(() => {
+      const node = document.getElementById(toTopicId(focusTerm));
+      if (!node) return;
+      node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      node.classList.add('anchor-flash');
+      window.setTimeout(() => node.classList.remove('anchor-flash'), 1600);
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [open, focusTerm]);
 
   return (
     <div className={`drawer-root ${open ? 'open' : ''}`} aria-hidden={!open}>
@@ -53,7 +70,7 @@ export default function LearningDrawer({ open, onClose, state, focusAsset }) {
 
           <div className="stack">
             {GLOSSARY.map((item) => (
-              <div key={item.term} className="list-item stack">
+              <div key={item.term} className={`list-item stack ${focusTerm === item.term ? 'is-focused-topic' : ''}`} id={toTopicId(item.term)}>
                 <div className="eyebrow">{item.term}</div>
                 <div className="muted">{beginner ? item.beginner : item.pro}</div>
               </div>

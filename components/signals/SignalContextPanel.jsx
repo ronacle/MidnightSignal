@@ -1,5 +1,14 @@
 'use client';
 
+function LearnLink({ term, onOpenLearning, className = '', children = null }) {
+  const content = children || term;
+  return (
+    <button type="button" className={`inline-learn-link ${className}`.trim()} onClick={() => onOpenLearning?.(term)}>
+      {content}
+    </button>
+  );
+}
+
 function formatSourceType(value = '') {
   if (value === 'x') return 'X';
   if (value === 'article') return 'Article';
@@ -117,7 +126,7 @@ function ContextBadges({ context, asset }) {
   );
 }
 
-export default function SignalContextPanel({ context, asset, experience = null, collapsed = false, onToggleHide }) {
+export default function SignalContextPanel({ context, asset, experience = null, collapsed = false, onToggleHide, onOpenLearning = null }) {
   if (!context || !asset) return null;
 
   const sourceTypes = context?.meta?.sourceTypes || {};
@@ -198,7 +207,7 @@ export default function SignalContextPanel({ context, asset, experience = null, 
           </div>
           <div className="signal-context-driver-row">
             {explain.drivers.map((item) => (
-              <span key={item.label} className="since-chip">{item.label}: {item.value}</span>
+              <span key={item.label} className="since-chip"><LearnLink term={item.label} onOpenLearning={onOpenLearning}>{item.label}</LearnLink>: {item.value}</span>
             ))}
           </div>
         </div>

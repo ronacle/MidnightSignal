@@ -475,6 +475,7 @@ export default function HomePage() {
   const [detailAsset, setDetailAsset] = useState(null);
   const [panelState, setPanelState] = useState(DEFAULT_PANEL_STATE);
   const [learningAsset, setLearningAsset] = useState(null);
+  const [learningTopic, setLearningTopic] = useState('');
   const [alertAsset, setAlertAsset] = useState(null);
   const [upgradeNotice, setUpgradeNotice] = useState('');
   const [liveItems, setLiveItems] = useState([]);
@@ -497,6 +498,26 @@ export default function HomePage() {
   const [pendingHandoffTarget, setPendingHandoffTarget] = useState('');
   const [contextMeta, setContextMeta] = useState({ live: false, sourceTypes: { article: 0, x: 0, note: 0 }, updatedAt: null });
   const entitlementRefreshRef = useRef(false);
+
+
+  function openControlSection(sectionId = 'session-settings') {
+    setLearningOpen(false);
+    setControlOpen(true);
+    setPendingHandoffTarget(sectionId);
+  }
+
+  function openLearningTopic(term = '') {
+    setControlOpen(false);
+    setLearningAsset(null);
+    setLearningTopic(term);
+    setLearningOpen(true);
+  }
+
+  useEffect(() => {
+    if (!controlOpen) return;
+    const timer = window.setTimeout(() => setPendingHandoffTarget(''), 500);
+    return () => window.clearTimeout(timer);
+  }, [controlOpen]);
 
   useEffect(() => {
     setSignalHistory(readSignalHistory());
@@ -1234,6 +1255,7 @@ function handleOnboardingComplete(payload) {
           }}
           onOpenLearning={() => {
             setLearningAsset(null);
+            setLearningTopic('');
             setLearningOpen(true);
           }}
         />
@@ -1356,7 +1378,8 @@ function handleOnboardingComplete(payload) {
                 forwardScorecard={forwardScorecard}
                 adaptiveSummary={adaptiveSummary}
                 decisionLayer={decisionLayer}
-                onOpenSessionSettings={() => setControlOpen(true)}
+                onOpenSessionSettings={() => openControlSection('session-settings')}
+                onOpenLearning={openLearningTopic}
               />
             </section>
 
@@ -1368,6 +1391,7 @@ function handleOnboardingComplete(payload) {
                   experience={experience}
                   collapsed={!panelState.signalContext}
                   onToggleCollapse={() => togglePanel('signalContext')}
+                  onOpenLearning={openLearningTopic}
                 />
               </section>
             ) : null}
@@ -1382,6 +1406,7 @@ function handleOnboardingComplete(payload) {
                 </div>
                 <div className="section-collapse-actions">
                   <span className="badge since-badge">{lastVisitLabel}</span>
+                  <button type="button" className="ghost-button small" onClick={() => openControlSection('session-settings')}>Edit session</button>
                   <button type="button" className="ghost-button small section-collapse-toggle is-open" onClick={() => togglePanel('sinceLastVisit')} aria-expanded={true} aria-label="Collapse since last visit panel">Collapse</button>
                 </div>
               </div>
@@ -1574,6 +1599,7 @@ function handleOnboardingComplete(payload) {
         supabaseReady={supabaseReady}
         alertAsset={alertAsset}
         onConsumeAlertAsset={() => setAlertAsset(null)}
+        focusSection={pendingHandoffTarget}
       />
 
       <LearningDrawer
@@ -1581,6 +1607,7 @@ function handleOnboardingComplete(payload) {
         onClose={() => setLearningOpen(false)}
         state={state}
         focusAsset={learningAsset}
+        focusTerm={learningTopic}
       />
 
       <AssetDetailSheet
@@ -1594,6 +1621,7 @@ function handleOnboardingComplete(payload) {
           setDetailAsset(null);
           setControlOpen(false);
           setLearningAsset(asset);
+          setLearningTopic('');
           setLearningOpen(true);
         }}
         onSetAlert={(asset) => {

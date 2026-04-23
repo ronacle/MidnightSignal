@@ -5744,3 +5744,28 @@ html {
   font-weight: 600;
   opacity: 0.82;
 }
+
+
+.inline-learn-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 0.14em;
+}
+.inline-learn-link:hover {
+  opacity: 0.9;
+}
+.anchor-flash {
+  box-shadow: 0 0 0 1px rgba(122, 92, 255, 0.55), 0 0 0 8px rgba(122, 92, 255, 0.08);
+  border-radius: 18px;
+  transition: box-shadow 180ms ease;
+}
+.is-focused-topic {
+  box-shadow: 0 0 0 1px rgba(122, 92, 255, 0.55), 0 0 0 8px rgba(122, 92, 255, 0.08);
+}

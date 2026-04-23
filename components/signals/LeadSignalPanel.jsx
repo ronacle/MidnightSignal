@@ -71,6 +71,7 @@ export default function LeadSignalPanel({
   adaptiveSummary = [],
   decisionLayer = null,
   onOpenSessionSettings = null,
+  onOpenLearning = null,
 }) {
   const [expanded, setExpanded] = useState(false);
   const [sessionState, setSessionState] = useState(state || {});
@@ -198,6 +199,7 @@ export default function LeadSignalPanel({
           state={awarenessState}
           forwardScorecard={forwardScorecard}
           onOpenSessionSettings={onOpenSessionSettings}
+          onOpenLearning={onOpenLearning}
         />
 
         <div className="lead-signal-actions">

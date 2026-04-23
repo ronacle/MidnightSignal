@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import AuthPanel from '@/components/AuthPanel';
 import DisclaimerCard from '@/components/DisclaimerCard';
 import SettingsPanel from '@/components/SettingsPanel';
@@ -247,7 +247,19 @@ function LiveUpdateControls({ state, setState }) {
   );
 }
 
-export default function ControlDrawer({ open, onClose, state, setState, user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, alertAsset, onConsumeAlertAsset }) {
+export default function ControlDrawer({ open, onClose, state, setState, user, status, syncing, lastSyncedAt, onSignIn, onSignOut, onRefresh, supabaseReady, alertAsset, onConsumeAlertAsset, focusSection = '' }) {
+  useEffect(() => {
+    if (!open || !focusSection || typeof window === 'undefined') return;
+    const timer = window.setTimeout(() => {
+      const node = document.getElementById(focusSection);
+      if (!node) return;
+      node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      node.classList.add('anchor-flash');
+      window.setTimeout(() => node.classList.remove('anchor-flash'), 1600);
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [open, focusSection]);
+
   return (
     <div className={`drawer-root ${open ? 'open' : ''}`}>
       <button type="button" className="drawer-backdrop" onClick={onClose} aria-label="Close control panel" />

@@ -538,6 +538,20 @@ function getUserBias(state, topDrivers, profile) {
   };
 }
 
+
+function LearnLink({ term, onOpenLearning, className = '', children = null }) {
+  const content = children || term;
+  return (
+    <button
+      type="button"
+      className={`inline-learn-link ${className}`.trim()}
+      onClick={() => onOpenLearning?.(term)}
+    >
+      {content}
+    </button>
+  );
+}
+
 export default function TonightBrief({
   asset,
   timeframe,
@@ -548,6 +562,7 @@ export default function TonightBrief({
   state = null,
   forwardScorecard = null,
   onOpenSessionSettings = null,
+  onOpenLearning = null,
 }) {
   if (!asset) return null;
 
@@ -615,7 +630,7 @@ export default function TonightBrief({
       <div className="compact-brief-header">
         <div>
           <div className="eyebrow compact-brief-kicker lead-brief-eyebrow">Tonight</div>
-          <h2 className="section-title compact-brief-title lead-brief-title">Top Signal Brief</h2>
+          <h2 className="section-title compact-brief-title lead-brief-title"><LearnLink term="Top Signal Brief" onOpenLearning={onOpenLearning}>Top Signal Brief</LearnLink></h2>
           <div className="eyebrow compact-brief-subtitle">
             {profile.isPro ? 'Compressed read of the lead setup' : 'Human translation of the lead setup'}
           </div>
@@ -682,7 +697,7 @@ export default function TonightBrief({
           <div className="signal-conviction-copy">
             <span className="signal-conviction-icon" aria-hidden="true">🔔</span>
             <div>
-              <div className="signal-conviction-label">{convictionRow.label}</div>
+              <div className="signal-conviction-label"><LearnLink term="Conviction" onOpenLearning={onOpenLearning}>{convictionRow.label}</LearnLink></div>
               <div className="signal-conviction-note">{convictionRow.note}</div>
             </div>
           </div>
@@ -702,7 +717,7 @@ export default function TonightBrief({
             </div>
             <div className="signal-narrative-card-title">{planSummary}</div>
             <div className="signal-narrative-plan-pills">
-              <span className="signal-narrative-pill"><strong>Posture</strong>{tonightPlan.posture}</span>
+              <span className="signal-narrative-pill"><strong><LearnLink term="Posture" onOpenLearning={onOpenLearning}>Posture</LearnLink></strong>{tonightPlan.posture}</span>
               <span className="signal-narrative-pill"><strong>Approach</strong>{tonightPlan.approach}</span>
               <span className="signal-narrative-pill"><strong>Focus</strong>{tonightPlan.focus}</span>
             </div>
