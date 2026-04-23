@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { formatPct, formatPrice } from '@/lib/utils';
+import { buildLeadLiveIntelligence } from '@/lib/live-intelligence';
 
 function toSentence(value) {
   if (!value) return '';
@@ -533,6 +534,13 @@ export default function TonightBrief({
   const confidenceState = getConfidenceState(asset, validationSummary, state);
   const signalIntelligence = buildSignalIntelligence(asset, signalHistory, state, decisionLayer, watchTrigger);
   const shiftTone = getSignalShiftTone(confidenceState, signalIntelligence);
+  const liveStatus = buildLeadLiveIntelligence({
+    asset,
+    snapshot: state?.lastTopSignalSnapshot,
+    validationSummary,
+    regimeSummary,
+    decisionLayer,
+  });
   const performanceInsight = getPerformanceInsight(forwardScorecard, state);
   const pulseEnabled = Boolean(state?.livePulseEnabled);
   const sessionLabel = getSessionLabel();
@@ -614,6 +622,18 @@ export default function TonightBrief({
         <span>{sinceLastVisit}</span>
       </div>
 
+      <div className={`live-intelligence-strip tone-${liveStatus.tone} ${liveStatus.justChanged ? 'is-updating' : ''}`}>
+        <div className="live-intelligence-strip-copy">
+          <div className="eyebrow">Live intelligence</div>
+          <div className="live-intelligence-strip-title">{liveStatus.status}</div>
+          <div className="live-intelligence-strip-text">{liveStatus.explanation}</div>
+        </div>
+        <div className="live-intelligence-strip-side">
+          <span className={`badge live-intelligence-status tone-${liveStatus.tone}`}>{liveStatus.justChanged ? 'Just changed' : 'Watching'}</span>
+          <div className="live-intelligence-strip-cue">{liveStatus.cue}</div>
+        </div>
+      </div>
+
       {signalAlerts.length ? (
         <div className="signal-alerts">
           {signalAlerts.map((alert) => (
@@ -667,7 +687,7 @@ Confidence: {confidenceDirection}
             <div className="eyebrow">Signal Intelligence</div>
             <div className="compact-intelligence-title">What changed since last update</div>
           </div>
-          <span className={`badge compact-intelligence-badge tone-${shiftTone}`}>{shiftTone === 'shift' ? 'Leader changed' : shiftTone === 'rising' ? 'Strengthening' : shiftTone === 'softening' ? 'Cooling' : 'Steady read'}</span>
+          <span className={`badge compact-intelligence-badge tone-${shiftTone}`}>{liveStatus.status}</span>
         </div>
         <div className="compact-intelligence-list">
           {signalIntelligence.map((item) => (

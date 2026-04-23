@@ -3,6 +3,7 @@
 import { MARKET_FIXTURES } from '@/lib/default-state';
 import { formatCompactNumber, formatPct, formatPrice, getConvictionTier } from '@/lib/utils';
 import { deriveExperienceProfile } from '@/lib/mode-engine';
+import { buildBoardLiveTag } from '@/lib/live-intelligence';
 
 const FALLBACK_ASSETS = [
   ...MARKET_FIXTURES,
@@ -60,15 +61,18 @@ export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLB
     <div className={`panel stack premium-board-shell ${experience.boardCardStyle}`}>
       <div className="row space-between section-collapse-head"><div><h2 className="section-title">{experience.boardTitle}</h2><div className="muted small">{planTier === 'pro' ? `${experience.boardAssetCount}-asset scan with full breakdown access.` : `Free view stays useful: board scan, Tonight's Brief, watchlist, and alert setup are all included.`}</div><div className="muted small top20-mode-hint">{experience.boardHint}</div></div><div className="section-collapse-actions"><span className="badge glow-badge">{experience.boardBadge}</span>{onToggleCollapse ? (<button type="button" className="ghost-button small section-collapse-toggle is-open" onClick={onToggleCollapse} aria-expanded={true} aria-label="Collapse market scan panel">Collapse</button>) : null}</div></div>
       <div className={`top20-grid ${experience.boardColumnsClass}`}>
-        {visibleAssets.map((asset, index) => (
-          <button key={asset.symbol} type="button" className={`top20-card premium-top20-card ${experience.boardCardStyle} ${state.selectedAsset === asset.symbol ? 'active' : ''} ${pulseEnabled ? 'is-live-scan' : ''} ${index === 0 ? 'is-scan-lead' : ''}`} onClick={() => { setState((prev) => ({ ...prev, selectedAsset: asset.symbol, watchlist: prev.watchlist.includes(asset.symbol) ? [asset.symbol, ...prev.watchlist.filter((item) => item !== asset.symbol)] : prev.watchlist })); onAssetOpen?.(asset); }}>
-            <div className="row space-between"><div><div className="asset-name">{asset.symbol}</div><div className="asset-meta">{asset.name}</div></div><div className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</div></div>
+        {visibleAssets.map((asset, index) => {
+          const liveTag = buildBoardLiveTag(asset, state.selectedAsset);
+          return (
+          <button key={asset.symbol} type="button" className={`top20-card premium-top20-card ${experience.boardCardStyle} ${state.selectedAsset === asset.symbol ? 'active' : ''} ${pulseEnabled ? 'is-live-scan' : ''} ${index === 0 ? 'is-scan-lead' : ''} live-tone-${liveTag.tone}`} onClick={() => { setState((prev) => ({ ...prev, selectedAsset: asset.symbol, watchlist: prev.watchlist.includes(asset.symbol) ? [asset.symbol, ...prev.watchlist.filter((item) => item !== asset.symbol)] : prev.watchlist })); onAssetOpen?.(asset); }}>
+            <div className="row space-between"><div><div className="asset-name">{asset.symbol}</div><div className="asset-meta">{asset.name}</div></div><div className="top20-card-status"><span className={`top20-live-tag tone-${liveTag.tone}`}>{liveTag.label}</span><div className={`sentiment ${asset.sentiment}`}>{asset.sentiment}</div></div></div>
             <div className="top20-price-row"><span className="top20-price">{formatPrice(asset.price)}</span><span className={`top20-change ${(asset.change24h || 0) >= 0 ? 'is-up' : 'is-down'}`}>{formatPct(asset.change24h || 0)}</span></div>
             <div className="muted small">{getSummaryLine(asset, experience)}</div>
             <div className="row wrap"><span className="badge">{asset.signalScore ?? asset.conviction}%</span><span className="badge">{getConvictionTier(asset.signalScore ?? asset.conviction)}</span><span className="badge">#{asset.rank ?? '—'}</span><span className="badge">Vol {formatCompactNumber(asset.volumeNum)}</span></div>
             <div className="top20-bottom-note muted small">{planTier === 'pro' ? 'Tap for full signal breakdown.' : experience.intent === 'alerts' ? 'Tap for watchlist context, detail, and future alert setup.' : 'Tap for brief + asset detail. Pro adds deeper validation and forward tracking.'}</div>
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
