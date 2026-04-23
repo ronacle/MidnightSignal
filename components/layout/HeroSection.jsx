@@ -39,7 +39,15 @@ export default function HeroSection({ selected, user, status, syncing, lastSynce
           <div className="beacon-wrap premium-beacon-wrap"><BeaconLogo size={118} animated={Boolean(state?.livePulseEnabled)} /></div>
           <div className="brand-copy">
             <div className="eyebrow eyebrow-glow">Midnight Signal · v{APP_VERSION}</div>
-            <h1>{experience.heroTitle}</h1>
+            <h1>{experience.heroTitle} <span aria-hidden="true">🌙</span></h1>
+            <button
+              type="button"
+              className="hero-session-context"
+              onClick={onOpenControls}
+              aria-label="Edit your current session settings"
+            >
+              For your current session
+            </button>
             <p>Transforming Market Data → Information → Knowledge → Understanding → Market Wisdom.{` ${experience.heroSubtitle}`}</p>
             <div className="hero-support-copy"><p>{experience.heroSupport}</p><p>{experience.userType} mode with a {experience.intent === 'track' ? 'track signals' : experience.intent === 'alerts' ? 'get alerts' : 'learn'} focus is active.</p></div>
           </div>

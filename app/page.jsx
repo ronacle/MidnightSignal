@@ -1249,10 +1249,7 @@ function handleOnboardingComplete(payload) {
           user={user}
           status={status}
           onJump={jumpTo}
-          onOpenControls={() => {
-            setAlertAsset(null);
-            setControlOpen(true);
-          }}
+          onOpenControls={() => openControlSection('session-settings')}
           onOpenLearning={() => {
             setLearningAsset(null);
             setLearningTopic('');
@@ -1580,7 +1577,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v12.3.6 · layout hierarchy pass · source: {marketSource}
+          Build v12.5.2 · header clarity + session context · source: {marketSource}
         </div>
       </div>
 
