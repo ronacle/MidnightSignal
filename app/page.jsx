@@ -1462,7 +1462,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v12.0.3 · signal reliability redesign · source: {marketSource}
+          Build v12.0.4 · board spacing + card rhythm polish · source: {marketSource}
         </div>
       </div>
 
