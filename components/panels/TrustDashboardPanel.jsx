@@ -1,4 +1,4 @@
-use client';
+'use client';
 
 import { buildTrustDashboard } from '@/lib/trust-dashboard';
 
