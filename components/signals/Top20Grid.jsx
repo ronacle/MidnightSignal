@@ -32,6 +32,7 @@ function getSummaryLine(asset, experience) {
 export default function Top20Grid({ state, setState, onAssetOpen, assets = FALLBACK_ASSETS, collapsed = false, onToggleCollapse }) {
   const planTier = state?.planTier === 'pro' ? 'pro' : 'basic';
   const experience = deriveExperienceProfile(state);
+  const pulseEnabled = Boolean(state?.livePulseEnabled);
   const visibleAssets = (assets?.length ? assets : FALLBACK_ASSETS).slice(0, experience.boardAssetCount);
   if (collapsed) {
     return (
