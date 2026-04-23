@@ -5769,3 +5769,132 @@ html {
 .is-focused-topic {
   box-shadow: 0 0 0 1px rgba(122, 92, 255, 0.55), 0 0 0 8px rgba(122, 92, 255, 0.08);
 }
+
+
+/* v12.3.4 factor-based signal explanation */
+.signal-factor-summary {
+  margin: 0 0 12px;
+  color: rgba(232, 238, 255, 0.9);
+}
+
+.signal-factor-list {
+  display: grid;
+  gap: 10px;
+}
+
+.signal-factor-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+}
+
+.signal-factor-row-left {
+  min-width: 0;
+}
+
+.signal-factor-label {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.signal-factor-meter {
+  position: relative;
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+
+.signal-factor-meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(125, 170, 255, 0.55), rgba(170, 200, 255, 0.92));
+}
+
+.signal-factor-row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.signal-factor-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+}
+
+.signal-factor-score {
+  font-size: 0.82rem;
+  color: rgba(214, 224, 255, 0.8);
+}
+
+.signal-factor-status.tone-strong,
+.signal-factor-row.tone-strong {
+  border-color: rgba(92, 217, 168, 0.22);
+}
+
+.signal-factor-status.tone-strong {
+  background: rgba(92, 217, 168, 0.12);
+  color: #b9ffe2;
+}
+
+.signal-factor-status.tone-supporting,
+.signal-factor-row.tone-supporting {
+  border-color: rgba(125, 170, 255, 0.22);
+}
+
+.signal-factor-status.tone-supporting {
+  background: rgba(125, 170, 255, 0.12);
+  color: #d7e5ff;
+}
+
+.signal-factor-status.tone-mixed,
+.signal-factor-row.tone-mixed {
+  border-color: rgba(255, 214, 102, 0.2);
+}
+
+.signal-factor-status.tone-mixed {
+  background: rgba(255, 214, 102, 0.12);
+  color: #ffe7a4;
+}
+
+.signal-factor-status.tone-weak,
+.signal-factor-row.tone-weak {
+  border-color: rgba(255, 122, 122, 0.22);
+}
+
+.signal-factor-status.tone-weak {
+  background: rgba(255, 122, 122, 0.12);
+  color: #ffd1d1;
+}
+
+.signal-factor-footnote {
+  margin-top: 12px;
+  font-size: 0.88rem;
+  color: rgba(198, 208, 236, 0.82);
+}
+
+@media (max-width: 720px) {
+  .signal-factor-row {
+    grid-template-columns: 1fr;
+  }
+
+  .signal-factor-row-right {
+    justify-content: space-between;
+  }
+}

@@ -1580,7 +1580,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v12.3.2 · session controls clarity + memory accuracy · source: {marketSource}
+          Build v12.3.4 · factor-based signal explanation · source: {marketSource}
         </div>
       </div>
 

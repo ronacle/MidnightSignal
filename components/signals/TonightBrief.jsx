@@ -90,6 +90,119 @@ function formatFactorName(label = '') {
   return String(label || '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (value) => value.toUpperCase());
 }
 
+function getFactorAssessment(label = '', value = 0) {
+  const score = Number(value || 0);
+  const key = String(label || '').toLowerCase();
+
+  if (key === 'momentum') {
+    if (score >= 78) return 'Strong';
+    if (score >= 64) return 'Building';
+    if (score >= 50) return 'Mixed';
+    return 'Soft';
+  }
+
+  if (key === 'trend') {
+    if (score >= 78) return 'Aligned';
+    if (score >= 64) return 'Constructive';
+    if (score >= 50) return 'Mixed';
+    return 'Loose';
+  }
+
+  if (key === 'volume') {
+    if (score >= 78) return 'Strong';
+    if (score >= 64) return 'Supporting';
+    if (score >= 50) return 'Mixed';
+    return 'Thin';
+  }
+
+  if (key === 'relative strength') {
+    if (score >= 78) return 'Leading';
+    if (score >= 64) return 'Holding';
+    if (score >= 50) return 'Mixed';
+    return 'Lagging';
+  }
+
+  if (key === 'volatility') {
+    if (score >= 78) return 'Controlled';
+    if (score >= 64) return 'Contained';
+    if (score >= 50) return 'Mixed';
+    return 'Unsettled';
+  }
+
+  if (key === 'structure') {
+    if (score >= 78) return 'Intact';
+    if (score >= 64) return 'Holding';
+    if (score >= 50) return 'Mixed';
+    return 'Loose';
+  }
+
+  if (key === 'liquidity') {
+    if (score >= 78) return 'Healthy';
+    if (score >= 64) return 'Usable';
+    if (score >= 50) return 'Mixed';
+    return 'Thin';
+  }
+
+  if (score >= 78) return 'Strong';
+  if (score >= 64) return 'Supporting';
+  if (score >= 50) return 'Mixed';
+  return 'Weak';
+}
+
+function getFactorToneClass(value = 0) {
+  const score = Number(value || 0);
+  if (score >= 78) return 'strong';
+  if (score >= 64) return 'supporting';
+  if (score >= 50) return 'mixed';
+  return 'weak';
+}
+
+function getFactorRows(asset, strategy = 'swing') {
+  const orderedKeys = strategy === 'scalp'
+    ? ['momentum', 'volatility', 'volume', 'trend', 'relativeStrength', 'structure']
+    : strategy === 'position'
+      ? ['trend', 'structure', 'relativeStrength', 'volume', 'momentum', 'volatility']
+      : ['trend', 'volume', 'momentum', 'relativeStrength', 'volatility', 'structure'];
+
+  const rows = orderedKeys
+    .map((key) => ({
+      key,
+      label: formatFactorName(key),
+      value: Number(asset?.factors?.[key]),
+    }))
+    .filter((item) => Number.isFinite(item.value))
+    .slice(0, 4)
+    .map((item) => ({
+      ...item,
+      assessment: getFactorAssessment(item.label, item.value),
+      tone: getFactorToneClass(item.value),
+    }));
+
+  if (rows.length) return rows;
+
+  return [
+    { key: 'momentum', label: 'Momentum', value: Number(asset?.signalScore ?? asset?.conviction ?? 0), assessment: 'Mixed', tone: 'mixed' },
+  ];
+}
+
+function getFactorSummary(rows = [], asset = null) {
+  const labels = rows.slice(0, 3).map((row) => row.label);
+  if (!labels.length) return `${asset?.symbol || 'This signal'} is leading on a mixed read.`;
+
+  if (labels.includes('Trend') && labels.includes('Momentum') && labels.includes('Volume')) {
+    return 'Trend and momentum are aligned with supportive volume.';
+  }
+
+  if (labels.includes('Trend') && labels.includes('Relative Strength')) {
+    return 'Trend posture is holding up while relative strength stays firm.';
+  }
+
+  const first = labels[0];
+  const second = labels[1];
+  if (first && second) return `${first} and ${second} are doing the heaviest lifting right now.`;
+  return `${first} is doing the heaviest lifting right now.`;
+}
+
 function describeTimeframeShift(current = {}, previous = {}) {
   const frames = [
     ['5m', Number(current?.tf5m ?? 0), Number(previous?.tf5m ?? 0)],
@@ -592,7 +705,6 @@ export default function TonightBrief({
   const sinceLastVisit = getSinceLastVisit(asset, state);
   const tonightPlan = getTonightPlan(asset, validationSummary, regimeSummary, decisionLayer, topDrivers, profile);
   const confidenceState = getConfidenceState(asset, validationSummary, state);
-  const signalIntelligence = buildSignalIntelligence(asset, signalHistory, state, decisionLayer, watchTrigger);
   const liveStatus = buildLeadLiveIntelligence({
     asset,
     snapshot: state?.lastTopSignalSnapshot,
@@ -606,6 +718,8 @@ export default function TonightBrief({
   const updateStamp = formatUpdateStamp(asset?.lastUpdated || state?.marketUpdatedAt || null);
   const convictionRow = getConvictionRow(asset, state, confidenceState);
   const planSummary = getNarrativePlanSummary(tonightPlan, profile);
+  const factorRows = getFactorRows(asset, profile.strategy);
+  const factorSummary = getFactorSummary(factorRows, asset);
 
 
 
@@ -732,15 +846,24 @@ export default function TonightBrief({
             <span className="signal-drawer-meta">{asset.symbol} · {toSentence(asset.sentiment)}</span>
           </summary>
           <div className="signal-drawer-body">
-            <p>{whyItMatters}</p>
-            <div className="compact-intelligence-list">
-              {signalIntelligence.map((item) => (
-                <div className="compact-intelligence-item" key={item}>
-                  <span className="compact-intelligence-dot" aria-hidden="true" />
-                  <span>{item}</span>
+            <p className="signal-factor-summary">{factorSummary}</p>
+            <div className="signal-factor-list">
+              {factorRows.map((row) => (
+                <div className={`signal-factor-row tone-${row.tone}`} key={row.key}>
+                  <div className="signal-factor-row-left">
+                    <div className="signal-factor-label"><LearnLink term={row.label} onOpenLearning={onOpenLearning}>{row.label}</LearnLink></div>
+                    <div className="signal-factor-meter" aria-hidden="true">
+                      <span className="signal-factor-meter-fill" style={{ width: `${Math.max(8, Math.min(100, row.value))}%` }} />
+                    </div>
+                  </div>
+                  <div className="signal-factor-row-right">
+                    <span className={`signal-factor-status tone-${row.tone}`}>{row.assessment}</span>
+                    <span className="signal-factor-score">{row.value}</span>
+                  </div>
                 </div>
               ))}
             </div>
+            <div className="signal-factor-footnote">{whyItMatters}</div>
           </div>
         </details>
 
