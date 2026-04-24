@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Info, Lock, Mail, Moon, RefreshCw, Settings2, Sparkles, Star, Trophy, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '@/lib/signals';
 import { BUILD } from '@/lib/build';
@@ -28,7 +28,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v13-3-2';
+const storageKey = 'midnight-signal-v13-3-3';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 
@@ -67,6 +67,8 @@ export default function Dashboard() {
   const [plan, setPlan] = useState<Plan>('free');
   const [authMessage, setAuthMessage] = useState('');
   const [upgrading, setUpgrading] = useState(false);
+  const [checkoutSyncing, setCheckoutSyncing] = useState(false);
+  const checkoutReturnHandled = useRef(false);
   const [mode, setMode] = useState<TraderMode>('swing');
   const [experience, setExperience] = useState<Experience>('beginner');
   const [currency, setCurrency] = useState('USD');
@@ -137,10 +139,10 @@ export default function Dashboard() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function refreshPlan() {
+  async function refreshPlan(): Promise<Plan> {
     const email = authUser?.email || earlyEmail || authEmail;
     const userId = authUser?.id;
-    if (!email && !userId) { setPlan('free'); return; }
+    if (!email && !userId) { setPlan('free'); return 'free'; }
     try {
       const response = await fetch('/api/profile', {
         method: 'POST',
@@ -148,25 +150,53 @@ export default function Dashboard() {
         body: JSON.stringify({ userId, email })
       });
       const data = await response.json().catch(() => ({}));
-      setPlan(data.plan === 'pro' ? 'pro' : 'free');
-      if (data.plan === 'pro') setAuthMessage('Pro active — deeper signal intelligence is unlocked.');
+      const nextPlan: Plan = data.plan === 'pro' ? 'pro' : 'free';
+      setPlan(nextPlan);
+      if (nextPlan === 'pro') setAuthMessage('Pro active — deeper signal intelligence is unlocked.');
+      return nextPlan;
     } catch {
       setPlan('free');
+      return 'free';
     }
   }
 
   useEffect(() => { refreshPlan(); }, [authUser, earlyEmail, authEmail]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || checkoutReturnHandled.current) return;
     const params = new URLSearchParams(window.location.search);
+
     if (params.get('checkout') === 'success') {
-      setAuthMessage('Payment confirmed. Syncing your Pro access...');
-      setTimeout(() => refreshPlan(), 1200);
-      setTimeout(() => refreshPlan(), 3500);
+      checkoutReturnHandled.current = true;
+      setCheckoutSyncing(true);
+      setAuthMessage('Finalizing your Pro access…');
       window.history.replaceState({}, '', window.location.pathname);
+
+      let attempts = 0;
+      let interval: ReturnType<typeof setInterval> | undefined;
+      const syncPlan = async () => {
+        attempts += 1;
+        const nextPlan = await refreshPlan();
+        if (nextPlan === 'pro') {
+          setCheckoutSyncing(false);
+          setAuthMessage('Pro active — deeper signal intelligence is unlocked.');
+          if (interval) clearInterval(interval);
+          return;
+        }
+        if (attempts >= 10) {
+          setCheckoutSyncing(false);
+          setAuthMessage('Payment received. Pro is still syncing — refresh once or try Sync Plan in a few seconds.');
+          if (interval) clearInterval(interval);
+        }
+      };
+
+      syncPlan();
+      interval = setInterval(syncPlan, 1500);
+      return () => { if (interval) clearInterval(interval); };
     }
+
     if (params.get('checkout') === 'cancelled') {
+      checkoutReturnHandled.current = true;
       setAuthMessage('Checkout cancelled. Your Free Plan is still active.');
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -218,6 +248,7 @@ export default function Dashboard() {
         return;
       }
       if (!earlyEmail) setEarlyEmail(checkoutEmail);
+      writeStored({ ...readStored(), earlyEmail: checkoutEmail, accessMode: 'early' });
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -226,7 +257,7 @@ export default function Dashboard() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || `Checkout failed with status ${response.status}`);
       if (data.url) window.location.href = data.url;
-      else throw new Error('Stripe checkout did not return a URL. Check STRIPE_PRICE_ID and NEXT_PUBLIC_APP_URL.');
+      else throw new Error('Stripe checkout did not return a URL. Check STRIPE_PRICE_ID and NEXT_PUBLIC_SITE_URL / NEXT_PUBLIC_APP_URL.');
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : 'Stripe checkout is not configured yet.');
     } finally {
@@ -257,8 +288,14 @@ export default function Dashboard() {
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">Explainable market posture with trust cues, a daily ritual, and a clear path from guest to early access.</p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className="text-white">{plan === 'pro' ? 'Pro Active' : authUser ? `Signed in · ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access…' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in · ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
       </header>
+
+      {checkoutSyncing && (
+        <section className="mb-4 rounded-3xl border border-signal-blue/30 bg-signal-blue/10 p-4 text-sm text-slate-100">
+          <strong className="text-signal-blue">Finalizing your Pro access…</strong> Stripe confirmed your checkout. Midnight Signal is waiting for the webhook to finish syncing your Supabase plan.
+        </section>
+      )}
 
       <section className="grid gap-4 lg:grid-cols-[1.35fr_.85fr]">
         <div className="card rounded-3xl p-5">
@@ -292,7 +329,7 @@ export default function Dashboard() {
             <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-bold">Pinned Signals</h2><span className="text-xs text-slate-400">Watchlist first</span></div>
             <div className="space-y-3">{pinned.map(item => <SignalRow key={item.symbol} signal={item} active={item.symbol === active.symbol} currency={currency} onSelect={() => selectSignal(item.symbol)} onStar={() => toggleWatch(item.symbol)} starred />)}</div>
           </div>
-          <AuthPanel authUser={authUser} plan={plan} authEmail={authEmail} setAuthEmail={setAuthEmail} authMessage={authMessage} onMagicLink={sendMagicLink} onSignOut={signOut} onUpgrade={upgradeToPro} upgrading={upgrading} />
+          <AuthPanel authUser={authUser} plan={plan} authEmail={authEmail} setAuthEmail={setAuthEmail} authMessage={authMessage} onMagicLink={sendMagicLink} onSignOut={signOut} onUpgrade={upgradeToPro} upgrading={upgrading} checkoutSyncing={checkoutSyncing} />
           <JourneyCard visits={visits} journey={journey} completed={completedRitual} />
           <RitualCard ritual={ritual} mark={markRitual} />
         </div>
@@ -315,7 +352,7 @@ export default function Dashboard() {
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_.8fr]">
         <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Selected Signal: {active.symbol}</h2><p className="mt-1 text-slate-300">{active.why}</p><div className="mt-4"><Breakdown signal={active} compact /></div></div>
-        <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Founder Pro Access</h2><p className="mt-2 text-slate-300">$9/month founder plan. Enter an email, checkout through Stripe, and Midnight Signal will sync Pro from Supabase.</p><button onClick={plan === 'pro' ? refreshPlan : upgradeToPro} className="mt-4 w-full rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue">{plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening Checkout...' : 'Upgrade to Pro'}</button></div>
+        <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Founder Pro Access</h2><p className="mt-2 text-slate-300">$9/month founder plan. Enter an email, checkout through Stripe, and Midnight Signal will sync Pro from Supabase.</p><button onClick={plan === 'pro' ? refreshPlan : upgradeToPro} className="mt-4 w-full rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue">{checkoutSyncing ? 'Finalizing Pro access...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening Checkout...' : 'Upgrade to Pro'}</button></div>
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
@@ -337,7 +374,7 @@ function SignalRow({ signal, currency, active, starred, onSelect, onStar }: { si
 function AssetCard({ signal, currency, active, starred, onSelect, onStar }: { signal: AssetSignal; currency: string; active: boolean; starred: boolean; onSelect: () => void; onStar: () => void }) { return <div className={`group rounded-3xl border p-4 transition hover:-translate-y-0.5 hover:bg-white/[.07] ${active ? 'border-signal-blue/50 bg-signal-blue/10' : 'border-white/10 bg-white/[.04]'}`}><div className="flex items-start justify-between"><button onClick={onSelect} className="text-left"><p className="text-lg font-black">{signal.symbol}</p><p className="text-sm text-slate-400">{signal.name}</p></button><button onClick={onStar} className="rounded-xl p-2 text-signal-amber transition group-hover:scale-110"><Star fill={starred ? 'currentColor' : 'none'} /></button></div><div className="mt-4 flex items-end justify-between"><div><p className="font-bold">{formatPrice(signal.price, currency)}</p><p className={signal.change24h >= 0 ? 'text-sm text-signal-green' : 'text-sm text-signal-red'}>{signal.change24h >= 0 ? '+' : ''}{signal.change24h}%</p></div><span className={`rounded-full border px-3 py-1 text-xs font-bold ${labelClass(signal.label)}`}>{signal.confidence}%</span></div></div>; }
 function Breakdown({ signal, compact = false }: { signal: AssetSignal; compact?: boolean }) { const rows = [['Momentum', signal.momentum], ['Trend', signal.trend], ['Volatility', signal.volatility], ['MTF Weight', signal.mtf]] as const; return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center gap-2"><Zap className="text-signal-blue" size={18} /><h3 className="font-bold">Signal Breakdown</h3></div><div className="space-y-3">{rows.map(([label, value]) => <div key={label}><div className="mb-1 flex justify-between text-sm"><span className="text-slate-300">{label}</span><span className="font-bold">{value}%</span></div><div className="h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-signal-blue" style={{ width: `${value}%` }} /></div></div>)}</div>{!compact && <p className="mt-4 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3 text-sm text-slate-200"><Info className="mr-2 inline text-signal-blue" size={16} />Heuristic education signal: trend + momentum + volatility + multi-timeframe posture.</p>}</div>; }
 function ProLock({ title, body, isPro, onUpgrade }: { title: string; body: string; isPro: boolean; onUpgrade: () => void }) { return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className={`mb-2 flex items-center gap-2 ${isPro ? 'text-signal-green' : 'text-signal-amber'}`}>{isPro ? <CheckCircle2 size={18} /> : <Lock size={18} />}<p className="font-bold">{title}</p></div><p className="text-sm text-slate-300">{isPro ? `${body} Unlocked for your Pro account.` : body}</p>{isPro ? <span className="mt-3 inline-block rounded-xl border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-xs font-bold text-signal-green">Pro unlocked</span> : <button onClick={onUpgrade} className="mt-3 rounded-xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-2 text-xs font-bold text-signal-amber">Unlock deeper signal intelligence</button>}</div>; }
-function AuthPanel({ authUser, plan, authEmail, setAuthEmail, authMessage, onMagicLink, onSignOut, onUpgrade, upgrading }: { authUser: AuthUser; plan: Plan; authEmail: string; setAuthEmail: (v: string) => void; authMessage: string; onMagicLink: () => void; onSignOut: () => void; onUpgrade: () => void; upgrading: boolean }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><UserRound size={18} /><h2 className="text-xl font-bold">Account + Pro</h2></div>{authUser ? <><p className="text-sm text-slate-300">Signed in as <strong className="text-white">{authUser.email}</strong></p><p className="mt-2 text-2xl font-black">Plan: {plan.toUpperCase()}</p><div className="mt-4 grid gap-2 sm:grid-cols-2"><button onClick={onUpgrade} disabled={plan === 'pro'} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950 disabled:opacity-40">{plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button><button onClick={onSignOut} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-bold">Sign out</button></div></> : <><p className="text-sm text-slate-300">Enter the same email you use at checkout. Magic link is optional; Pro can sync by email.</p><input value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email@example.com" className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /><div className="mt-3 grid gap-2 sm:grid-cols-2"><button onClick={onMagicLink} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950">Send Magic Link</button><button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 font-bold text-signal-amber">{upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button></div></>}{authMessage && <p className="mt-3 text-xs text-slate-400">{authMessage}</p>}</div>; }
+function AuthPanel({ authUser, plan, authEmail, setAuthEmail, authMessage, onMagicLink, onSignOut, onUpgrade, upgrading, checkoutSyncing }: { authUser: AuthUser; plan: Plan; authEmail: string; setAuthEmail: (v: string) => void; authMessage: string; onMagicLink: () => void; onSignOut: () => void; onUpgrade: () => void; upgrading: boolean; checkoutSyncing: boolean }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><UserRound size={18} /><h2 className="text-xl font-bold">Account + Pro</h2></div>{authUser ? <><p className="text-sm text-slate-300">Signed in as <strong className="text-white">{authUser.email}</strong></p><p className="mt-2 text-2xl font-black">Plan: <span className={plan === 'pro' ? 'text-signal-green' : ''}>{checkoutSyncing ? 'SYNCING' : plan.toUpperCase()}</span></p><div className="mt-4 grid gap-2 sm:grid-cols-2"><button onClick={onUpgrade} disabled={plan === 'pro' || checkoutSyncing} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950 disabled:opacity-40">{checkoutSyncing ? 'Finalizing...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button><button onClick={onSignOut} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-bold">Sign out</button></div></> : <><p className="text-sm text-slate-300">Enter the same email you use at checkout. Magic link is optional; Pro can sync by email.</p><input value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email@example.com" className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /><div className="mt-3 grid gap-2 sm:grid-cols-2"><button onClick={onMagicLink} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950">Send Magic Link</button><button onClick={onUpgrade} disabled={checkoutSyncing} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 font-bold text-signal-amber disabled:opacity-50">{checkoutSyncing ? 'Finalizing...' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button></div></>}{authMessage && <p className="mt-3 text-xs text-slate-400">{authMessage}</p>}</div>; }
 function JourneyCard({ visits, journey, completed }: { visits: number; journey: { title: string; stage: number; progress: number; note: string }; completed: number }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><Trophy size={18} /><h2 className="text-xl font-bold">Your Signal Journey</h2></div><p className="text-2xl font-black">{journey.title}</p><p className="mt-1 text-sm text-slate-300">Stage {journey.stage} · {visits} visits · {completed}/4 ritual steps</p><div className="mt-4 h-3 rounded-full bg-white/10"><div className="h-3 rounded-full bg-signal-blue" style={{ width: `${journey.progress}%` }} /></div><p className="mt-3 text-sm text-slate-300">{journey.note}</p></div>; }
 function RitualCard({ ritual, mark }: { ritual: RitualState; mark: (key: keyof RitualState) => void }) { const items: [keyof RitualState, string][] = [['topSignal', 'Check Top Signal'], ['confidence', 'Review Confidence'], ['watchlist', 'Scan Watchlist'], ['market', 'Read Market Condition']]; return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><CheckCircle2 size={18} /><h2 className="text-xl font-bold">Tonight’s Ritual</h2></div><div className="space-y-2">{items.map(([key, label]) => <button key={key} onClick={() => mark(key)} className={`flex w-full items-center justify-between rounded-2xl border p-3 text-left ${ritual[key] ? 'border-signal-green/30 bg-signal-green/10 text-signal-green' : 'border-white/10 bg-white/[.04] text-slate-200'}`}><span>{label}</span><CheckCircle2 size={18} /></button>)}</div></div>; }
 function Glossary({ onClose }: { onClose: () => void }) { const terms = [['Signal', 'A simplified read of current market posture.'], ['Confidence', 'How strongly the heuristic agrees with itself.'], ['Journey', 'A lightweight progression system that rewards repeated learning behavior.'], ['Daily Ritual', 'A repeatable checklist that teaches users what to review before reacting.'], ['Market condition', 'A plain-English read of whether the current tape is calm, active, or volatile.'], ['Data source', 'Shows whether live CoinGecko prices loaded or the fallback dataset is protecting the app.'], ['Momentum', 'How much energy price action appears to have.'], ['MTF', 'Multi-timeframe weighting across short and longer views.']]; return <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm"><aside className="h-full w-full max-w-md overflow-auto border-l border-white/10 bg-midnight-950 p-6 shadow-soft"><div className="mb-5 flex items-center justify-between"><h2 className="text-2xl font-black">Floating Glossary</h2><button onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2">Close</button></div><div className="space-y-3">{terms.map(([term, definition]) => <div key={term} className="rounded-2xl border border-white/10 bg-white/[.04] p-4"><p className="font-bold text-signal-blue">{term}</p><p className="mt-1 text-sm text-slate-300">{definition}</p></div>)}</div></aside></div>; }

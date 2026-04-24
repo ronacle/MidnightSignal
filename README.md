@@ -1,8 +1,8 @@
-# Midnight Signal v13.3.2 — Pro Unlock Sync
+# Midnight Signal v13.3.3 — Pro Unlock Sync
 
 Clean Next.js App Router bundle for Vercel.
 
-## What changed in v13.3.2
+## What changed in v13.3.3
 - Pro status now reads from `public.users.plan`
 - Guest checkout can unlock by email, not only Supabase auth user ID
 - Stripe webhook writes `stripe_customer_id` and `stripe_subscription_id`
@@ -59,3 +59,11 @@ Only `checkout.session.completed` is required for the initial Pro unlock in this
 npm install
 npm run build
 ```
+
+
+## v13.3.3 Checkout Return Polish
+
+- Detects Stripe checkout return via `?checkout=success`.
+- Shows a temporary **Finalizing your Pro access…** banner.
+- Retries Supabase plan sync every 1.5 seconds for up to 10 attempts so users do not need a manual refresh after Stripe redirects back.
+- Persists the checkout email before redirect so guest checkout can sync by email after returning.

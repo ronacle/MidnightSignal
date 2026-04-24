@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   if (!stripe) return NextResponse.json({ error: 'Stripe is not configured. Add STRIPE_SECRET_KEY and STRIPE_PRICE_ID.' }, { status: 500 });
 
   const { email, userId } = await request.json().catch(() => ({}));
-  const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const price = process.env.STRIPE_PRICE_ID;
   if (!price) return NextResponse.json({ error: 'Missing STRIPE_PRICE_ID.' }, { status: 500 });
 
