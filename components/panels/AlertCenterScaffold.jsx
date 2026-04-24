@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { getAlertRuleLimit, hasUnlimitedAlerts } from '@/lib/entitlements';
+import {
+  SIGNAL_STREAM_TYPE_LABELS,
+  SIGNAL_STREAM_DEFAULT_TYPES,
+  normalizeSignalStreamPreferences,
+} from '@/lib/alert-engine';
 
 function formatTimestamp(value) {
   if (!value) return 'Waiting for first trigger';
@@ -75,6 +80,7 @@ export default function AlertCenterScaffold({
   const unlimitedAlerts = hasUnlimitedAlerts(planTier);
   const watchlist = Array.isArray(state?.watchlist) ? state.watchlist : [];
   const recentEvents = Array.isArray(state?.recentAlertEvents) ? state.recentAlertEvents : [];
+  const streamPreferences = normalizeSignalStreamPreferences(state?.signalStreamPreferences);
   const activeAlerts = alerts.filter((item) => !item.paused);
   const starterSymbols = Array.from(new Set([
     topSignal?.symbol,
@@ -199,6 +205,26 @@ export default function AlertCenterScaffold({
   }
 
 
+  function updateStreamPreferences(patch) {
+    setState((previous) => ({
+      ...previous,
+      signalStreamPreferences: normalizeSignalStreamPreferences({
+        ...(previous.signalStreamPreferences || {}),
+        ...patch,
+      }),
+      intent: 'alerts',
+      onboardingGoal: 'alerts',
+    }));
+  }
+
+  function toggleStreamType(type) {
+    const enabled = new Set(streamPreferences.enabledTypes);
+    if (enabled.has(type)) enabled.delete(type);
+    else enabled.add(type);
+    const nextEnabled = Array.from(enabled);
+    updateStreamPreferences({ enabledTypes: nextEnabled.length ? nextEnabled : [type] });
+  }
+
   async function sendTestAlert() {
     const cleanEmail = String(deliveryEmail || '').trim();
     if (!cleanEmail) {
@@ -302,6 +328,62 @@ export default function AlertCenterScaffold({
           <span className="badge">{planTier === 'pro' ? recentEvents.length : Math.min(recentEvents.length, 5)} recent</span>
           <span className="badge">{state?.alertDigestMode === 'digest' ? 'Digest mode' : 'Instant mode'}</span>
           <span className="badge">{user ? (syncing ? 'Cloud syncing…' : (lastSyncedAt ? 'Cloud saved' : 'Cloud ready')) : 'Local only'}</span>
+        </div>
+      </div>
+
+      <div className="signal-stream-control-card">
+        <div className="alert-center-card-top">
+          <div>
+            <div className="alert-center-card-title">Signal Stream noise control</div>
+            <div className="muted small">Choose what is allowed to interrupt the dashboard. This changes the bell, the priority strip, and recent stream history.</div>
+          </div>
+          <span className="badge">{streamPreferences.quietMode ? 'Quiet mode' : streamPreferences.minimumImportance === 'critical' ? 'Critical only' : streamPreferences.minimumImportance === 'important' ? 'Important+' : 'All events'}</span>
+        </div>
+
+        <div className="signal-stream-pref-grid">
+          <label className="alert-builder-field">
+            <span className="muted small">Minimum importance</span>
+            <select
+              className="select compact-select"
+              value={streamPreferences.minimumImportance}
+              onChange={(event) => updateStreamPreferences({ minimumImportance: event.target.value })}
+            >
+              <option value="all">All signal events</option>
+              <option value="important">Important and above</option>
+              <option value="critical">Critical only</option>
+            </select>
+          </label>
+
+          <button
+            type="button"
+            className={`alert-delivery-option signal-stream-toggle ${streamPreferences.watchlistOnly ? 'is-active' : ''}`}
+            onClick={() => updateStreamPreferences({ watchlistOnly: !streamPreferences.watchlistOnly })}
+          >
+            <strong>Watchlist-only stream</strong>
+            <span className="muted small">Only surface symbol events tied to your tracked assets.</span>
+          </button>
+
+          <button
+            type="button"
+            className={`alert-delivery-option signal-stream-toggle ${streamPreferences.quietMode ? 'is-active' : ''}`}
+            onClick={() => updateStreamPreferences({ quietMode: !streamPreferences.quietMode })}
+          >
+            <strong>Quiet mode</strong>
+            <span className="muted small">Suppress lower-signal movement so the stream only wakes up for meaningful shifts.</span>
+          </button>
+        </div>
+
+        <div className="signal-stream-type-grid" aria-label="Signal Stream event type controls">
+          {SIGNAL_STREAM_DEFAULT_TYPES.map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={`signal-stream-type-toggle ${streamPreferences.enabledTypes.includes(type) ? 'is-active' : ''}`}
+              onClick={() => toggleStreamType(type)}
+            >
+              {SIGNAL_STREAM_TYPE_LABELS[type] || type}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -460,7 +542,7 @@ export default function AlertCenterScaffold({
         <div className="alert-center-card-top">
           <div>
             <div className="alert-center-card-title">Recent alerts</div>
-            <div className="muted small">Live trigger history from system changes and configured rules.</div>
+            <div className="muted small">Live trigger history from system changes and configured rules, filtered by your Signal Stream preferences.</div>
           </div>
           <span className="badge">{planTier === 'pro' ? recentEvents.length : Math.min(recentEvents.length, 5)} recent</span>
         </div>

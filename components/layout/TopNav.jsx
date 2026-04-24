@@ -39,6 +39,8 @@ export default function TopNav({ state, user, status, priorityAlerts = [], onJum
         <AlertBell
           events={state?.recentAlertEvents || []}
           priorityAlerts={priorityAlerts}
+          preferences={state?.signalStreamPreferences}
+          watchlist={state?.watchlist || []}
           onOpenAlertCenter={onOpenAlertCenter}
           onOpenSymbol={onOpenAlertSymbol}
         />

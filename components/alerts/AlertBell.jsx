@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { filterSignalStreamEvents, normalizeSignalStreamPreferences } from '@/lib/alert-engine';
 
 const STREAM_LABELS = {
   lead_shift: 'Lead Shift',
@@ -67,11 +68,12 @@ function normalizeEvent(event, index) {
   };
 }
 
-export default function AlertBell({ events = [], priorityAlerts = [], onOpenAlertCenter, onOpenSymbol }) {
+export default function AlertBell({ events = [], priorityAlerts = [], preferences = null, watchlist = [], onOpenAlertCenter, onOpenSymbol }) {
   const [open, setOpen] = useState(false);
+  const streamPreferences = useMemo(() => normalizeSignalStreamPreferences(preferences), [preferences]);
   const streamItems = useMemo(() => {
     const seen = new Set();
-    return [...priorityAlerts, ...events]
+    return filterSignalStreamEvents([...priorityAlerts, ...events], streamPreferences, { watchlist })
       .map(normalizeEvent)
       .filter((event) => {
         if (seen.has(event.id)) return false;
@@ -79,7 +81,7 @@ export default function AlertBell({ events = [], priorityAlerts = [], onOpenAler
         return true;
       })
       .slice(0, 8);
-  }, [events, priorityAlerts]);
+  }, [events, priorityAlerts, streamPreferences, watchlist]);
 
   const count = streamItems.length;
   const strongestLevel = streamItems.some((event) => event.level === 'critical')
@@ -92,6 +94,15 @@ export default function AlertBell({ events = [], priorityAlerts = [], onOpenAler
           ? 'watch'
           : 'idle';
   const streamLabel = count === 1 ? '1 signal shift' : `${count} signal shifts`;
+  const preferenceLabel = streamPreferences.quietMode
+    ? 'Quiet mode'
+    : streamPreferences.minimumImportance === 'critical'
+      ? 'Critical only'
+      : streamPreferences.minimumImportance === 'important'
+        ? 'Important+'
+        : streamPreferences.watchlistOnly
+          ? 'Watchlist only'
+          : 'All signal events';
 
   function openCenter() {
     setOpen(false);
@@ -123,7 +134,7 @@ export default function AlertBell({ events = [], priorityAlerts = [], onOpenAler
           <div className="signal-stream-head">
             <div>
               <strong>Signal Stream</strong>
-              <div className="muted small">Live state changes from your current session</div>
+              <div className="muted small">{preferenceLabel} · current session</div>
             </div>
             <button type="button" className="ghost-button small" onClick={openCenter}>Manage</button>
           </div>
@@ -142,6 +153,7 @@ export default function AlertBell({ events = [], priorityAlerts = [], onOpenAler
                   <span className="signal-stream-title">{event.title}</span>
                   <span className="signal-stream-body">{event.body}</span>
                   <span className="signal-stream-meta">{event.symbol || 'Market'} · {timeAgo(event.triggeredAt)}</span>
+                  {event.reason ? <span className="signal-stream-why">Why: {event.reason}</span> : null}
                 </span>
               </button>
             )) : (

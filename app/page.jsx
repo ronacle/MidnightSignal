@@ -46,9 +46,12 @@ import {
   writeDigestMemory,
   queueDigestEvents,
   consumeQueuedDigestEvents,
+  filterSignalStreamEvents,
+  normalizeSignalStreamPreferences,
 } from '@/lib/alert-engine';
 
 
+const APP_BUILD_LABEL = 'v12.6.2 · signal stream preferences + noise control';
 const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v2';
 const COLLAPSIBLE_PANELS_KEY = 'midnight-signal-collapsible-panels-v2';
 const DEFAULT_PANEL_STATE = { sinceLastVisit: true, marketScan: true, signalContext: false };
@@ -867,15 +870,21 @@ const sinceLastVisitSummary = useMemo(() => {
           cooldownMinutes: Number(state?.alertCooldownMinutes || 30),
         });
 
-        const allAlerts = [...configured.events, ...systemAlerts]
+        const rawAlerts = [...configured.events, ...systemAlerts]
           .filter((item) => !dismissed.includes(item.id))
           .sort((a, b) => b.priority - a.priority);
+        const streamPreferences = normalizeSignalStreamPreferences(state?.signalStreamPreferences);
+        const allAlerts = filterSignalStreamEvents(rawAlerts, streamPreferences, {
+          watchlist: state?.watchlist || [],
+          timeframe: state?.timeframe,
+          strategy: state?.strategy,
+        });
 
         if (!cancelled) {
           setPriorityAlerts(allAlerts.slice(0, 4));
         }
 
-        const timelineEvents = [...configured.events, ...systemAlerts];
+        const timelineEvents = allAlerts;
         if (timelineEvents.length) {
           const seenEvents = new Set();
           const recent = [
