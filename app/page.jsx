@@ -859,6 +859,7 @@ const sinceLastVisitSummary = useMemo(() => {
           previousRegime,
           regimeSummary,
           watchlistHighlights,
+          decisionLayer,
         });
 
         const configured = evaluateConfiguredAlerts(state?.alerts || [], previousMap, currentMap, {
@@ -874,11 +875,17 @@ const sinceLastVisitSummary = useMemo(() => {
           setPriorityAlerts(allAlerts.slice(0, 4));
         }
 
-        if (configured.events.length) {
+        const timelineEvents = [...configured.events, ...systemAlerts];
+        if (timelineEvents.length) {
+          const seenEvents = new Set();
           const recent = [
-            ...configured.events,
+            ...timelineEvents,
             ...(state?.recentAlertEvents || []),
-          ].slice(0, 12);
+          ].filter((event) => {
+            if (!event?.id || seenEvents.has(event.id)) return false;
+            seenEvents.add(event.id);
+            return true;
+          }).slice(0, 18);
           setState((previous) => ({ ...previous, recentAlertEvents: recent }));
 
           if (state?.signalSoundsEnabled && typeof window !== 'undefined' && window.AudioContext) {
@@ -951,7 +958,12 @@ const sinceLastVisitSummary = useMemo(() => {
         }
         window.localStorage.setItem(
           'midnight-signal-last-top-signal',
-          JSON.stringify({ symbol: topSignal.symbol, conviction: topSignal.conviction })
+          JSON.stringify({
+            symbol: topSignal.symbol,
+            conviction: topSignal.conviction,
+            signalLabel: topSignal.signalLabel,
+            decisionAction: decisionLayer?.decisionAction || null
+          })
         );
         if (regimeSummary?.regime) {
           window.localStorage.setItem('midnight-signal-last-regime', regimeSummary.regime);
@@ -965,7 +977,7 @@ const sinceLastVisitSummary = useMemo(() => {
     return () => {
       cancelled = true;
     };
-  }, [topSignal, watchlistHighlights, regimeSummary, rankedAssets, state?.watchlist, marketReady, state?.alerts, state?.alertCooldownMinutes, state?.alertDeliveryEnabled, state?.alertDeliveryEmail, state?.alertDigestMode, state?.alertDigestIntervalMinutes, state?.signalSoundsEnabled, setState]);
+  }, [topSignal, watchlistHighlights, regimeSummary, rankedAssets, state?.watchlist, marketReady, state?.alerts, state?.alertCooldownMinutes, state?.alertDeliveryEnabled, state?.alertDeliveryEmail, state?.alertDigestMode, state?.alertDigestIntervalMinutes, state?.signalSoundsEnabled, decisionLayer, setState]);
 
   useEffect(() => {
     if (!topSignal || !marketReady) return;
@@ -1248,7 +1260,10 @@ function handleOnboardingComplete(payload) {
           state={state}
           user={user}
           status={status}
+          priorityAlerts={priorityAlerts}
           onJump={jumpTo}
+          onOpenAlertCenter={() => jumpTo('alert-center')}
+          onOpenAlertSymbol={(symbol) => openAlertAsset(symbol)}
           onOpenControls={() => openControlSection('session-settings')}
           onOpenLearning={() => {
             setLearningAsset(null);
@@ -1577,7 +1592,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v12.5.2 · header clarity + session context · source: {marketSource}
+          Build v12.6.0 · real alert intelligence · source: {marketSource}
         </div>
       </div>
 
