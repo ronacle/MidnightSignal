@@ -62,3 +62,24 @@ export async function getMarketSnapshot(mode: TraderMode, currency: string, prev
 }
 
 export function supportedLiveSymbols() { return supportedSymbols; }
+
+export async function getMarketPrice(symbol: string, currency = 'USD'): Promise<number> {
+  const fallback = buildSignals('swing').find(item => item.symbol === symbol)?.price;
+  const id = ids[symbol];
+  if (!id) {
+    if (fallback) return fallback;
+    throw new Error(`Unsupported symbol: ${symbol}`);
+  }
+
+  try {
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=${currency.toLowerCase()}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('CoinGecko price request failed');
+    const data = await res.json();
+    const price = Number(data[id]?.[currency.toLowerCase()]);
+    if (!Number.isFinite(price) || price <= 0) throw new Error('Invalid CoinGecko price response');
+    return price;
+  } catch {
+    if (fallback) return fallback;
+    throw new Error(`No fallback price for ${symbol}`);
+  }
+}

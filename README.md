@@ -1,3 +1,17 @@
+# Midnight Signal v13.6
+
+Current build: **Persistent Signal Results + Cron Settlement**.
+
+New in this build:
+- Open signals are saved through `/api/signals/save` after market refresh.
+- Settled results are read through `/api/signals/results`.
+- `/api/cron/settle-signals` closes old open signals using current market prices.
+- Dashboard automatically uses real database results when available, with the v13.5 simulated performance layer as a fallback.
+
+See `README-PERSISTENT-SIGNALS-v13.6.md` for setup details.
+
+---
+
 # Midnight Signal v13.4 — Retention + Signal Performance
 
 Production-ready Next.js App Router bundle for Vercel.

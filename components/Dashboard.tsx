@@ -110,6 +110,8 @@ export default function Dashboard() {
     return { signals, source: 'Fallback demo data', updatedAt: BUILD.deployedAt, marketCondition: 'active', confidenceReason: `${signals[0].symbol} leads because trend and momentum are currently the strongest combined readings.` };
   });
   const [loadingLive, setLoadingLive] = useState(false);
+  const [persistentResults, setPersistentResults] = useState<SignalResult[]>([]);
+  const [performanceSource, setPerformanceSource] = useState<'database' | 'simulated'>('simulated');
   const [lastTop, setLastTop] = useState<AssetSignal | undefined>();
 
   useEffect(() => { setMounted(true); }, []);
@@ -139,6 +141,13 @@ export default function Dashboard() {
     const next = await getMarketSnapshot(mode, currency, lastTop);
     setSnapshot(next);
     setLastTop(next.signals[0]);
+
+    fetch('/api/signals/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signals: next.signals, mode, userId: authUser?.id || null })
+    }).catch(() => undefined);
+
     setLoadingLive(false);
   }
 
@@ -235,9 +244,31 @@ export default function Dashboard() {
   const completedRitual = Object.values(ritual).filter(Boolean).length;
   const journey = journeyLevel(visits, watchlist.length, completedRitual);
   const signalHistory = useMemo(() => buildSignalHistory(signals), [signals]);
-  const performanceResults = useMemo(() => buildSignalResults(signals, mode), [signals, mode]);
+  const simulatedPerformanceResults = useMemo(() => buildSignalResults(signals, mode), [signals, mode]);
+  const performanceResults = persistentResults.length ? persistentResults : simulatedPerformanceResults;
   const performanceSummary = useMemo(() => summarizePerformance(performanceResults), [performanceResults]);
   const topOutcome = outcomeForSignal(top);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (authUser?.id) params.set('userId', authUser.id);
+    params.set('limit', '60');
+    fetch('/api/signals/results?' + params.toString())
+      .then(response => response.ok ? response.json() : Promise.reject(new Error('results unavailable')))
+      .then(data => {
+        if (Array.isArray(data.results) && data.results.length) {
+          setPersistentResults(data.results);
+          setPerformanceSource('database');
+        } else {
+          setPersistentResults([]);
+          setPerformanceSource('simulated');
+        }
+      })
+      .catch(() => {
+        setPersistentResults([]);
+        setPerformanceSource('simulated');
+      });
+  }, [authUser?.id, snapshot.updatedAt]);
 
   useEffect(() => {
     setSignalChanged(true);
@@ -332,7 +363,7 @@ export default function Dashboard() {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Midnight Signal Panel</p><h2 className="text-2xl font-bold">Tonight’s Brief</h2></div><button onClick={() => setSound(!sound)} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-slate-200 hover:bg-white/10" aria-label="Toggle sound">{sound ? <Volume2 /> : <VolumeX />}</button></div>
           <div className="grid gap-4 md:grid-cols-4">
             <BriefCard label="Win rate" value={`${performanceSummary.winRate}%`} detail={`${performanceSummary.wins} wins · ${performanceSummary.losses} losses from decisive outcomes`} />
-            <BriefCard label="Avg return" value={`${performanceSummary.avgReturn >= 0 ? '+' : ''}${performanceSummary.avgReturn}%`} detail={`${performanceSummary.totalSignals} simulated tracked outcomes`} />
+            <BriefCard label="Avg return" value={`${performanceSummary.avgReturn >= 0 ? '+' : ''}${performanceSummary.avgReturn}%`} detail={`${performanceSummary.totalSignals} ${performanceSource === 'database' ? 'settled database' : 'simulated'} outcomes`} />
             <BriefCard label="Current streak" value={`${performanceSummary.currentStreak} ${outcomeLabel(performanceSummary.currentStreakType)}`} detail="Latest closed signal sequence" />
             <BriefCard label="Best signal" value={`${performanceSummary.best.symbol} ${performanceSummary.best.returnPct >= 0 ? '+' : ''}${performanceSummary.best.returnPct}%`} detail={performanceSummary.best.note} />
           </div>
@@ -394,7 +425,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Simple performance tracking · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }

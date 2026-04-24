@@ -1,6 +1,6 @@
--- Midnight Signal v13.5 - Signal Performance schema
--- Optional persistence layer for real signal result tracking.
--- The app currently ships with a deterministic simulated performance layer so the UI works without DB writes.
+-- Midnight Signal v13.6 - Persistent Signal Results schema
+-- Persistence layer for open and settled signal result tracking.
+-- Dashboard falls back to deterministic simulated results until rows have settled.
 
 create table if not exists public.signal_results (
   id uuid primary key default gen_random_uuid(),
