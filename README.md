@@ -1,69 +1,66 @@
-# Midnight Signal v13.3.3 — Pro Unlock Sync
+# Midnight Signal v13.4 — Retention + Signal Performance
 
-Clean Next.js App Router bundle for Vercel.
+Production-ready Next.js App Router bundle for Vercel.
 
-## What changed in v13.3.3
-- Pro status now reads from `public.users.plan`
-- Guest checkout can unlock by email, not only Supabase auth user ID
-- Stripe webhook writes `stripe_customer_id` and `stripe_subscription_id`
-- Checkout success page refreshes Pro access automatically
-- Pro badge/buttons update when `plan = pro`
-- Webhook logs Supabase errors instead of silently skipping writes
+## What's new in v13.4
 
-## Required env vars
-Copy `.env.example` to `.env.local` locally and set the same values in Vercel.
+- Simple signal performance layer: Worked / Failed / Neutral
+- Pro Signal History panel
+- Previous Signal Result card
+- In-app Signal Alerts
+- Conversion copy around signal history and confidence notes
+- Keeps the working v13.3.3 checkout return polish, Stripe webhook, Supabase user plan sync, and Pro unlock flow
+
+## Required environment variables
 
 ```env
-NEXT_PUBLIC_APP_URL=https://YOUR-VERCEL-APP.vercel.app
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PRICE_ID=price_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+SUPABASE_SERVICE_ROLE_KEY=
+
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_ID=
+
+NEXT_PUBLIC_SITE_URL=https://your-vercel-app.vercel.app
 ```
 
 ## Supabase table
-Run this in Supabase SQL editor if your `users` table does not already match it:
+
+The app expects `public.users`:
 
 ```sql
 create table if not exists public.users (
   id uuid default gen_random_uuid() primary key,
   email text unique,
-  plan text not null default 'free',
+  plan text default 'free',
   stripe_customer_id text,
   stripe_subscription_id text,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
 );
 ```
 
-## Supabase auth redirect
-In Supabase Auth URL settings, add your deployed Vercel URL and `http://localhost:3000` for local testing.
+## Stripe webhook endpoint
 
-## Stripe
-Use your recurring $9/month Founder Access Price ID in `STRIPE_PRICE_ID`.
+Use this endpoint:
 
-Webhook endpoint:
-`https://YOUR-DOMAIN/api/stripe/webhook`
+```txt
+https://YOUR-VERCEL-APP.vercel.app/api/stripe/webhook
+```
 
-Listen for:
-- `checkout.session.completed`
-- `customer.subscription.updated`
-- `customer.subscription.deleted`
+Recommended events:
 
-Only `checkout.session.completed` is required for the initial Pro unlock in this build.
+- checkout.session.completed
+- customer.subscription.updated
+- customer.subscription.deleted
 
 ## Deploy
+
 ```bash
 npm install
 npm run build
 ```
 
-
-## v13.3.3 Checkout Return Polish
-
-- Detects Stripe checkout return via `?checkout=success`.
-- Shows a temporary **Finalizing your Pro access…** banner.
-- Retries Supabase plan sync every 1.5 seconds for up to 10 attempts so users do not need a manual refresh after Stripe redirects back.
-- Persists the checkout email before redirect so guest checkout can sync by email after returning.
+Educational use only. Not financial advice.

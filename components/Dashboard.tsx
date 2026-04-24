@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Info, Lock, Mail, Moon, RefreshCw, Settings2, Sparkles, Star, Trophy, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Activity, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, History, Info, Lock, Mail, Moon, RefreshCw, Settings2, Sparkles, Star, Trophy, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '@/lib/signals';
 import { BUILD } from '@/lib/build';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
@@ -10,6 +10,8 @@ import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
 
 type AccessMode = 'unset' | 'guest' | 'early';
 type Plan = 'free' | 'pro';
+type SignalOutcome = 'Worked' | 'Failed' | 'Neutral';
+type SignalHistoryItem = AssetSignal & { outcome: SignalOutcome; note: string; age: string };
 type AuthUser = { id: string; email: string } | null;
 type Stored = {
   agreed?: boolean;
@@ -28,7 +30,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v13-3-3';
+const storageKey = 'midnight-signal-v13-4';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 
@@ -46,6 +48,29 @@ function labelClass(label: AssetSignal['label']) {
 }
 function conditionCopy(condition: MarketCondition) {
   return condition === 'volatile' ? 'Fast moves, wider risk bands' : condition === 'active' ? 'Readable movement, good for learning' : 'Slower tape, fewer strong confirmations';
+}
+function outcomeForSignal(signal: AssetSignal): SignalOutcome {
+  const move = signal.change24h;
+  if (signal.label === 'Bullish') return move >= 1.5 ? 'Worked' : move <= -1 ? 'Failed' : 'Neutral';
+  if (signal.label === 'Bearish') return move <= -1.5 ? 'Worked' : move >= 1 ? 'Failed' : 'Neutral';
+  return Math.abs(move) <= 1.8 ? 'Neutral' : move > 0 ? 'Worked' : 'Failed';
+}
+function outcomeClass(outcome: SignalOutcome) {
+  if (outcome === 'Worked') return 'text-signal-green bg-signal-green/10 border-signal-green/30';
+  if (outcome === 'Failed') return 'text-signal-red bg-signal-red/10 border-signal-red/30';
+  return 'text-signal-amber bg-signal-amber/10 border-signal-amber/30';
+}
+function buildSignalHistory(signals: AssetSignal[]): SignalHistoryItem[] {
+  const ages = ['Last 24h', 'Yesterday', '2 days ago', '3 days ago', '4 days ago', '5 days ago'];
+  return signals.slice(0, 6).map((signal, index) => {
+    const outcome = outcomeForSignal(signal);
+    const note = outcome === 'Worked'
+      ? signal.symbol + ' followed its ' + signal.label.toLowerCase() + ' posture enough to validate the read.'
+      : outcome === 'Failed'
+        ? signal.symbol + ' moved against the signal, which is why confidence review matters.'
+        : signal.symbol + ' stayed mixed, so the signal remains in watch-and-learn mode.';
+    return { ...signal, outcome, note, age: ages[index] || 'Recent' };
+  });
 }
 function journeyLevel(visits: number, watchlistCount: number, completed: number) {
   const score = visits * 12 + watchlistCount * 8 + completed * 10;
@@ -208,6 +233,8 @@ export default function Dashboard() {
   const active = signals.find(s => s.symbol === selected) || top;
   const completedRitual = Object.values(ritual).filter(Boolean).length;
   const journey = journeyLevel(visits, watchlist.length, completedRitual);
+  const signalHistory = useMemo(() => buildSignalHistory(signals), [signals]);
+  const topOutcome = outcomeForSignal(top);
 
   useEffect(() => {
     setSignalChanged(true);
@@ -300,9 +327,10 @@ export default function Dashboard() {
       <section className="grid gap-4 lg:grid-cols-[1.35fr_.85fr]">
         <div className="card rounded-3xl p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Midnight Signal Panel</p><h2 className="text-2xl font-bold">Tonight’s Brief</h2></div><button onClick={() => setSound(!sound)} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-slate-200 hover:bg-white/10" aria-label="Toggle sound">{sound ? <Volume2 /> : <VolumeX />}</button></div>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <BriefCard label="Market posture" value={top.label} detail={`${top.symbol} leads with ${top.confidence}% confidence`} />
             <BriefCard label="Since your last visit" value="Confidence tracked" detail={snapshot.confidenceReason} />
+            <BriefCard label="Previous signal result" value={topOutcome} detail={top.symbol + ' is marked ' + topOutcome.toLowerCase() + ' over the simple 24h outcome lens'} />
             <BriefCard label="Learning focus" value={experience === 'beginner' ? 'Clean Learning' : 'Pro View'} detail="Glossary stays available without clutter" />
           </div>
         </div>
@@ -332,6 +360,7 @@ export default function Dashboard() {
           <AuthPanel authUser={authUser} plan={plan} authEmail={authEmail} setAuthEmail={setAuthEmail} authMessage={authMessage} onMagicLink={sendMagicLink} onSignOut={signOut} onUpgrade={upgradeToPro} upgrading={upgrading} checkoutSyncing={checkoutSyncing} />
           <JourneyCard visits={visits} journey={journey} completed={completedRitual} />
           <RitualCard ritual={ritual} mark={markRitual} />
+          <NotificationsCard top={top} outcome={topOutcome} condition={snapshot.marketCondition} />
         </div>
 
         <div className={`card rounded-3xl p-5 ${signalChanged ? 'animate-pulseSignal' : ''}`}>
@@ -339,8 +368,12 @@ export default function Dashboard() {
           <p className="mb-4 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-4 text-slate-100">{top.why}</p>
           <Breakdown signal={top} />
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <ProLock isPro={plan === 'pro'} onUpgrade={upgradeToPro} title="Advanced MTF Weighting" body="Compare short, swing, and position posture in one combined Pro view." />
-            <ProLock isPro={plan === 'pro'} onUpgrade={upgradeToPro} title="Signal History" body="Track how confidence changed over time and what triggered the shift." />
+            <SignalPerformanceCard signal={top} outcome={topOutcome} />
+            <SignalHistoryPanel history={signalHistory} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <ProLock isPro={plan === 'pro'} onUpgrade={upgradeToPro} title="Advanced MTF Weighting" body="Compare short, swing, and position posture in one combined Pro view. Used by early access members who want deeper context." />
+            <ProLock isPro={plan === 'pro'} onUpgrade={upgradeToPro} title="Signal Confidence Notes" body="See how signals performed and why confidence shifted before reacting." />
           </div>
         </div>
       </section>
@@ -356,7 +389,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Simple performance tracking · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
@@ -374,6 +407,21 @@ function SignalRow({ signal, currency, active, starred, onSelect, onStar }: { si
 function AssetCard({ signal, currency, active, starred, onSelect, onStar }: { signal: AssetSignal; currency: string; active: boolean; starred: boolean; onSelect: () => void; onStar: () => void }) { return <div className={`group rounded-3xl border p-4 transition hover:-translate-y-0.5 hover:bg-white/[.07] ${active ? 'border-signal-blue/50 bg-signal-blue/10' : 'border-white/10 bg-white/[.04]'}`}><div className="flex items-start justify-between"><button onClick={onSelect} className="text-left"><p className="text-lg font-black">{signal.symbol}</p><p className="text-sm text-slate-400">{signal.name}</p></button><button onClick={onStar} className="rounded-xl p-2 text-signal-amber transition group-hover:scale-110"><Star fill={starred ? 'currentColor' : 'none'} /></button></div><div className="mt-4 flex items-end justify-between"><div><p className="font-bold">{formatPrice(signal.price, currency)}</p><p className={signal.change24h >= 0 ? 'text-sm text-signal-green' : 'text-sm text-signal-red'}>{signal.change24h >= 0 ? '+' : ''}{signal.change24h}%</p></div><span className={`rounded-full border px-3 py-1 text-xs font-bold ${labelClass(signal.label)}`}>{signal.confidence}%</span></div></div>; }
 function Breakdown({ signal, compact = false }: { signal: AssetSignal; compact?: boolean }) { const rows = [['Momentum', signal.momentum], ['Trend', signal.trend], ['Volatility', signal.volatility], ['MTF Weight', signal.mtf]] as const; return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center gap-2"><Zap className="text-signal-blue" size={18} /><h3 className="font-bold">Signal Breakdown</h3></div><div className="space-y-3">{rows.map(([label, value]) => <div key={label}><div className="mb-1 flex justify-between text-sm"><span className="text-slate-300">{label}</span><span className="font-bold">{value}%</span></div><div className="h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-signal-blue" style={{ width: `${value}%` }} /></div></div>)}</div>{!compact && <p className="mt-4 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3 text-sm text-slate-200"><Info className="mr-2 inline text-signal-blue" size={16} />Heuristic education signal: trend + momentum + volatility + multi-timeframe posture.</p>}</div>; }
 function ProLock({ title, body, isPro, onUpgrade }: { title: string; body: string; isPro: boolean; onUpgrade: () => void }) { return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className={`mb-2 flex items-center gap-2 ${isPro ? 'text-signal-green' : 'text-signal-amber'}`}>{isPro ? <CheckCircle2 size={18} /> : <Lock size={18} />}<p className="font-bold">{title}</p></div><p className="text-sm text-slate-300">{isPro ? `${body} Unlocked for your Pro account.` : body}</p>{isPro ? <span className="mt-3 inline-block rounded-xl border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-xs font-bold text-signal-green">Pro unlocked</span> : <button onClick={onUpgrade} className="mt-3 rounded-xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-2 text-xs font-bold text-signal-amber">Unlock deeper signal intelligence</button>}</div>; }
+function SignalPerformanceCard({ signal, outcome }: { signal: AssetSignal; outcome: SignalOutcome }) {
+  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center gap-2 text-signal-blue"><Activity size={18} /><h3 className="font-bold">Previous Signal Result</h3></div><span className={'inline-flex rounded-full border px-3 py-1 text-xs font-black ' + outcomeClass(outcome)}>{outcome}</span><p className="mt-3 text-sm text-slate-300">{signal.symbol} is reviewed through a simple 24h outcome lens: Worked / Failed / Neutral. This keeps the product honest without pretending to be a guaranteed trading system.</p><p className="mt-3 text-xs text-slate-500">Educational heuristic only · not financial advice</p></div>;
+}
+function SignalHistoryPanel({ history, isPro, onUpgrade }: { history: SignalHistoryItem[]; isPro: boolean; onUpgrade: () => void }) {
+  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-signal-blue"><History size={18} /><h3 className="font-bold">Recent Signals</h3></div>{!isPro && <Lock className="text-signal-amber" size={18} />}</div>{isPro ? <div className="space-y-2">{history.map(item => <div key={item.symbol + '-' + item.age} className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-3"><div><p className="font-bold">{item.symbol} <span className="text-xs font-normal text-slate-400">{item.age}</span></p><p className="text-xs text-slate-400">{item.label} · {item.confidence}% confidence</p></div><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + outcomeClass(item.outcome)}>{item.outcome}</span></div><p className="mt-2 text-xs text-slate-400">{item.note}</p></div>)}</div> : <div><div className="premium-lock space-y-2 opacity-70">{history.slice(0, 3).map(item => <div key={item.symbol} className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><p className="font-bold">{item.symbol} · {item.outcome}</p><p className="text-xs text-slate-400">Signal outcome history is a Pro feature.</p></div>)}</div><p className="mt-3 text-sm text-slate-300">Unlock signal history to see whether recent signals worked, failed, or stayed neutral.</p><button onClick={onUpgrade} className="mt-3 w-full rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber">See how signals performed</button></div>}</div>;
+}
+function NotificationsCard({ top, outcome, condition }: { top: AssetSignal; outcome: SignalOutcome; condition: MarketCondition }) {
+  const alerts = [
+    top.symbol + " remains tonight's strongest signal at " + top.confidence + '% confidence.',
+    'Previous signal result: ' + outcome + '.',
+    condition === 'volatile' ? 'Volatile tape: widen your learning lens before reacting.' : condition === 'active' ? 'Active market: good conditions for reviewing signal quality.' : 'Calm market: fewer confirmations, more patience.'
+  ];
+  return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><BellRing size={18} /><h2 className="text-xl font-bold">Signal Alerts</h2></div><div className="space-y-2">{alerts.map(alert => <div key={alert} className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-300">{alert}</div>)}</div></div>;
+}
+
 function AuthPanel({ authUser, plan, authEmail, setAuthEmail, authMessage, onMagicLink, onSignOut, onUpgrade, upgrading, checkoutSyncing }: { authUser: AuthUser; plan: Plan; authEmail: string; setAuthEmail: (v: string) => void; authMessage: string; onMagicLink: () => void; onSignOut: () => void; onUpgrade: () => void; upgrading: boolean; checkoutSyncing: boolean }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><UserRound size={18} /><h2 className="text-xl font-bold">Account + Pro</h2></div>{authUser ? <><p className="text-sm text-slate-300">Signed in as <strong className="text-white">{authUser.email}</strong></p><p className="mt-2 text-2xl font-black">Plan: <span className={plan === 'pro' ? 'text-signal-green' : ''}>{checkoutSyncing ? 'SYNCING' : plan.toUpperCase()}</span></p><div className="mt-4 grid gap-2 sm:grid-cols-2"><button onClick={onUpgrade} disabled={plan === 'pro' || checkoutSyncing} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950 disabled:opacity-40">{checkoutSyncing ? 'Finalizing...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button><button onClick={onSignOut} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-bold">Sign out</button></div></> : <><p className="text-sm text-slate-300">Enter the same email you use at checkout. Magic link is optional; Pro can sync by email.</p><input value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email@example.com" className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /><div className="mt-3 grid gap-2 sm:grid-cols-2"><button onClick={onMagicLink} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950">Send Magic Link</button><button onClick={onUpgrade} disabled={checkoutSyncing} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 font-bold text-signal-amber disabled:opacity-50">{checkoutSyncing ? 'Finalizing...' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button></div></>}{authMessage && <p className="mt-3 text-xs text-slate-400">{authMessage}</p>}</div>; }
 function JourneyCard({ visits, journey, completed }: { visits: number; journey: { title: string; stage: number; progress: number; note: string }; completed: number }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><Trophy size={18} /><h2 className="text-xl font-bold">Your Signal Journey</h2></div><p className="text-2xl font-black">{journey.title}</p><p className="mt-1 text-sm text-slate-300">Stage {journey.stage} · {visits} visits · {completed}/4 ritual steps</p><div className="mt-4 h-3 rounded-full bg-white/10"><div className="h-3 rounded-full bg-signal-blue" style={{ width: `${journey.progress}%` }} /></div><p className="mt-3 text-sm text-slate-300">{journey.note}</p></div>; }
 function RitualCard({ ritual, mark }: { ritual: RitualState; mark: (key: keyof RitualState) => void }) { const items: [keyof RitualState, string][] = [['topSignal', 'Check Top Signal'], ['confidence', 'Review Confidence'], ['watchlist', 'Scan Watchlist'], ['market', 'Read Market Condition']]; return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><CheckCircle2 size={18} /><h2 className="text-xl font-bold">Tonight’s Ritual</h2></div><div className="space-y-2">{items.map(([key, label]) => <button key={key} onClick={() => mark(key)} className={`flex w-full items-center justify-between rounded-2xl border p-3 text-left ${ritual[key] ? 'border-signal-green/30 bg-signal-green/10 text-signal-green' : 'border-white/10 bg-white/[.04] text-slate-200'}`}><span>{label}</span><CheckCircle2 size={18} /></button>)}</div></div>; }

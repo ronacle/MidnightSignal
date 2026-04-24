@@ -1,1 +1,1 @@
-export const BUILD = { version: '13.3.3', name: 'Checkout Return Polish', deployedAt: '2026-04-24' };
+export const BUILD = { version: '13.4.0', name: 'Retention + Signal Performance', deployedAt: '2026-04-24' };
