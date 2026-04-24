@@ -56,6 +56,7 @@ function journeyLevel(visits: number, watchlistCount: number, completed: number)
 }
 
 export default function Dashboard() {
+  const [mounted, setMounted] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [confirmedLearning, setConfirmedLearning] = useState(false);
   const [confirmedRisk, setConfirmedRisk] = useState(false);
@@ -78,10 +79,12 @@ export default function Dashboard() {
   const [ritual, setRitual] = useState<RitualState>(defaultRitual);
   const [snapshot, setSnapshot] = useState<TrustSnapshot>(() => {
     const signals = buildSignals('swing');
-    return { signals, source: 'Fallback demo data', updatedAt: new Date().toISOString(), marketCondition: 'active', confidenceReason: `${signals[0].symbol} leads because trend and momentum are currently the strongest combined readings.` };
+    return { signals, source: 'Fallback demo data', updatedAt: BUILD.deployedAt, marketCondition: 'active', confidenceReason: `${signals[0].symbol} leads because trend and momentum are currently the strongest combined readings.` };
   });
   const [loadingLive, setLoadingLive] = useState(false);
   const [lastTop, setLastTop] = useState<AssetSignal | undefined>();
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const stored = readStored();
@@ -179,10 +182,30 @@ export default function Dashboard() {
   }
   async function upgradeToPro() {
     setUpgrading(true);
-    const response = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: authUser?.email || earlyEmail, userId: authUser?.id }) });
-    const data = await response.json();
-    setUpgrading(false);
-    if (data.url) window.location.href = data.url; else setAuthMessage(data.error || 'Stripe checkout is not configured yet.');
+    setAuthMessage('');
+    try {
+      const response = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: authUser?.email || earlyEmail, userId: authUser?.id }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `Checkout failed with status ${response.status}`);
+      if (data.url) window.location.href = data.url;
+      else throw new Error('Stripe checkout did not return a URL. Check STRIPE_PRICE_ID and NEXT_PUBLIC_SITE_URL.');
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : 'Stripe checkout is not configured yet.');
+    } finally {
+      setUpgrading(false);
+    }
+  }
+
+  if (!mounted) {
+    return (
+      <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 sm:px-6 lg:px-8" suppressHydrationWarning>
+        <section className="card rounded-3xl p-6">
+          <p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Midnight Signal</p>
+          <h1 className="mt-2 text-3xl font-black">Loading signal dashboard…</h1>
+          <p className="mt-2 text-slate-300">Preparing your saved session and live market layer.</p>
+        </section>
+      </main>
+    );
   }
 
   return (
