@@ -17,6 +17,8 @@ const ids: Record<string, string> = {
   DOGE: 'dogecoin', LTC: 'litecoin'
 };
 
+const supportedSymbols = Object.keys(ids);
+
 function condition(signals: AssetSignal[]): MarketCondition {
   const avgVol = signals.reduce((sum, s) => sum + s.volatility, 0) / Math.max(signals.length, 1);
   if (avgVol >= 64) return 'volatile';
@@ -36,7 +38,6 @@ export async function getMarketSnapshot(mode: TraderMode, currency: string, prev
   const fallback = buildSignals(mode);
   const updatedAt = new Date().toISOString();
   const liveIds = Object.values(ids).join(',');
-  const symbols = Object.keys(ids);
 
   try {
     const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${liveIds}&vs_currencies=${currency.toLowerCase()}&include_24hr_change=true`, { cache: 'no-store' });
@@ -60,4 +61,4 @@ export async function getMarketSnapshot(mode: TraderMode, currency: string, prev
   }
 }
 
-export function supportedLiveSymbols() { return symbols; }
+export function supportedLiveSymbols() { return supportedSymbols; }
