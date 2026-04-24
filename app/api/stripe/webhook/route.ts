@@ -18,19 +18,20 @@ export async function POST(request: Request) {
   catch { return NextResponse.json({ error: 'Invalid Stripe signature.' }, { status: 400 }); }
 
   if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const userId = session.metadata?.userId || session.client_reference_id || '';
-    const email = session.customer_details?.email || session.customer_email || '';
-    if (supabase && userId) {
-      await supabase.from('profiles').upsert({
-        id: userId,
-        email,
-        plan: 'pro',
-        stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'id' });
-    }
+  const session = event.data.object;
+  const userId = session.metadata?.userId || session.client_reference_id || '';
+  const email = session.customer_details?.email || session.customer_email || '';
+
+  if (supabase && email) {
+    await supabase.from('users').upsert({
+      id: userId || crypto.randomUUID(),
+      email,
+      plan: 'pro',
+      stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'email' });
   }
+}
 
   return NextResponse.json({ received: true });
 }
