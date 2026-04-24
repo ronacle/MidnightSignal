@@ -1274,11 +1274,11 @@ function handleOnboardingComplete(payload) {
 
 
         {priorityAlerts.length ? (
-          <section className="priority-alert-stack" aria-label="Signal alerts">
+          <section className="priority-alert-stack signal-stream-priority-stack" aria-label="Signal Stream highlights">
             {priorityAlerts.map((alert) => (
               <div key={alert.id} className={`priority-alert priority-alert--${alert.level}`}>
                 <div className="priority-alert-copy">
-                  <div className="priority-alert-title">{alert.title}</div>
+                  <div className="priority-alert-title">{alert.streamType ? String(alert.streamType).replace(/_/g, ' ') : 'Signal Stream'}</div>
                   <div className="priority-alert-body">{alert.body}</div>
                 </div>
                 <div className="priority-alert-actions">
@@ -1592,7 +1592,7 @@ function handleOnboardingComplete(payload) {
         ) : null}
 
         <div className="footer-note">
-          Build v12.6.0 · real alert intelligence · source: {marketSource}
+          Build v12.6.1 · signal stream redesign · source: {marketSource}
         </div>
       </div>
 

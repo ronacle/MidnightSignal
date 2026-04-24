@@ -2,6 +2,28 @@
 
 import { useMemo, useState } from 'react';
 
+const STREAM_LABELS = {
+  lead_shift: 'Lead Shift',
+  conviction_change: 'Conviction Change',
+  decision_update: 'Decision Update',
+  trigger_hit: 'Trigger Hit',
+  market_tone: 'Market Tone',
+  watchlist_move: 'Watchlist Move',
+  custom_rule: 'Custom Rule',
+  signal_event: 'Signal Event',
+};
+
+const STREAM_ICONS = {
+  lead_shift: '↔',
+  conviction_change: '⌁',
+  decision_update: '✓',
+  trigger_hit: '⚡',
+  market_tone: '◌',
+  watchlist_move: '↗',
+  custom_rule: '◆',
+  signal_event: '•',
+};
+
 function timeAgo(value) {
   if (!value) return 'just now';
   const ms = Date.now() - new Date(value).getTime();
@@ -14,13 +36,31 @@ function timeAgo(value) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+function inferStreamType(event) {
+  const sourceType = event?.streamType || event?.eventType || event?.kind;
+  if (sourceType) return sourceType;
+  const title = String(event?.title || '').toLowerCase();
+  const id = String(event?.id || '').toLowerCase();
+  if (id.startsWith('flip:') || title.includes('lead')) return 'lead_shift';
+  if (id.startsWith('conviction:') || title.includes('conviction')) return 'conviction_change';
+  if (id.startsWith('decision:') || title.includes('decision')) return 'decision_update';
+  if (id.startsWith('regime:') || title.includes('tone')) return 'market_tone';
+  if (id.startsWith('watch:') || title.includes('watchlist')) return 'watchlist_move';
+  if (event?.source === 'configured') return 'custom_rule';
+  return 'signal_event';
+}
+
 function normalizeEvent(event, index) {
   const triggeredAt = event?.triggeredAt || event?.createdAt || event?.queuedAt || null;
+  const streamType = inferStreamType(event);
   return {
-    id: event?.id || `alert-${index}`,
+    id: event?.id || `stream-${index}`,
     level: event?.level || 'watch',
-    title: event?.title || 'Signal alert',
-    body: event?.body || event?.text || 'A signal changed in your current session.',
+    streamType,
+    streamLabel: STREAM_LABELS[streamType] || 'Signal Event',
+    streamIcon: STREAM_ICONS[streamType] || '•',
+    title: event?.title || 'Signal event',
+    body: event?.body || event?.text || 'A meaningful signal changed in your current session.',
     symbol: event?.symbol || '',
     source: event?.source || 'system',
     triggeredAt,
@@ -29,7 +69,7 @@ function normalizeEvent(event, index) {
 
 export default function AlertBell({ events = [], priorityAlerts = [], onOpenAlertCenter, onOpenSymbol }) {
   const [open, setOpen] = useState(false);
-  const alertItems = useMemo(() => {
+  const streamItems = useMemo(() => {
     const seen = new Set();
     return [...priorityAlerts, ...events]
       .map(normalizeEvent)
@@ -41,7 +81,17 @@ export default function AlertBell({ events = [], priorityAlerts = [], onOpenAler
       .slice(0, 8);
   }, [events, priorityAlerts]);
 
-  const count = alertItems.length;
+  const count = streamItems.length;
+  const strongestLevel = streamItems.some((event) => event.level === 'critical')
+    ? 'critical'
+    : streamItems.some((event) => event.level === 'positive')
+      ? 'positive'
+      : streamItems.some((event) => event.level === 'warning')
+        ? 'warning'
+        : count
+          ? 'watch'
+          : 'idle';
+  const streamLabel = count === 1 ? '1 signal shift' : `${count} signal shifts`;
 
   function openCenter() {
     setOpen(false);
@@ -54,46 +104,49 @@ export default function AlertBell({ events = [], priorityAlerts = [], onOpenAler
   }
 
   return (
-    <div className="alert-bell-wrap">
+    <div className="signal-stream-wrap">
       <button
         type="button"
-        className={`alert-bell-button ${count ? 'has-alerts' : ''}`}
+        className={`signal-stream-button signal-stream-button--${strongestLevel} ${count ? 'has-stream' : ''}`}
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        aria-label={count ? `${count} signal alerts` : 'Open signal alerts'}
+        aria-label={count ? `${streamLabel} in the signal stream` : 'Open signal stream'}
+        title={count ? `Signal Stream · ${streamLabel}` : 'Signal Stream'}
       >
-        <span className="alert-bell-icon" aria-hidden="true">🔔</span>
-        {count ? <span className="alert-bell-count">{count > 9 ? '9+' : count}</span> : null}
+        <span className="signal-stream-orb" aria-hidden="true" />
+        <span className="signal-stream-icon" aria-hidden="true">⌁</span>
+        {count ? <span className="signal-stream-count">{count > 9 ? '9+' : count}</span> : null}
       </button>
 
       {open ? (
-        <div className="alert-bell-popover card" role="dialog" aria-label="Signal alert feed">
-          <div className="alert-bell-head">
+        <div className="signal-stream-popover card" role="dialog" aria-label="Signal Stream">
+          <div className="signal-stream-head">
             <div>
-              <strong>Alerts</strong>
-              <div className="muted small">Session-aware signal changes</div>
+              <strong>Signal Stream</strong>
+              <div className="muted small">Live state changes from your current session</div>
             </div>
             <button type="button" className="ghost-button small" onClick={openCenter}>Manage</button>
           </div>
 
-          <div className="alert-bell-list">
-            {alertItems.length ? alertItems.map((event) => (
+          <div className="signal-stream-list">
+            {streamItems.length ? streamItems.map((event) => (
               <button
                 type="button"
-                className={`alert-bell-item alert-bell-item--${event.level}`}
+                className={`signal-stream-item signal-stream-item--${event.level}`}
                 key={event.id}
                 onClick={() => event.symbol ? openSymbol(event.symbol) : openCenter()}
               >
-                <span className="alert-bell-dot" aria-hidden="true" />
-                <span className="alert-bell-copy">
-                  <span className="alert-bell-title">{event.title}</span>
-                  <span className="alert-bell-body">{event.body}</span>
-                  <span className="alert-bell-meta">{event.symbol || 'Market'} · {timeAgo(event.triggeredAt)}</span>
+                <span className="signal-stream-type-icon" aria-hidden="true">{event.streamIcon}</span>
+                <span className="signal-stream-copy">
+                  <span className="signal-stream-kicker">{event.streamLabel}</span>
+                  <span className="signal-stream-title">{event.title}</span>
+                  <span className="signal-stream-body">{event.body}</span>
+                  <span className="signal-stream-meta">{event.symbol || 'Market'} · {timeAgo(event.triggeredAt)}</span>
                 </span>
               </button>
             )) : (
-              <div className="alert-bell-empty">
-                No alert changes yet. The bell lights up when leadership, conviction, decisions, or triggers shift.
+              <div className="signal-stream-empty">
+                No signal shifts yet. The stream wakes up when leadership, conviction, decisions, or triggers change.
               </div>
             )}
           </div>
