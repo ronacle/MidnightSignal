@@ -2,11 +2,12 @@
 
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, History, Info, Lock, Mail, Moon, RefreshCw, Settings2, Sparkles, Star, Trophy, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Flame, History, Info, Lock, Mail, Moon, RefreshCw, Settings2, Sparkles, Star, Target, Trophy, TrendingUp, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '@/lib/signals';
 import { BUILD } from '@/lib/build';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
+import { PerformanceOutcome, SignalResult, buildSignalResults, outcomeLabel, summarizePerformance } from '@/lib/performance';
 
 type AccessMode = 'unset' | 'guest' | 'early';
 type Plan = 'free' | 'pro';
@@ -234,6 +235,8 @@ export default function Dashboard() {
   const completedRitual = Object.values(ritual).filter(Boolean).length;
   const journey = journeyLevel(visits, watchlist.length, completedRitual);
   const signalHistory = useMemo(() => buildSignalHistory(signals), [signals]);
+  const performanceResults = useMemo(() => buildSignalResults(signals, mode), [signals, mode]);
+  const performanceSummary = useMemo(() => summarizePerformance(performanceResults), [performanceResults]);
   const topOutcome = outcomeForSignal(top);
 
   useEffect(() => {
@@ -313,7 +316,7 @@ export default function Dashboard() {
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · {BUILD.name}</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
-          <p className="mt-2 max-w-2xl text-slate-300">Explainable market posture with trust cues, a daily ritual, and a clear path from guest to early access.</p>
+          <p className="mt-2 max-w-2xl text-slate-300">Explainable market posture with proof-first signal performance, a daily ritual, and a clear path from guest to Pro.</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access…' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in · ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
       </header>
@@ -328,10 +331,10 @@ export default function Dashboard() {
         <div className="card rounded-3xl p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Midnight Signal Panel</p><h2 className="text-2xl font-bold">Tonight’s Brief</h2></div><button onClick={() => setSound(!sound)} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-slate-200 hover:bg-white/10" aria-label="Toggle sound">{sound ? <Volume2 /> : <VolumeX />}</button></div>
           <div className="grid gap-4 md:grid-cols-4">
-            <BriefCard label="Market posture" value={top.label} detail={`${top.symbol} leads with ${top.confidence}% confidence`} />
-            <BriefCard label="Since your last visit" value="Confidence tracked" detail={snapshot.confidenceReason} />
-            <BriefCard label="Previous signal result" value={topOutcome} detail={top.symbol + ' is marked ' + topOutcome.toLowerCase() + ' over the simple 24h outcome lens'} />
-            <BriefCard label="Learning focus" value={experience === 'beginner' ? 'Clean Learning' : 'Pro View'} detail="Glossary stays available without clutter" />
+            <BriefCard label="Win rate" value={`${performanceSummary.winRate}%`} detail={`${performanceSummary.wins} wins · ${performanceSummary.losses} losses from decisive outcomes`} />
+            <BriefCard label="Avg return" value={`${performanceSummary.avgReturn >= 0 ? '+' : ''}${performanceSummary.avgReturn}%`} detail={`${performanceSummary.totalSignals} simulated tracked outcomes`} />
+            <BriefCard label="Current streak" value={`${performanceSummary.currentStreak} ${outcomeLabel(performanceSummary.currentStreakType)}`} detail="Latest closed signal sequence" />
+            <BriefCard label="Best signal" value={`${performanceSummary.best.symbol} ${performanceSummary.best.returnPct >= 0 ? '+' : ''}${performanceSummary.best.returnPct}%`} detail={performanceSummary.best.note} />
           </div>
         </div>
 
@@ -351,6 +354,8 @@ export default function Dashboard() {
         <TrustCard icon={<Zap size={18} />} label="Market condition" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} onClick={() => markRitual('market')} />
       </section>
 
+      <PerformanceHero summary={performanceSummary} results={performanceResults} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
+
       <section className="mt-4 grid gap-4 lg:grid-cols-[.85fr_1.15fr]">
         <div className="space-y-4">
           <div className="card rounded-3xl p-5">
@@ -369,7 +374,7 @@ export default function Dashboard() {
           <Breakdown signal={top} />
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <SignalPerformanceCard signal={top} outcome={topOutcome} />
-            <SignalHistoryPanel history={signalHistory} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
+            <SignalHistoryPanel results={performanceResults} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <ProLock isPro={plan === 'pro'} onUpgrade={upgradeToPro} title="Advanced MTF Weighting" body="Compare short, swing, and position posture in one combined Pro view. Used by early access members who want deeper context." />
@@ -407,11 +412,43 @@ function SignalRow({ signal, currency, active, starred, onSelect, onStar }: { si
 function AssetCard({ signal, currency, active, starred, onSelect, onStar }: { signal: AssetSignal; currency: string; active: boolean; starred: boolean; onSelect: () => void; onStar: () => void }) { return <div className={`group rounded-3xl border p-4 transition hover:-translate-y-0.5 hover:bg-white/[.07] ${active ? 'border-signal-blue/50 bg-signal-blue/10' : 'border-white/10 bg-white/[.04]'}`}><div className="flex items-start justify-between"><button onClick={onSelect} className="text-left"><p className="text-lg font-black">{signal.symbol}</p><p className="text-sm text-slate-400">{signal.name}</p></button><button onClick={onStar} className="rounded-xl p-2 text-signal-amber transition group-hover:scale-110"><Star fill={starred ? 'currentColor' : 'none'} /></button></div><div className="mt-4 flex items-end justify-between"><div><p className="font-bold">{formatPrice(signal.price, currency)}</p><p className={signal.change24h >= 0 ? 'text-sm text-signal-green' : 'text-sm text-signal-red'}>{signal.change24h >= 0 ? '+' : ''}{signal.change24h}%</p></div><span className={`rounded-full border px-3 py-1 text-xs font-bold ${labelClass(signal.label)}`}>{signal.confidence}%</span></div></div>; }
 function Breakdown({ signal, compact = false }: { signal: AssetSignal; compact?: boolean }) { const rows = [['Momentum', signal.momentum], ['Trend', signal.trend], ['Volatility', signal.volatility], ['MTF Weight', signal.mtf]] as const; return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center gap-2"><Zap className="text-signal-blue" size={18} /><h3 className="font-bold">Signal Breakdown</h3></div><div className="space-y-3">{rows.map(([label, value]) => <div key={label}><div className="mb-1 flex justify-between text-sm"><span className="text-slate-300">{label}</span><span className="font-bold">{value}%</span></div><div className="h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-signal-blue" style={{ width: `${value}%` }} /></div></div>)}</div>{!compact && <p className="mt-4 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3 text-sm text-slate-200"><Info className="mr-2 inline text-signal-blue" size={16} />Heuristic education signal: trend + momentum + volatility + multi-timeframe posture.</p>}</div>; }
 function ProLock({ title, body, isPro, onUpgrade }: { title: string; body: string; isPro: boolean; onUpgrade: () => void }) { return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className={`mb-2 flex items-center gap-2 ${isPro ? 'text-signal-green' : 'text-signal-amber'}`}>{isPro ? <CheckCircle2 size={18} /> : <Lock size={18} />}<p className="font-bold">{title}</p></div><p className="text-sm text-slate-300">{isPro ? `${body} Unlocked for your Pro account.` : body}</p>{isPro ? <span className="mt-3 inline-block rounded-xl border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-xs font-bold text-signal-green">Pro unlocked</span> : <button onClick={onUpgrade} className="mt-3 rounded-xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-2 text-xs font-bold text-signal-amber">Unlock deeper signal intelligence</button>}</div>; }
+function performanceOutcomeClass(outcome: PerformanceOutcome) {
+  if (outcome === 'win') return 'text-signal-green bg-signal-green/10 border-signal-green/30';
+  if (outcome === 'loss') return 'text-signal-red bg-signal-red/10 border-signal-red/30';
+  return 'text-signal-amber bg-signal-amber/10 border-signal-amber/30';
+}
+
+function PerformanceHero({ summary, results, isPro, onUpgrade }: { summary: ReturnType<typeof summarizePerformance>; results: SignalResult[]; isPro: boolean; onUpgrade: () => void }) {
+  const recent = results.slice(0, 6);
+  return <section className="mt-4 card rounded-3xl p-5">
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-green/20 bg-signal-green/10 px-3 py-1 text-xs font-bold text-signal-green"><BarChart3 size={14} /> Signal Performance System</div><h2 className="text-3xl font-black">Proof that the signals are being scored.</h2><p className="mt-2 max-w-3xl text-sm text-slate-300">Every generated signal now gets a simulated entry, close, return, and win/loss/neutral outcome. This makes trust measurable instead of implied.</p></div>{!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlock full history</button>}</div>
+    <div className="grid gap-3 md:grid-cols-4">
+      <MetricTile icon={<Target size={18} />} label="Win rate" value={`${summary.winRate}%`} detail={`${summary.wins}/${summary.wins + summary.losses} decisive`} />
+      <MetricTile icon={<TrendingUp size={18} />} label="Avg return" value={`${summary.avgReturn >= 0 ? '+' : ''}${summary.avgReturn}%`} detail={`${summary.totalReturn >= 0 ? '+' : ''}${summary.totalReturn}% total simulated`} />
+      <MetricTile icon={<Flame size={18} />} label="Streak" value={`${summary.currentStreak} ${outcomeLabel(summary.currentStreakType)}`} detail="Most recent closed run" />
+      <MetricTile icon={<Activity size={18} />} label="Confidence accuracy" value={`${summary.confidenceAccuracy}%`} detail={summary.proEdge} />
+    </div>
+    <div className="mt-4 grid gap-3 lg:grid-cols-[.8fr_1.2fr]">
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">Best / Worst Read</p><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-1"><ResultMini result={summary.best} title="Best" /><ResultMini result={summary.worst} title="Needs review" /></div></div>
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">Latest closes</p><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{recent.map(result => <ResultMini key={result.id} result={result} />)}</div></div>
+    </div>
+  </section>;
+}
+
+function MetricTile({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail: string }) {
+  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-2 flex items-center gap-2 text-signal-blue">{icon}<span className="text-xs font-bold uppercase tracking-[.16em]">{label}</span></div><p className="text-3xl font-black">{value}</p><p className="mt-1 text-xs text-slate-400">{detail}</p></div>;
+}
+
+function ResultMini({ result, title }: { result: SignalResult; title?: string }) {
+  return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-2"><p className="font-black">{title ? title + ': ' : ''}{result.symbol}</p><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(result.outcome)}>{outcomeLabel(result.outcome)}</span></div><p className={result.returnPct >= 0 ? 'mt-2 text-lg font-black text-signal-green' : 'mt-2 text-lg font-black text-signal-red'}>{result.returnPct >= 0 ? '+' : ''}{result.returnPct}%</p><p className="text-xs text-slate-400">{result.direction.toUpperCase()} · {result.confidence}% confidence</p></div>;
+}
+
 function SignalPerformanceCard({ signal, outcome }: { signal: AssetSignal; outcome: SignalOutcome }) {
   return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center gap-2 text-signal-blue"><Activity size={18} /><h3 className="font-bold">Previous Signal Result</h3></div><span className={'inline-flex rounded-full border px-3 py-1 text-xs font-black ' + outcomeClass(outcome)}>{outcome}</span><p className="mt-3 text-sm text-slate-300">{signal.symbol} is reviewed through a simple 24h outcome lens: Worked / Failed / Neutral. This keeps the product honest without pretending to be a guaranteed trading system.</p><p className="mt-3 text-xs text-slate-500">Educational heuristic only · not financial advice</p></div>;
 }
-function SignalHistoryPanel({ history, isPro, onUpgrade }: { history: SignalHistoryItem[]; isPro: boolean; onUpgrade: () => void }) {
-  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-signal-blue"><History size={18} /><h3 className="font-bold">Recent Signals</h3></div>{!isPro && <Lock className="text-signal-amber" size={18} />}</div>{isPro ? <div className="space-y-2">{history.map(item => <div key={item.symbol + '-' + item.age} className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-3"><div><p className="font-bold">{item.symbol} <span className="text-xs font-normal text-slate-400">{item.age}</span></p><p className="text-xs text-slate-400">{item.label} · {item.confidence}% confidence</p></div><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + outcomeClass(item.outcome)}>{item.outcome}</span></div><p className="mt-2 text-xs text-slate-400">{item.note}</p></div>)}</div> : <div><div className="premium-lock space-y-2 opacity-70">{history.slice(0, 3).map(item => <div key={item.symbol} className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><p className="font-bold">{item.symbol} · {item.outcome}</p><p className="text-xs text-slate-400">Signal outcome history is a Pro feature.</p></div>)}</div><p className="mt-3 text-sm text-slate-300">Unlock signal history to see whether recent signals worked, failed, or stayed neutral.</p><button onClick={onUpgrade} className="mt-3 w-full rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber">See how signals performed</button></div>}</div>;
+function SignalHistoryPanel({ results, isPro, onUpgrade }: { results: SignalResult[]; isPro: boolean; onUpgrade: () => void }) {
+  const visible = results.slice(0, isPro ? 8 : 3);
+  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-signal-blue"><History size={18} /><h3 className="font-bold">Recent Signal Results</h3></div>{!isPro && <Lock className="text-signal-amber" size={18} />}</div><div className={!isPro ? 'premium-lock space-y-2 opacity-75' : 'space-y-2'}>{visible.map(item => <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-3"><div><p className="font-bold">{item.symbol} <span className="text-xs font-normal text-slate-400">{item.direction.toUpperCase()} · {item.mode}</span></p><p className="text-xs text-slate-400">{item.confidence}% confidence · {new Date(item.closedAt).toLocaleDateString()}</p></div><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(item.outcome)}>{outcomeLabel(item.outcome)} · {item.returnPct >= 0 ? '+' : ''}{item.returnPct}%</span></div>{isPro && <p className="mt-2 text-xs text-slate-400">{item.note}</p>}</div>)}</div>{!isPro && <div><p className="mt-3 text-sm text-slate-300">Free preview shows three recent outcomes. Pro unlocks full result notes, confidence review, and history depth.</p><button onClick={onUpgrade} className="mt-3 w-full rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber">Unlock performance history</button></div>}</div>;
 }
 function NotificationsCard({ top, outcome, condition }: { top: AssetSignal; outcome: SignalOutcome; condition: MarketCondition }) {
   const alerts = [

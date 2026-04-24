@@ -1,1 +1,1 @@
-export const BUILD = { version: '13.4.0', name: 'Retention + Signal Performance', deployedAt: '2026-04-24' };
+export const BUILD = { version: '13.5.0', name: 'Signal Performance Proof', deployedAt: '2026-04-24' };
