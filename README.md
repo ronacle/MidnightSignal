@@ -1,23 +1,26 @@
-# Midnight Signal v13.1.0
+# Midnight Signal v13.2.0
 
-Launch Polish + Trust Layer.
+Early Access + User Journey Layer.
 
-## What changed from v13
+## Deploy
 
-- Added live CoinGecko price hook with safe fallback demo data.
-- Added trust cards: data source, data last updated, market condition.
-- Added confidence-change explanation under the top signal.
-- Added refresh button for the Top 20 signal grid.
-- Added diagnostic build/version footer.
-- Improved mobile spacing and launch polish while preserving the v13 layout.
+```bash
+npm install
+npm run build
+```
 
-## Deploy on Vercel
+Deploy to Vercel as a Next.js project.
 
-1. Upload this folder or connect it to GitHub.
-2. Run `npm install`.
-3. Vercel build command: `npm run build`.
-4. Output: Next.js default.
+## Included
 
-## Notes
+- Agreement of Understanding modal
+- Soft Early Access gate with guest path
+- Email capture stored in localStorage for later Supabase wiring
+- User Journey progress panel
+- Tonight's Daily Ritual checklist
+- Pro Insight lock cards
+- CoinGecko live data hook with fallback demo data
+- Trust cards: data source, last updated, market condition
+- Build/version footer
 
-Midnight Signal is educational only and not financial advice. The app gracefully falls back to seeded demo data if the live CoinGecko request fails or rate-limits.
+Educational use only. Not financial advice.
