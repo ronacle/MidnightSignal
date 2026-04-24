@@ -6,8 +6,11 @@ import { BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Info, Lock, M
 import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '@/lib/signals';
 import { BUILD } from '@/lib/build';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
+import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
 
 type AccessMode = 'unset' | 'guest' | 'early';
+type Plan = 'free' | 'pro';
+type AuthUser = { id: string; email: string } | null;
 type Stored = {
   agreed?: boolean;
   accessMode?: AccessMode;
@@ -25,7 +28,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v13-2';
+const storageKey = 'midnight-signal-v13-3';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 
@@ -58,6 +61,11 @@ export default function Dashboard() {
   const [confirmedRisk, setConfirmedRisk] = useState(false);
   const [accessMode, setAccessMode] = useState<AccessMode>('unset');
   const [earlyEmail, setEarlyEmail] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authUser, setAuthUser] = useState<AuthUser>(null);
+  const [plan, setPlan] = useState<Plan>('free');
+  const [authMessage, setAuthMessage] = useState('');
+  const [upgrading, setUpgrading] = useState(false);
   const [mode, setMode] = useState<TraderMode>('swing');
   const [experience, setExperience] = useState<Experience>('beginner');
   const [currency, setCurrency] = useState('USD');
@@ -105,6 +113,35 @@ export default function Dashboard() {
 
   useEffect(() => { refreshMarket(); }, [mode, currency]);
 
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      setAuthMessage('Supabase env vars are not set yet. Guest mode still works.');
+      return;
+    }
+    supabase.auth.getSession().then(({ data }) => {
+      const user = data.session?.user;
+      if (user?.email) {
+        setAuthUser({ id: user.id, email: user.email });
+        setAccessMode('early');
+      }
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user;
+      setAuthUser(user?.email ? { id: user.id, email: user.email } : null);
+      if (user?.email) setAccessMode('early');
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!authUser) { setPlan('free'); return; }
+    fetch('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: authUser.id, email: authUser.email }) })
+      .then(r => r.json())
+      .then(data => setPlan(data.plan === 'pro' ? 'pro' : 'free'))
+      .catch(() => setPlan('free'));
+  }, [authUser]);
+
   const signals = snapshot.signals;
   const pinned = useMemo(() => signals.filter(s => watchlist.includes(s.symbol)), [signals, watchlist]);
   const top = signals[0];
@@ -126,6 +163,27 @@ export default function Dashboard() {
   function selectSignal(symbol: string) { setSelected(symbol); markRitual('topSignal'); }
   function acceptAgreement() { if (confirmedLearning && confirmedRisk) setAgreed(true); }
   function joinEarlyAccess() { setAccessMode('early'); }
+  async function sendMagicLink() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) { setAuthMessage('Add Supabase env vars in Vercel to enable magic links.'); return; }
+    const email = authEmail || earlyEmail;
+    if (!email.includes('@')) { setAuthMessage('Enter a valid email first.'); return; }
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined } });
+    setAuthMessage(error ? error.message : 'Magic link sent. Check your email to sign in.');
+  }
+  async function signOut() {
+    const supabase = getSupabaseBrowserClient();
+    await supabase?.auth.signOut();
+    setAuthUser(null);
+    setPlan('free');
+  }
+  async function upgradeToPro() {
+    setUpgrading(true);
+    const response = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: authUser?.email || earlyEmail, userId: authUser?.id }) });
+    const data = await response.json();
+    setUpgrading(false);
+    if (data.url) window.location.href = data.url; else setAuthMessage(data.error || 'Stripe checkout is not configured yet.');
+  }
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
@@ -138,7 +196,7 @@ export default function Dashboard() {
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">Explainable market posture with trust cues, a daily ritual, and a clear path from guest to early access.</p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className="text-white">{accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className="text-white">{authUser ? `Signed in · ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
       </header>
 
       <section className="grid gap-4 lg:grid-cols-[1.35fr_.85fr]">
@@ -173,6 +231,7 @@ export default function Dashboard() {
             <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-bold">Pinned Signals</h2><span className="text-xs text-slate-400">Watchlist first</span></div>
             <div className="space-y-3">{pinned.map(item => <SignalRow key={item.symbol} signal={item} active={item.symbol === active.symbol} currency={currency} onSelect={() => selectSignal(item.symbol)} onStar={() => toggleWatch(item.symbol)} starred />)}</div>
           </div>
+          <AuthPanel authUser={authUser} plan={plan} authEmail={authEmail} setAuthEmail={setAuthEmail} authMessage={authMessage} onMagicLink={sendMagicLink} onSignOut={signOut} onUpgrade={upgradeToPro} upgrading={upgrading} />
           <JourneyCard visits={visits} journey={journey} completed={completedRitual} />
           <RitualCard ritual={ritual} mark={markRitual} />
         </div>
@@ -182,8 +241,8 @@ export default function Dashboard() {
           <p className="mb-4 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-4 text-slate-100">{top.why}</p>
           <Breakdown signal={top} />
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <ProLock title="Advanced MTF Weighting" body="Compare short, swing, and position posture in one combined Pro view." />
-            <ProLock title="Signal History" body="Track how confidence changed over time and what triggered the shift." />
+            <ProLock isPro={plan === 'pro'} onUpgrade={upgradeToPro} title="Advanced MTF Weighting" body="Compare short, swing, and position posture in one combined Pro view." />
+            <ProLock isPro={plan === 'pro'} onUpgrade={upgradeToPro} title="Signal History" body="Track how confidence changed over time and what triggered the shift." />
           </div>
         </div>
       </section>
@@ -195,7 +254,7 @@ export default function Dashboard() {
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_.8fr]">
         <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Selected Signal: {active.symbol}</h2><p className="mt-1 text-slate-300">{active.why}</p><div className="mt-4"><Breakdown signal={active} compact /></div></div>
-        <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Early Access CTA</h2><p className="mt-2 text-slate-300">Midnight Signal is moving toward real accounts, saved preferences, and Pro insight unlocks.</p><button onClick={() => setAccessMode('unset')} className="mt-4 w-full rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue">Review Early Access Options</button></div>
+        <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Founder Pro Access</h2><p className="mt-2 text-slate-300">$9/month founder plan. Sign in with Supabase, then unlock Pro through Stripe Checkout.</p><button onClick={authUser ? upgradeToPro : sendMagicLink} className="mt-4 w-full rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue">{authUser ? upgrading ? 'Opening Checkout...' : 'Upgrade to Pro' : 'Send Magic Link'}</button></div>
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
@@ -216,7 +275,8 @@ function Select({ label, value, onChange, options }: { label: string; value: str
 function SignalRow({ signal, currency, active, starred, onSelect, onStar }: { signal: AssetSignal; currency: string; active: boolean; starred: boolean; onSelect: () => void; onStar: () => void }) { return <div className={`flex items-center justify-between rounded-2xl border p-3 ${active ? 'border-signal-blue/50 bg-signal-blue/10' : 'border-white/10 bg-white/[.04]'}`}><button onClick={onSelect} className="text-left"><p className="font-bold">{signal.symbol} <span className="text-sm font-normal text-slate-400">{signal.name}</span></p><p className="text-sm text-slate-300">{formatPrice(signal.price, currency)} · {signal.confidence}%</p></button><button onClick={onStar} className="rounded-xl p-2 text-signal-amber hover:bg-white/10"><Star fill={starred ? 'currentColor' : 'none'} /></button></div>; }
 function AssetCard({ signal, currency, active, starred, onSelect, onStar }: { signal: AssetSignal; currency: string; active: boolean; starred: boolean; onSelect: () => void; onStar: () => void }) { return <div className={`group rounded-3xl border p-4 transition hover:-translate-y-0.5 hover:bg-white/[.07] ${active ? 'border-signal-blue/50 bg-signal-blue/10' : 'border-white/10 bg-white/[.04]'}`}><div className="flex items-start justify-between"><button onClick={onSelect} className="text-left"><p className="text-lg font-black">{signal.symbol}</p><p className="text-sm text-slate-400">{signal.name}</p></button><button onClick={onStar} className="rounded-xl p-2 text-signal-amber transition group-hover:scale-110"><Star fill={starred ? 'currentColor' : 'none'} /></button></div><div className="mt-4 flex items-end justify-between"><div><p className="font-bold">{formatPrice(signal.price, currency)}</p><p className={signal.change24h >= 0 ? 'text-sm text-signal-green' : 'text-sm text-signal-red'}>{signal.change24h >= 0 ? '+' : ''}{signal.change24h}%</p></div><span className={`rounded-full border px-3 py-1 text-xs font-bold ${labelClass(signal.label)}`}>{signal.confidence}%</span></div></div>; }
 function Breakdown({ signal, compact = false }: { signal: AssetSignal; compact?: boolean }) { const rows = [['Momentum', signal.momentum], ['Trend', signal.trend], ['Volatility', signal.volatility], ['MTF Weight', signal.mtf]] as const; return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center gap-2"><Zap className="text-signal-blue" size={18} /><h3 className="font-bold">Signal Breakdown</h3></div><div className="space-y-3">{rows.map(([label, value]) => <div key={label}><div className="mb-1 flex justify-between text-sm"><span className="text-slate-300">{label}</span><span className="font-bold">{value}%</span></div><div className="h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-signal-blue" style={{ width: `${value}%` }} /></div></div>)}</div>{!compact && <p className="mt-4 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3 text-sm text-slate-200"><Info className="mr-2 inline text-signal-blue" size={16} />Heuristic education signal: trend + momentum + volatility + multi-timeframe posture.</p>}</div>; }
-function ProLock({ title, body }: { title: string; body: string }) { return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-2 flex items-center gap-2 text-signal-amber"><Lock size={18} /><p className="font-bold">{title}</p></div><p className="text-sm text-slate-300">{body}</p><button className="mt-3 rounded-xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-2 text-xs font-bold text-signal-amber">Unlock deeper signal intelligence</button></div>; }
+function ProLock({ title, body, isPro, onUpgrade }: { title: string; body: string; isPro: boolean; onUpgrade: () => void }) { return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className={`mb-2 flex items-center gap-2 ${isPro ? 'text-signal-green' : 'text-signal-amber'}`}>{isPro ? <CheckCircle2 size={18} /> : <Lock size={18} />}<p className="font-bold">{title}</p></div><p className="text-sm text-slate-300">{isPro ? `${body} Unlocked for your Pro account.` : body}</p>{isPro ? <span className="mt-3 inline-block rounded-xl border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-xs font-bold text-signal-green">Pro unlocked</span> : <button onClick={onUpgrade} className="mt-3 rounded-xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-2 text-xs font-bold text-signal-amber">Unlock deeper signal intelligence</button>}</div>; }
+function AuthPanel({ authUser, plan, authEmail, setAuthEmail, authMessage, onMagicLink, onSignOut, onUpgrade, upgrading }: { authUser: AuthUser; plan: Plan; authEmail: string; setAuthEmail: (v: string) => void; authMessage: string; onMagicLink: () => void; onSignOut: () => void; onUpgrade: () => void; upgrading: boolean }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><UserRound size={18} /><h2 className="text-xl font-bold">Account + Pro</h2></div>{authUser ? <><p className="text-sm text-slate-300">Signed in as <strong className="text-white">{authUser.email}</strong></p><p className="mt-2 text-2xl font-black">Plan: {plan.toUpperCase()}</p><div className="mt-4 grid gap-2 sm:grid-cols-2"><button onClick={onUpgrade} disabled={plan === 'pro'} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950 disabled:opacity-40">{plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button><button onClick={onSignOut} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-bold">Sign out</button></div></> : <><p className="text-sm text-slate-300">Send a magic link to create or return to your Midnight Signal account.</p><input value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email@example.com" className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /><button onClick={onMagicLink} className="mt-3 w-full rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950">Send Magic Link</button></>}{authMessage && <p className="mt-3 text-xs text-slate-400">{authMessage}</p>}</div>; }
 function JourneyCard({ visits, journey, completed }: { visits: number; journey: { title: string; stage: number; progress: number; note: string }; completed: number }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><Trophy size={18} /><h2 className="text-xl font-bold">Your Signal Journey</h2></div><p className="text-2xl font-black">{journey.title}</p><p className="mt-1 text-sm text-slate-300">Stage {journey.stage} · {visits} visits · {completed}/4 ritual steps</p><div className="mt-4 h-3 rounded-full bg-white/10"><div className="h-3 rounded-full bg-signal-blue" style={{ width: `${journey.progress}%` }} /></div><p className="mt-3 text-sm text-slate-300">{journey.note}</p></div>; }
 function RitualCard({ ritual, mark }: { ritual: RitualState; mark: (key: keyof RitualState) => void }) { const items: [keyof RitualState, string][] = [['topSignal', 'Check Top Signal'], ['confidence', 'Review Confidence'], ['watchlist', 'Scan Watchlist'], ['market', 'Read Market Condition']]; return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><CheckCircle2 size={18} /><h2 className="text-xl font-bold">Tonight’s Ritual</h2></div><div className="space-y-2">{items.map(([key, label]) => <button key={key} onClick={() => mark(key)} className={`flex w-full items-center justify-between rounded-2xl border p-3 text-left ${ritual[key] ? 'border-signal-green/30 bg-signal-green/10 text-signal-green' : 'border-white/10 bg-white/[.04] text-slate-200'}`}><span>{label}</span><CheckCircle2 size={18} /></button>)}</div></div>; }
 function Glossary({ onClose }: { onClose: () => void }) { const terms = [['Signal', 'A simplified read of current market posture.'], ['Confidence', 'How strongly the heuristic agrees with itself.'], ['Journey', 'A lightweight progression system that rewards repeated learning behavior.'], ['Daily Ritual', 'A repeatable checklist that teaches users what to review before reacting.'], ['Market condition', 'A plain-English read of whether the current tape is calm, active, or volatile.'], ['Data source', 'Shows whether live CoinGecko prices loaded or the fallback dataset is protecting the app.'], ['Momentum', 'How much energy price action appears to have.'], ['MTF', 'Multi-timeframe weighting across short and longer views.']]; return <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm"><aside className="h-full w-full max-w-md overflow-auto border-l border-white/10 bg-midnight-950 p-6 shadow-soft"><div className="mb-5 flex items-center justify-between"><h2 className="text-2xl font-black">Floating Glossary</h2><button onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2">Close</button></div><div className="space-y-3">{terms.map(([term, definition]) => <div key={term} className="rounded-2xl border border-white/10 bg-white/[.04] p-4"><p className="font-bold text-signal-blue">{term}</p><p className="mt-1 text-sm text-slate-300">{definition}</p></div>)}</div></aside></div>; }
