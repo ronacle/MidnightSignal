@@ -51,7 +51,7 @@ import {
 } from '@/lib/alert-engine';
 
 
-const APP_BUILD_LABEL = 'v12.6.2 · signal stream preferences + noise control';
+const APP_BUILD_LABEL = 'v12.7.0 · custom alert rules';
 const SESSION_SNAPSHOT_KEY = 'midnight-signal-session-snapshot-v2';
 const COLLAPSIBLE_PANELS_KEY = 'midnight-signal-collapsible-panels-v2';
 const DEFAULT_PANEL_STATE = { sinceLastVisit: true, marketScan: true, signalContext: false };
@@ -854,10 +854,11 @@ const sinceLastVisitSummary = useMemo(() => {
         const previousMap = memory?.assetMap || {};
         const currentMap = buildAssetSnapshotMap(rankedAssets);
         const previousRegime = window.localStorage.getItem('midnight-signal-last-regime');
+        const previousTopSignal = JSON.parse(window.localStorage.getItem('midnight-signal-last-top-signal') || 'null');
         const dismissed = JSON.parse(window.localStorage.getItem('midnight-signal-dismissed-alerts') || '[]');
 
         const systemAlerts = buildSystemAlerts({
-          previousTopSignal: JSON.parse(window.localStorage.getItem('midnight-signal-last-top-signal') || 'null'),
+          previousTopSignal,
           topSignal,
           previousRegime,
           regimeSummary,
@@ -868,6 +869,11 @@ const sinceLastVisitSummary = useMemo(() => {
         const configured = evaluateConfiguredAlerts(state?.alerts || [], previousMap, currentMap, {
           triggerLog: memory?.triggerLog || {},
           cooldownMinutes: Number(state?.alertCooldownMinutes || 30),
+          topSignal,
+          previousTopSignal,
+          decisionLayer,
+          timeframe: state?.timeframe,
+          strategy: state?.strategy,
         });
 
         const rawAlerts = [...configured.events, ...systemAlerts]

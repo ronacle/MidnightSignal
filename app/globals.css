@@ -6724,3 +6724,22 @@ html {
     padding: 14px;
   }
 }
+
+/* v12.7.0 custom alert rules */
+.custom-rule-examples{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:12px 0 4px;
+  padding:10px;
+  border:1px solid rgba(148,163,184,.14);
+  border-radius:18px;
+  background:rgba(15,23,42,.42);
+}
+.custom-rule-examples .ghost-button{
+  border-color:rgba(96,165,250,.22);
+  background:rgba(37,99,235,.08);
+}
+.alert-live-rule .alert-history-title{
+  max-width:48ch;
+}

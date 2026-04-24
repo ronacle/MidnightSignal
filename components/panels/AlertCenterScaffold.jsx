@@ -19,24 +19,51 @@ function formatTimestamp(value) {
 
 function describeRule(alert) {
   if (!alert) return 'Alert rule';
+  if (alert.label) return alert.label;
   if (alert.type === 'conviction_above') return `${alert.symbol} above ${alert.threshold}% conviction`;
   if (alert.type === 'conviction_below') return `${alert.symbol} below ${alert.threshold}% conviction`;
+  if (alert.type === 'conviction_building') return `${alert.symbol} conviction building`;
+  if (alert.type === 'conviction_weakening') return `${alert.symbol} conviction easing`;
   if (alert.type === 'sentiment_bullish') return `${alert.symbol} turns bullish`;
   if (alert.type === 'sentiment_bearish') return `${alert.symbol} turns bearish`;
+  if (alert.type === 'lead_signal') return `${alert.symbol} becomes lead signal`;
+  if (alert.type === 'decision_wait') return `${alert.symbol} decision becomes WAIT`;
+  if (alert.type === 'decision_lean_in') return `${alert.symbol} decision becomes LEAN IN`;
+  if (alert.type === 'decision_reduce') return `${alert.symbol} decision becomes REDUCE`;
+  if (alert.type === 'decision_avoid') return `${alert.symbol} decision becomes AVOID`;
+  if (alert.type === 'trigger_confirmed') return `${alert.symbol} confirmation trigger clears`;
   return `${alert.symbol} alert`;
 }
 
-function makeQuickAlert(symbol, type = 'conviction_above', threshold = 70, direction = 'both', timeframe = '15M') {
+function makeQuickAlert(symbol, type = 'conviction_above', threshold = 70, direction = 'both', timeframe = '15M', importance = 'normal') {
   return {
     id: `quick-${symbol}-${type}-${direction}-${timeframe}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     symbol,
     type,
-    threshold: ['sentiment_bullish', 'sentiment_bearish'].includes(type) ? null : threshold,
+    threshold: ['sentiment_bullish', 'sentiment_bearish', 'conviction_building', 'conviction_weakening', 'lead_signal', 'decision_wait', 'decision_lean_in', 'decision_reduce', 'decision_avoid'].includes(type) ? null : threshold,
     direction,
     timeframe,
+    importance,
+    decisionTarget: type === 'decision_wait' ? 'WAIT' : type === 'decision_lean_in' ? 'LEAN IN' : type === 'decision_reduce' ? 'REDUCE' : type === 'decision_avoid' ? 'AVOID' : null,
+    label: buildRuleLabel(symbol, type, threshold),
     paused: false,
     updatedAt: new Date().toISOString(),
   };
+}
+
+function buildRuleLabel(symbol, type, threshold) {
+  if (type === 'lead_signal') return `Alert me when ${symbol} becomes the lead signal`;
+  if (type === 'conviction_building') return `Alert me when ${symbol} conviction starts building`;
+  if (type === 'conviction_weakening') return `Alert me when ${symbol} conviction starts easing`;
+  if (type === 'decision_lean_in') return `Alert me when ${symbol} shifts to LEAN IN`;
+  if (type === 'decision_wait') return `Alert me when ${symbol} shifts to WAIT`;
+  if (type === 'decision_reduce') return `Alert me when ${symbol} shifts to REDUCE`;
+  if (type === 'decision_avoid') return `Alert me when ${symbol} shifts to AVOID`;
+  if (type === 'trigger_confirmed') return `Alert me when ${symbol} clears confirmation near ${threshold}%`;
+  if (type === 'sentiment_bullish') return `Alert me when ${symbol} turns bullish`;
+  if (type === 'sentiment_bearish') return `Alert me when ${symbol} turns bearish`;
+  if (type === 'conviction_below') return `Alert me when ${symbol} drops below ${threshold}% conviction`;
+  return `Alert me when ${symbol} crosses ${threshold}% conviction`;
 }
 
 const DIRECTION_TYPES = {
@@ -91,6 +118,8 @@ export default function AlertCenterScaffold({
   const [selectedSymbol, setSelectedSymbol] = useState(starterSymbols[0] || watchlist[0] || topSignal?.symbol || 'BTC');
   const [threshold, setThreshold] = useState(String(state?.alertCenterThreshold || 70));
   const [direction, setDirection] = useState(state?.alertCenterDirection || 'both');
+  const [ruleType, setRuleType] = useState(state?.alertCenterRuleType || 'conviction_above');
+  const [importance, setImportance] = useState(state?.alertCenterImportance || 'important');
   const [timeframe, setTimeframe] = useState(state?.alertCenterTimeframe || state?.timeframe || '15M');
   const [testStatus, setTestStatus] = useState('');
   const [deliveryEmail, setDeliveryEmail] = useState(state?.alertDeliveryEmail || user?.email || '');
@@ -169,25 +198,30 @@ export default function AlertCenterScaffold({
   }
 
   function createRule() {
-    if (!canAddRules(direction !== 'both' ? 2 : 1)) return;
+    if (!canAddRules(1)) return;
     const safeThreshold = Math.max(35, Math.min(95, Number(threshold || 70)));
-    const nextAlerts = [];
-    nextAlerts.push(makeQuickAlert(selectedSymbol, 'conviction_above', safeThreshold, direction, timeframe));
-    if (direction !== 'both') {
-      nextAlerts.push(makeQuickAlert(selectedSymbol, DIRECTION_TYPES[direction], null, direction, timeframe));
-    }
+    const nextAlert = makeQuickAlert(selectedSymbol, ruleType, safeThreshold, direction, timeframe, importance);
 
-    const allowedAlerts = unlimitedAlerts ? nextAlerts : nextAlerts.slice(0, Math.max(0, alertRuleLimit - alerts.length));
     setState((previous) => ({
       ...previous,
-      alerts: [...allowedAlerts, ...(previous.alerts || [])],
+      alerts: [nextAlert, ...(previous.alerts || [])],
       alertCenterThreshold: String(safeThreshold),
       alertCenterDirection: direction,
+      alertCenterRuleType: ruleType,
+      alertCenterImportance: importance,
       alertCenterTimeframe: timeframe,
       dashboardFocus: 'watchlist',
       intent: 'alerts',
       onboardingGoal: 'alerts',
     }));
+  }
+
+  function applyRuleExample(nextType, nextSymbol = selectedSymbol, nextThreshold = threshold) {
+    setSelectedSymbol(nextSymbol);
+    setRuleType(nextType);
+    setThreshold(String(nextThreshold));
+    if (nextType === 'decision_lean_in') setImportance('critical');
+    else if (nextType === 'lead_signal' || nextType === 'conviction_building') setImportance('important');
   }
 
   function togglePause(alertId) {
@@ -391,8 +425,8 @@ export default function AlertCenterScaffold({
         <div className="alert-center-card">
           <div className="alert-center-card-top">
             <div>
-              <div className="alert-center-card-title">Alert setup builder</div>
-              <div className="muted small">Create rules directly from your watchlist instead of leaving the dashboard.</div>
+              <div className="alert-center-card-title">Custom rule builder</div>
+              <div className="muted small">Create personal Signal Stream rules from your watchlist, lead signal, conviction behavior, and decision layer.</div>
             </div>
             <span className="badge">Integrated</span>
           </div>
@@ -413,15 +447,40 @@ export default function AlertCenterScaffold({
               </select>
             </label>
             <label className="alert-builder-field">
+              <span className="muted small">Condition</span>
+              <select className="select compact-select" value={ruleType} onChange={(e) => setRuleType(e.target.value)}>
+                <option value="conviction_above">Conviction crosses above</option>
+                <option value="conviction_below">Conviction falls below</option>
+                <option value="conviction_building">Conviction starts building</option>
+                <option value="conviction_weakening">Conviction starts easing</option>
+                <option value="lead_signal">Becomes lead signal</option>
+                <option value="decision_lean_in">Decision becomes LEAN IN</option>
+                <option value="decision_wait">Decision becomes WAIT</option>
+                <option value="decision_reduce">Decision becomes REDUCE</option>
+                <option value="decision_avoid">Decision becomes AVOID</option>
+                <option value="trigger_confirmed">Confirmation trigger clears</option>
+                <option value="sentiment_bullish">Turns bullish</option>
+                <option value="sentiment_bearish">Turns bearish</option>
+              </select>
+            </label>
+            <label className="alert-builder-field">
               <span className="muted small">Threshold</span>
               <select className="select compact-select" value={threshold} onChange={(e) => setThreshold(e.target.value)}>
                 {['55','60','65','70','75','80'].map((value) => <option key={value} value={value}>{value}% conviction</option>)}
               </select>
             </label>
             <label className="alert-builder-field">
-              <span className="muted small">Direction</span>
+              <span className="muted small">Importance</span>
+              <select className="select compact-select" value={importance} onChange={(e) => setImportance(e.target.value)}>
+                <option value="normal">Normal</option>
+                <option value="important">Important</option>
+                <option value="critical">Critical</option>
+              </select>
+            </label>
+            <label className="alert-builder-field">
+              <span className="muted small">Bias helper</span>
               <select className="select compact-select" value={direction} onChange={(e) => setDirection(e.target.value)}>
-                <option value="both">Both</option>
+                <option value="both">Any direction</option>
                 <option value="bullish">Bullish</option>
                 <option value="bearish">Bearish</option>
               </select>
@@ -432,6 +491,13 @@ export default function AlertCenterScaffold({
                 {['5M','15M','1H','4H','1D'].map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
             </label>
+          </div>
+
+          <div className="custom-rule-examples" aria-label="Custom rule examples">
+            <button type="button" className="ghost-button small" onClick={() => applyRuleExample('conviction_building', topSignal?.symbol || selectedSymbol)}>Conviction building</button>
+            <button type="button" className="ghost-button small" onClick={() => applyRuleExample('lead_signal', topSignal?.symbol || selectedSymbol)}>Lead signal takeover</button>
+            <button type="button" className="ghost-button small" onClick={() => applyRuleExample('decision_lean_in', topSignal?.symbol || selectedSymbol)}>Watch for LEAN IN</button>
+            <button type="button" className="ghost-button small" onClick={() => applyRuleExample('trigger_confirmed', selectedSymbol, 70)}>Confirmation trigger</button>
           </div>
 
           <div className="alert-setup-list compact">
@@ -509,7 +575,7 @@ export default function AlertCenterScaffold({
                     <div className="alert-history-title">{describeRule(alert)}</div>
                     <span className={`alert-state-chip ${stateMeta.className}`}>{stateMeta.label}</span>
                   </div>
-                  <div className="muted small">{alert.timeframe || '15M'} · updated {formatTimestamp(alert.updatedAt)}</div>
+                  <div className="muted small">{alert.timeframe || '15M'} · {alert.importance || 'normal'} importance · updated {formatTimestamp(alert.updatedAt)}</div>
                 </div>
                 <div className="alert-live-actions">
                   <button type="button" className="ghost-button small" onClick={() => togglePause(alert.id)}>{alert.paused ? 'Resume' : 'Pause'}</button>
