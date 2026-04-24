@@ -19,17 +19,38 @@ export async function POST(request: Request) {
 
   if (event.type === 'checkout.session.completed') {
   const session = event.data.object;
-  const userId = session.metadata?.userId || session.client_reference_id || '';
-  const email = session.customer_details?.email || session.customer_email || '';
+
+  const userId =
+    session.metadata?.userId ||
+    session.client_reference_id ||
+    '';
+
+  const email =
+    session.customer_details?.email ||
+    session.customer_email ||
+    '';
 
   if (supabase && email) {
-    await supabase.from('users').upsert({
+    const { error } = await supabase.from('users').upsert({
       id: userId || crypto.randomUUID(),
       email,
       plan: 'pro',
-      stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
-      updated_at: new Date().toISOString()
+      stripe_customer_id:
+        typeof session.customer === 'string'
+          ? session.customer
+          : null,
+      stripe_subscription_id:
+        typeof session.subscription === 'string'
+          ? session.subscription
+          : null,
+      updated_at: new Date().toISOString(),
     }, { onConflict: 'email' });
+
+    if (error) {
+      console.error('Supabase error:', error);
+    } else {
+      console.log('User upgraded to pro:', email);
+    }
   }
 }
 
