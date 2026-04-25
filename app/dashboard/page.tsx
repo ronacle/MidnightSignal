@@ -1,1 +1,0 @@
-// Dashboard with retention card placeholder

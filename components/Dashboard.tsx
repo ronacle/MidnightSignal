@@ -22,6 +22,9 @@ type PerformanceEngine = { total: number; acted: number; ignored: number; wins: 
 type ApiPerformanceEngine = PerformanceEngine & { source?: string };
 type ConversionEventType = 'global_added_to_watchlist' | 'global_tracked' | 'global_upgrade_clicked';
 type ConversionEvent = { type: ConversionEventType; symbol: string; gap: number; createdAt: string; source?: 'database' | 'local' };
+type RetentionEventType = 'digest_viewed' | 'weekly_report_viewed' | 'missed_opportunity_clicked' | 'digest_upgrade_clicked';
+type RetentionEvent = { type: RetentionEventType; symbol?: string; createdAt: string; source?: 'database' | 'local'; metadata?: Record<string, unknown> };
+type RetentionDigest = { personalSignal: AssetSignal; globalSignal: AssetSignal; gap: number; winRate: number; missedOpportunity: boolean; action: string; weeklyNote: string; events: number };
 type SignalHistoryItem = AssetSignal & { outcome: SignalOutcome; note: string; age: string };
 type AlertPreferenceKey = 'highConfidenceAlerts' | 'dailyRecap' | 'settlementAlerts' | 'proOnlyAlerts';
 type AlertPreferences = Record<AlertPreferenceKey, boolean>;
@@ -48,7 +51,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v15-5';
+const storageKey = 'midnight-signal-v15-6';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 const defaultAlertPreferences: AlertPreferences = { highConfidenceAlerts: true, dailyRecap: true, settlementAlerts: true, proOnlyAlerts: true };
@@ -131,17 +134,34 @@ function buildPerformanceEngine(map: FeedbackMap, currentSignal: AssetSignal, mo
 }
 function readFeedback(): FeedbackMap {
   if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v15-5') || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v15-6') || '{}'); } catch { return {}; }
 }
 function writeFeedback(next: FeedbackMap) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v15-5', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v15-6', JSON.stringify(next));
 }
 function readConversionEvents(): ConversionEvent[] {
   if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem('midnight-signal-conversion-v15-5') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-conversion-v15-6') || '[]'); } catch { return []; }
 }
 function writeConversionEvents(next: ConversionEvent[]) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-conversion-v15-5', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-conversion-v15-6', JSON.stringify(next));
+}
+function readRetentionEvents(): RetentionEvent[] {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem('midnight-signal-retention-v15-6') || '[]'); } catch { return []; }
+}
+function writeRetentionEvents(next: RetentionEvent[]) {
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-retention-v15-6', JSON.stringify(next));
+}
+function buildRetentionDigest(personalSignal: AssetSignal, globalSignal: AssetSignal, gap: number, summary: ReturnType<typeof summarizePerformance>, feedbackCount: number, conversionCount: number): RetentionDigest {
+  const missedOpportunity = globalSignal.symbol !== personalSignal.symbol && gap >= 4;
+  const action = missedOpportunity
+    ? `Review ${globalSignal.symbol}: it is outperforming your watchlist leader by ${gap} confidence points.`
+    : `Stay focused on ${personalSignal.symbol}: your watchlist and global signal stack are aligned enough today.`;
+  const weeklyNote = summary.totalSignals
+    ? `${summary.winRate}% win rate across ${summary.totalSignals} recent receipts, with ${feedbackCount} feedback events captured.`
+    : 'No settled receipts yet. Start by tracking one signal and marking the outcome.';
+  return { personalSignal, globalSignal, gap, winRate: summary.winRate, missedOpportunity, action, weeklyNote, events: feedbackCount + conversionCount };
 }
 
 function journeyLevel(visits: number, watchlistCount: number, completed: number) {
@@ -195,6 +215,7 @@ export default function Dashboard() {
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [apiPerformance, setApiPerformance] = useState<ApiPerformanceEngine | null>(null);
   const [conversionEvents, setConversionEvents] = useState<ConversionEvent[]>([]);
+  const [retentionEvents, setRetentionEvents] = useState<RetentionEvent[]>([]);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -215,6 +236,7 @@ export default function Dashboard() {
     setRitual(stored.ritual || defaultRitual);
     setFeedback(readFeedback());
     setConversionEvents(readConversionEvents());
+    setRetentionEvents(readRetentionEvents());
   }, []);
 
   useEffect(() => {
@@ -435,6 +457,8 @@ export default function Dashboard() {
   const performanceEngine = apiPerformance && apiPerformance.total >= localPerformanceEngine.total ? apiPerformance : localPerformanceEngine;
   const learningLoopScore = Math.min(100, retentionScore + Math.min(18, globalFeedbackStats.total * 3) + (globalFeedbackStats.winRate ? Math.round(globalFeedbackStats.winRate / 10) : 0));
   const globalConversionCount = conversionEvents.filter(event => event.symbol === globalTop.symbol).length;
+  const retentionDigest = useMemo(() => buildRetentionDigest(userTop, globalTop, topSignalGap, performanceSummary, globalFeedbackStats.total, conversionEvents.length), [userTop, globalTop, topSignalGap, performanceSummary, globalFeedbackStats.total, conversionEvents.length]);
+  const missedOpportunityCount = retentionEvents.filter(event => event.type === 'missed_opportunity_clicked').length;
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -516,6 +540,25 @@ export default function Dashboard() {
     recordConversionEvent('global_tracked', globalTop);
     setSelected(globalTop.symbol);
     markRitual('topSignal');
+  }
+
+  function recordRetentionEvent(type: RetentionEventType, symbol?: string, metadata?: Record<string, unknown>) {
+    const item: RetentionEvent = { type, symbol, metadata, createdAt: new Date().toISOString(), source: authUser?.id ? 'database' : 'local' };
+    const next = [item, ...retentionEvents].slice(0, 100);
+    setRetentionEvents(next);
+    writeRetentionEvents(next);
+    if (authUser?.id) {
+      fetch('/api/retention/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id, type, symbol, metadata })
+      }).catch(() => undefined);
+    }
+  }
+
+  function reviewMissedOpportunity() {
+    recordRetentionEvent('missed_opportunity_clicked', globalTop.symbol, { gap: topSignalGap, userTop: userTop.symbol });
+    trackGlobalSignal();
   }
 
   function markRitual(key: keyof RitualState) { setRitual(r => ({ ...r, [key]: true })); }
@@ -624,7 +667,7 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Conversion Intelligence</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Retention Intelligence</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, a separate global discovery read, and a performance engine that turns user feedback into signal intelligence.</p>
         </div>
@@ -651,6 +694,8 @@ export default function Dashboard() {
       </section>
 
       <SignalDiscoveryHero userTop={userTop} globalTop={globalTop} gap={topSignalGap} shouldExpose={shouldExposeGlobalTop} isPro={plan === 'pro'} currency={currency} userSummary={userTopSummary} globalSummary={globalTopSummary} globalInWatchlist={watchlist.includes(globalTop.symbol)} conversionCount={globalConversionCount} onSelect={selectSignal} onAddGlobal={addGlobalTopToWatchlist} onTrackGlobal={trackGlobalSignal} onUpgrade={() => { recordConversionEvent('global_upgrade_clicked', globalTop); upgradeToPro(); }} />
+
+      <RetentionIntelligenceCard digest={retentionDigest} events={retentionEvents.length} missedClicks={missedOpportunityCount} isPro={plan === 'pro'} onDigest={() => recordRetentionEvent('digest_viewed', userTop.symbol, { globalTop: globalTop.symbol, gap: topSignalGap })} onWeekly={() => recordRetentionEvent('weekly_report_viewed', userTop.symbol, { winRate: performanceSummary.winRate })} onMissedOpportunity={reviewMissedOpportunity} onUpgrade={() => { recordRetentionEvent('digest_upgrade_clicked', globalTop.symbol, { gap: topSignalGap }); upgradeToPro(); }} />
 
       <section className="grid gap-4 lg:grid-cols-[1.35fr_.85fr]">
         <div className="card rounded-3xl p-5">
@@ -727,7 +772,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Conversion Intelligence · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Retention Intelligence · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
@@ -765,6 +810,24 @@ function AccessModal({ earlyEmail, setEarlyEmail, onGuest, onJoin }: { earlyEmai
   return <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md"><section className="card max-w-2xl rounded-3xl p-6"><div className="mb-4 flex items-center gap-3"><span className="rounded-2xl bg-signal-blue/10 p-3 text-signal-blue"><Mail /></span><div><h1 className="text-2xl font-black">Join Early Access</h1><p className="text-sm text-slate-300">Save your place for real accounts, Pro insights, and founder pricing.</p></div></div><input value={earlyEmail} onChange={e => setEarlyEmail(e.target.value)} placeholder="email@example.com" className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /><div className="mt-4 grid gap-3 sm:grid-cols-2"><button onClick={onJoin} disabled={!earlyEmail.includes('@')} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950 disabled:opacity-40">Join Early Access</button><button onClick={onGuest} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-bold text-white">Continue as Guest</button></div></section></div>;
 }
 function BriefCard({ label, value, detail }: { label: string; value: string; detail: string }) { return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs uppercase tracking-[.16em] text-slate-400">{label}</p><p className="mt-2 text-lg font-bold">{value}</p><p className="mt-1 text-sm text-slate-300">{detail}</p></div>; }
+
+function RetentionIntelligenceCard({ digest, events, missedClicks, isPro, onDigest, onWeekly, onMissedOpportunity, onUpgrade }: { digest: RetentionDigest; events: number; missedClicks: number; isPro: boolean; onDigest: () => void; onWeekly: () => void; onMissedOpportunity: () => void; onUpgrade: () => void }) {
+  return <section className="mt-4 grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
+    <div className="card rounded-3xl border border-signal-blue/20 bg-signal-blue/5 p-5">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><BellRing size={14} /> Retention Intelligence</div><h2 className="text-2xl font-black">Daily signal digest</h2><p className="mt-1 text-sm text-slate-300">A habit loop that turns personal signals, global discovery, and receipts into one daily reason to return.</p></div><span className="rounded-full border border-white/10 bg-white/[.05] px-3 py-1 text-xs font-bold text-slate-300">{events} retention events</span></div>
+      <div className="grid gap-3 md:grid-cols-3"><BriefCard label="Your daily signal" value={digest.personalSignal.symbol} detail={digest.personalSignal.name} /><BriefCard label="Global opportunity" value={digest.globalSignal.symbol} detail={digest.missedOpportunity ? `+${digest.gap} confidence gap` : 'Aligned with your system'} /><BriefCard label="Weekly proof" value={digest.winRate ? digest.winRate + '%' : 'New'} detail={digest.weeklyNote} /></div>
+      <div className="mt-4 rounded-2xl border border-white/10 bg-black/10 p-4"><p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Next best retention hook</p><p className="mt-1 text-lg font-bold text-white">{digest.action}</p></div>
+      <div className="mt-4 flex flex-wrap gap-2"><button onClick={onDigest} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 text-sm font-bold text-signal-blue"><Mail className="mr-2 inline" size={15} /> Preview daily digest</button><button onClick={onWeekly} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-4 py-3 text-sm font-bold text-signal-green"><BarChart3 className="mr-2 inline" size={15} /> Preview weekly report</button>{digest.missedOpportunity && <button onClick={onMissedOpportunity} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Flame className="mr-2 inline" size={15} /> Review missed opportunity</button>}</div>
+    </div>
+    <div className="card rounded-3xl p-5">
+      <div className="mb-3 flex items-center gap-2 text-signal-amber"><Trophy size={18} /><h2 className="text-xl font-black">Weekly performance report</h2></div>
+      <p className="text-sm text-slate-300">Summarizes wins, ignored signals, watchlist gaps, and global opportunities so users do not have to reconstruct their progress manually.</p>
+      <div className="mt-4 grid gap-2"><BriefCard label="Missed opportunity clicks" value={String(missedClicks)} detail="Users reacting to global gaps" /><BriefCard label="Digest status" value={isPro ? 'Unlocked' : 'Preview'} detail={isPro ? 'Ready for automated email/push wiring' : 'Upgrade CTA can gate full report history'} /></div>
+      {!isPro && <button onClick={onUpgrade} className="mt-4 w-full rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={15} /> Unlock automated reports</button>}
+    </div>
+  </section>;
+}
+
 function ConversionLayer({ summary, analytics, isPro, upgrading, onUpgrade }: { summary: ReturnType<typeof summarizePerformance>; analytics: ReturnType<typeof buildProPerformanceAnalytics>; isPro: boolean; upgrading: boolean; onUpgrade: () => void }) {
   const window7d = analytics.windows[0]?.summary || summary;
   const decisiveText = `${summary.wins} wins / ${summary.losses} losses`;
@@ -883,12 +946,12 @@ function Glossary({ onClose }: { onClose: () => void }) { const terms = [['Signa
 function PerformanceEngineCard({ engine, isPro, onUpgrade }: { engine: PerformanceEngine; isPro: boolean; onUpgrade: () => void }) {
   const rows = isPro ? engine.bySymbol.slice(0, 4) : engine.bySymbol.slice(0, 2);
   const bestType = engine.bestType?.label || 'Learning';
-  return <div className="rounded-3xl border border-signal-green/25 bg-signal-green/10 p-4"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-green/30 bg-signal-green/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-green"><BarChart3 size={14} /> v15.5 performance engine</div><h3 className="text-xl font-black">Feedback now becomes signal performance.</h3><p className="mt-1 text-sm text-slate-300">Win rate, action rate, signal type, and symbol history now feed the visible confidence layer.</p></div>{!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlock deeper analytics</button>}</div><div className="grid gap-2 sm:grid-cols-4"><BriefCard label="Tracked feedback" value={String(engine.total)} detail="All recorded taps" /><BriefCard label="Win rate" value={engine.winRate ? engine.winRate + '%' : '—'} detail="Wins / decisive outcomes" /><BriefCard label="Action rate" value={engine.actionRate ? engine.actionRate + '%' : '—'} detail="Acted / total feedback" /><BriefCard label="Best type" value={bestType} detail={engine.bestType ? engine.bestType.winRate + '% win rate' : 'Needs feedback'} /></div><div className="mt-3 rounded-2xl border border-white/10 bg-black/10 p-3"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-500">Feedback-informed confidence</p><p className="text-3xl font-black text-white">{engine.informedConfidence}%</p></div><p className="max-w-md text-right text-xs text-slate-400">{engine.sampleSize >= 3 ? 'Blends current signal posture with actual recorded outcomes.' : 'Collect at least 3 feedback events to override the static confidence score.'}</p></div></div><div className={isPro ? 'mt-3 grid gap-2 sm:grid-cols-2' : 'premium-lock mt-3 grid gap-2 opacity-75 sm:grid-cols-2'}>{rows.length ? rows.map(row => <PerformanceMiniRow key={row.label} row={row} />) : <p className="rounded-2xl border border-white/10 bg-white/[.03] p-3 text-sm text-slate-400">No performance rows yet. Use the feedback buttons below to start the engine.</p>}</div>{!isPro && <p className="mt-3 text-xs text-slate-500">Free shows the headline engine. Pro unlocks deeper symbol and signal-type breakdowns.</p>}</div>;
+  return <div className="rounded-3xl border border-signal-green/25 bg-signal-green/10 p-4"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-green/30 bg-signal-green/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-green"><BarChart3 size={14} /> v15.6 performance engine</div><h3 className="text-xl font-black">Feedback now becomes signal performance.</h3><p className="mt-1 text-sm text-slate-300">Win rate, action rate, signal type, and symbol history now feed the visible confidence layer.</p></div>{!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlock deeper analytics</button>}</div><div className="grid gap-2 sm:grid-cols-4"><BriefCard label="Tracked feedback" value={String(engine.total)} detail="All recorded taps" /><BriefCard label="Win rate" value={engine.winRate ? engine.winRate + '%' : '—'} detail="Wins / decisive outcomes" /><BriefCard label="Action rate" value={engine.actionRate ? engine.actionRate + '%' : '—'} detail="Acted / total feedback" /><BriefCard label="Best type" value={bestType} detail={engine.bestType ? engine.bestType.winRate + '% win rate' : 'Needs feedback'} /></div><div className="mt-3 rounded-2xl border border-white/10 bg-black/10 p-3"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-500">Feedback-informed confidence</p><p className="text-3xl font-black text-white">{engine.informedConfidence}%</p></div><p className="max-w-md text-right text-xs text-slate-400">{engine.sampleSize >= 3 ? 'Blends current signal posture with actual recorded outcomes.' : 'Collect at least 3 feedback events to override the static confidence score.'}</p></div></div><div className={isPro ? 'mt-3 grid gap-2 sm:grid-cols-2' : 'premium-lock mt-3 grid gap-2 opacity-75 sm:grid-cols-2'}>{rows.length ? rows.map(row => <PerformanceMiniRow key={row.label} row={row} />) : <p className="rounded-2xl border border-white/10 bg-white/[.03] p-3 text-sm text-slate-400">No performance rows yet. Use the feedback buttons below to start the engine.</p>}</div>{!isPro && <p className="mt-3 text-xs text-slate-500">Free shows the headline engine. Pro unlocks deeper symbol and signal-type breakdowns.</p>}</div>;
 }
 function PerformanceMiniRow({ row }: { row: PerformanceRow }) {
   return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-2"><p className="font-black">{row.label}</p><span className="rounded-full border border-white/10 bg-white/[.06] px-2 py-1 text-xs font-bold text-slate-200">{row.total} events</span></div><div className="mt-2 grid grid-cols-3 gap-2 text-xs text-slate-400"><span>{row.winRate || '—'}% win</span><span>{row.actionRate || '—'}% acted</span><span>{row.ignored} ignored</span></div></div>;
 }
 
 function FeedbackLoopCard({ signal, stats, globalStats, message, onFeedback }: { signal: AssetSignal; stats: FeedbackStats; globalStats: FeedbackStats; message: string; onFeedback: (action: FeedbackAction, outcome?: FeedbackOutcome) => void }) {
-  return <div className="rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-4"><div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><DatabaseZap size={14} /> Feedback loop</div><h3 className="text-xl font-black">Did you act on {signal.symbol}?</h3><p className="mt-1 text-sm text-slate-300">v15.5 feeds every action into the performance engine while keeping personal and global signals separate.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs sm:min-w-[220px]"><div className="rounded-2xl border border-white/10 bg-white/[.05] p-3"><p className="text-slate-400">This signal</p><p className="text-2xl font-black">{stats.total}</p></div><div className="rounded-2xl border border-white/10 bg-white/[.05] p-3"><p className="text-slate-400">All feedback</p><p className="text-2xl font-black">{globalStats.total}</p></div></div></div><div className="grid gap-2 sm:grid-cols-4"><button onClick={() => onFeedback('acted', 'win')} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-3 py-3 text-sm font-black text-signal-green hover:bg-signal-green/15"><ThumbsUp className="mr-2 inline" size={16} /> Acted + Win</button><button onClick={() => onFeedback('acted', 'loss')} className="rounded-2xl border border-signal-red/30 bg-signal-red/10 px-3 py-3 text-sm font-black text-signal-red hover:bg-signal-red/15"><ThumbsDown className="mr-2 inline" size={16} /> Acted + Loss</button><button onClick={() => onFeedback('acted', 'neutral')} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-3 text-sm font-black text-signal-amber hover:bg-signal-amber/15">Neutral</button><button onClick={() => onFeedback('ignored', null)} className="rounded-2xl border border-white/10 bg-white/[.05] px-3 py-3 text-sm font-black text-slate-200 hover:bg-white/10">Ignored</button></div><div className="mt-3 grid gap-2 sm:grid-cols-4"><BriefCard label="Acted" value={String(globalStats.acted)} detail="Total action taps" /><BriefCard label="Ignored" value={String(globalStats.ignored)} detail="Skipped signals" /><BriefCard label="Wins" value={String(globalStats.wins)} detail="User-marked wins" /><BriefCard label="User win rate" value={globalStats.winRate ? globalStats.winRate + '%' : '—'} detail="Wins / decisive" /></div>{message && <p className="mt-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-200">{message}</p>}</div>;
+  return <div className="rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-4"><div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><DatabaseZap size={14} /> Feedback loop</div><h3 className="text-xl font-black">Did you act on {signal.symbol}?</h3><p className="mt-1 text-sm text-slate-300">v15.6 feeds every action into the performance engine while keeping personal and global signals separate.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs sm:min-w-[220px]"><div className="rounded-2xl border border-white/10 bg-white/[.05] p-3"><p className="text-slate-400">This signal</p><p className="text-2xl font-black">{stats.total}</p></div><div className="rounded-2xl border border-white/10 bg-white/[.05] p-3"><p className="text-slate-400">All feedback</p><p className="text-2xl font-black">{globalStats.total}</p></div></div></div><div className="grid gap-2 sm:grid-cols-4"><button onClick={() => onFeedback('acted', 'win')} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-3 py-3 text-sm font-black text-signal-green hover:bg-signal-green/15"><ThumbsUp className="mr-2 inline" size={16} /> Acted + Win</button><button onClick={() => onFeedback('acted', 'loss')} className="rounded-2xl border border-signal-red/30 bg-signal-red/10 px-3 py-3 text-sm font-black text-signal-red hover:bg-signal-red/15"><ThumbsDown className="mr-2 inline" size={16} /> Acted + Loss</button><button onClick={() => onFeedback('acted', 'neutral')} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-3 text-sm font-black text-signal-amber hover:bg-signal-amber/15">Neutral</button><button onClick={() => onFeedback('ignored', null)} className="rounded-2xl border border-white/10 bg-white/[.05] px-3 py-3 text-sm font-black text-slate-200 hover:bg-white/10">Ignored</button></div><div className="mt-3 grid gap-2 sm:grid-cols-4"><BriefCard label="Acted" value={String(globalStats.acted)} detail="Total action taps" /><BriefCard label="Ignored" value={String(globalStats.ignored)} detail="Skipped signals" /><BriefCard label="Wins" value={String(globalStats.wins)} detail="User-marked wins" /><BriefCard label="User win rate" value={globalStats.winRate ? globalStats.winRate + '%' : '—'} detail="Wins / decisive" /></div>{message && <p className="mt-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-200">{message}</p>}</div>;
 }
