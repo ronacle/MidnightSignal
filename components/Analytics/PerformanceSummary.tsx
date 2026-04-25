@@ -1,4 +1,10 @@
-export default function PerformanceSummary({ stats }) {
+type PerformanceStats = {
+  winRate: number;
+  avgReturn: number;
+  streak: number;
+};
+
+export default function PerformanceSummary({ stats }: { stats: PerformanceStats }) {
   if (!stats) return null;
 
   return (
