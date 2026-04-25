@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Flame, History, Info, Lock, Mail, Moon, PlusCircle, RefreshCw, Search, Settings2, ShieldCheck, Sparkles, Star, Target, ThumbsDown, ThumbsUp, Trophy, TrendingUp, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '@/lib/signals';
 import { BUILD } from '@/lib/build';
+import { MIDNIGHT_NETWORK_DEFAULT_WATCHLIST, normalizeAssetSymbol } from '@/lib/assets';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PerformanceOutcome, SignalResult, buildProPerformanceAnalytics, buildSignalReceiptText, buildSignalResults, formatHoldTime, outcomeLabel, summarizePerformance } from '@/lib/performance';
@@ -210,7 +211,7 @@ export default function Dashboard() {
   const [experience, setExperience] = useState<Experience>('beginner');
   const [currency, setCurrency] = useState('USD');
   const [sound, setSound] = useState(false);
-  const [watchlist, setWatchlist] = useState<string[]>(['ADA', 'MID', 'BTC']);
+  const [watchlist, setWatchlist] = useState<string[]>([...MIDNIGHT_NETWORK_DEFAULT_WATCHLIST]);
   const [watchlistPreferences, setWatchlistPreferences] = useState<WatchlistPreference[]>([]);
   const [watchlistInput, setWatchlistInput] = useState('');
   const [watchlistMessage, setWatchlistMessage] = useState('');
@@ -252,9 +253,9 @@ export default function Dashboard() {
     setExperience(stored.experience || 'beginner');
     setCurrency(stored.currency || 'USD');
     setSound(Boolean(stored.sound));
-    setWatchlist(stored.watchlist?.length ? stored.watchlist : ['ADA', 'MID', 'BTC']);
+    setWatchlist(stored.watchlist?.length ? stored.watchlist.map(normalizeAssetSymbol) : [...MIDNIGHT_NETWORK_DEFAULT_WATCHLIST]);
     setWatchlistPreferences(stored.watchlistPreferences || []);
-    setSelected(stored.selected || 'ADA');
+    setSelected(stored.selected ? normalizeAssetSymbol(stored.selected) : 'ADA');
     setLastTop(stored.lastTop);
     setVisits((stored.visits || 0) + 1);
     setRitual(stored.ritual || defaultRitual);
@@ -570,7 +571,7 @@ export default function Dashboard() {
   }
 
   function recordRecommendationFeedback(symbol: string, action: RecommendationFeedbackAction, metadata?: Record<string, unknown>) {
-    const normalized = symbol.toUpperCase();
+    const normalized = normalizeAssetSymbol(symbol);
     const item: RecommendationFeedback = { symbol: normalized, action, metadata, createdAt: new Date().toISOString(), source: authUser?.id ? 'database' : 'local' };
     const next = [item, ...recommendationFeedback].slice(0, 120);
     setRecommendationFeedback(next);
@@ -591,7 +592,7 @@ export default function Dashboard() {
   }
 
   function addSymbolToWatchlist(symbol: string, message: string) {
-    const normalized = symbol.toUpperCase();
+    const normalized = normalizeAssetSymbol(symbol);
     if (!watchlist.includes(normalized)) toggleWatch(normalized);
     setSelected(normalized);
     setWatchlistMessage(normalized + ' added from ' + message + '.');
@@ -682,7 +683,7 @@ export default function Dashboard() {
     markRitual('watchlist');
   }
   function addWatchlistSymbol() {
-    const symbol = watchlistInput.trim().toUpperCase();
+    const symbol = normalizeAssetSymbol(watchlistInput);
     if (!symbol) return;
     const exists = signals.some(signal => signal.symbol === symbol);
     if (!exists) { setWatchlistMessage(symbol + ' is not in the current signal universe yet.'); return; }
@@ -775,7 +776,7 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Pattern Intelligence</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Asset Identity Layer</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, global discovery, and recommendations that explain why they were ranked for you.</p>
         </div>
@@ -884,7 +885,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Pattern Intelligence · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Asset Identity Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
@@ -896,7 +897,7 @@ function PersonalIntelligenceCard({ profile, isPro, message, onSelect, onAddToWa
     <section className="rounded-[2rem] border border-signal-blue/20 bg-signal-blue/10 p-5 shadow-soft">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Sparkles size={14} /> Pattern Intelligence</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Sparkles size={14} /> Asset Identity Layer</div>
           <h2 className="text-2xl font-black">Recommended for you</h2>
           <p className="mt-1 text-sm text-slate-300">A pattern-aware feed that uses watchlist ownership, feedback outcomes, ignored signals, global breakouts, and repeatable behavior to decide what you should review next.</p>
         </div>
@@ -1050,14 +1051,14 @@ function PersonalizedWatchlistHero({ signals, personalizedSignals, watchlist, pr
   const primary = personalizedSignals[0];
   return <section className="mt-4 rounded-3xl border border-signal-blue/20 bg-signal-blue/5 p-5">
     <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
-      <div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-bold text-signal-blue"><Target size={14} /> Personalized Watchlists</div><h2 className="text-3xl font-black">Your top signal is now picked from your watchlist.</h2><p className="mt-2 max-w-3xl text-sm text-slate-300">Free users can personalize up to 3 symbols. Pro unlocks expanded watchlists, per-symbol alerts, and deeper personalized analytics.</p><p className="mt-2 text-xs text-slate-500">Watchlist source: {source === 'database' ? 'Supabase profile sync' : 'local session fallback'} · Educational use only · Not financial advice.</p></div>
+      <div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-bold text-signal-blue"><Target size={14} /> Personalized Watchlists</div><h2 className="text-3xl font-black">Your top signal is now picked from your watchlist.</h2><p className="mt-2 max-w-3xl text-sm text-slate-300">Guests start with the Midnight Network default watchlist: BTC, ADA, and NIGHT. Pro unlocks expanded watchlists, per-symbol alerts, and deeper personalized analytics.</p><p className="mt-2 text-xs text-slate-500">Watchlist source: {source === 'database' ? 'Supabase profile sync' : 'local session fallback'} · Midnight resolves to NIGHT · Educational use only · Not financial advice.</p></div>
       {!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlimited watchlist</button>}
     </div>
     <div className="grid gap-4 lg:grid-cols-[.9fr_1.1fr]">
       <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4">
         <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-[.16em] text-slate-400">Top signal for you</p><h3 className="mt-1 text-2xl font-black">{primary?.symbol || 'N/A'}</h3></div><span className="rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black text-signal-blue">{watchlist.length}/{limit}</span></div>
         {primary && <><p className="text-sm text-slate-300">{primary.why}</p><div className="mt-3 grid gap-2 sm:grid-cols-3"><BriefCard label="Personal win rate" value={summary.winRate + '%'} detail={summary.totalSignals + ' watchlist outcomes'} /><BriefCard label="Avg return" value={(summary.avgReturn >= 0 ? '+' : '') + summary.avgReturn + '%'} detail="Watchlist-weighted receipts" /><BriefCard label="Best watch" value={summary.best.symbol + ' ' + (summary.best.returnPct >= 0 ? '+' : '') + summary.best.returnPct + '%'} detail="Best closed receipt" /></div></>}
-        <div className="mt-4 flex gap-2"><div className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-3 text-slate-500" size={17} /><input value={input} onChange={event => onInput(event.target.value.toUpperCase())} onKeyDown={event => { if (event.key === 'Enter') onAdd(); }} placeholder="Add symbol, e.g. SOL" className="w-full rounded-2xl border border-white/10 bg-black/20 py-3 pl-10 pr-3 text-sm text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /></div><button onClick={onAdd} disabled={locked && !watchlist.includes(input.trim().toUpperCase())} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 text-sm font-bold text-signal-blue disabled:cursor-not-allowed disabled:opacity-50">Add</button></div>
+        <div className="mt-4 flex gap-2"><div className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-3 text-slate-500" size={17} /><input value={input} onChange={event => onInput(event.target.value.toUpperCase())} onKeyDown={event => { if (event.key === 'Enter') onAdd(); }} placeholder="Add symbol, e.g. NIGHT or Midnight" className="w-full rounded-2xl border border-white/10 bg-black/20 py-3 pl-10 pr-3 text-sm text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /></div><button onClick={onAdd} disabled={locked && !watchlist.includes(normalizeAssetSymbol(input))} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 text-sm font-bold text-signal-blue disabled:cursor-not-allowed disabled:opacity-50">Add</button></div>
         {message && <p className="mt-3 rounded-2xl border border-signal-amber/30 bg-signal-amber/10 p-3 text-sm text-signal-amber">{message}</p>}
         <div className="mt-3 flex flex-wrap gap-2">{suggestions.map(signal => <button key={signal.symbol} onClick={() => onToggle(signal.symbol)} disabled={locked} className="rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300 disabled:opacity-40">+ {signal.symbol}</button>)}</div>
       </div>

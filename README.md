@@ -1,31 +1,35 @@
-# Midnight Signal v16.2 - Pattern Intelligence
+# Midnight Signal v16.3 - Asset Identity Layer
 
-v16.2 adds repeatable pattern detection on top of the Personal Intelligence layer.
+v16.3 adds canonical asset identity so ambiguous symbols resolve correctly across the app. The Midnight Network default experience now highlights:
 
-## Highlights
+- BTC - Bitcoin
+- ADA - Cardano
+- NIGHT - Midnight on Cardano
 
-- Detects strongest user signal patterns from feedback and receipts
-- Detects avoid/suppression patterns from losses and ignored signals
-- Adds a new opportunity pattern for high-strength global assets outside the watchlist
-- Adds pattern-aware recommendation scoring
-- Adds Pattern Intelligence cards inside the Recommended for You panel
-- Adds `app/api/personalization/patterns` for storing and logging pattern insights
-- Adds `supabase/pattern_intelligence.sql`
+## What changed
 
-## Local setup
+- Added `lib/assets.ts` as the canonical asset registry.
+- Replaced the old guest default watchlist `ADA / MID / BTC` with `BTC / ADA / NIGHT`.
+- Added alias normalization so `Midnight`, `Midnight Network`, and legacy `MID` resolve to `NIGHT`.
+- Updated signal generation to source assets from the registry instead of scattered hardcoded tuples.
+- Updated CoinGecko lookup mapping to use canonical symbols where live IDs exist.
+- Added `supabase/asset_identity.sql` for optional database-side identity and alias storage.
+
+## SQL
+
+Run the new SQL file if you want Supabase to also store canonical identities and aliases:
+
+```sql
+-- supabase/asset_identity.sql
+```
+
+This is additive. Existing watchlist rows using `MID` will be normalized in the client to `NIGHT` when loaded.
+
+## Local build
 
 ```bash
 npm install
 npm run build
-npm run dev
-```
-
-## Supabase SQL
-
-Run the SQL files in `supabase/` as needed. New for v16.2:
-
-```text
-supabase/pattern_intelligence.sql
 ```
 
 Educational use only. Not financial advice.

@@ -1,4 +1,5 @@
 import { AssetSignal, TraderMode, buildSignals } from './signals';
+import { coingeckoIdsBySymbol, normalizeAssetSymbol } from './assets';
 
 export type MarketCondition = 'calm' | 'active' | 'volatile';
 
@@ -10,12 +11,7 @@ export type TrustSnapshot = {
   confidenceReason: string;
 };
 
-const ids: Record<string, string> = {
-  ADA: 'cardano', BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', XRP: 'ripple', LINK: 'chainlink',
-  AVAX: 'avalanche-2', DOT: 'polkadot', MATIC: 'matic-network', SUI: 'sui', ARB: 'arbitrum',
-  RNDR: 'render-token', NEAR: 'near', ATOM: 'cosmos', FIL: 'filecoin', AAVE: 'aave', UNI: 'uniswap',
-  DOGE: 'dogecoin', LTC: 'litecoin'
-};
+const ids: Record<string, string> = coingeckoIdsBySymbol();
 
 const supportedSymbols = Object.keys(ids);
 
@@ -64,8 +60,9 @@ export async function getMarketSnapshot(mode: TraderMode, currency: string, prev
 export function supportedLiveSymbols() { return supportedSymbols; }
 
 export async function getMarketPrice(symbol: string, currency = 'USD'): Promise<number> {
-  const fallback = buildSignals('swing').find(item => item.symbol === symbol)?.price;
-  const id = ids[symbol];
+  const normalized = normalizeAssetSymbol(symbol);
+  const fallback = buildSignals('swing').find(item => item.symbol === normalized)?.price;
+  const id = ids[normalized];
   if (!id) {
     if (fallback) return fallback;
     throw new Error(`Unsupported symbol: ${symbol}`);

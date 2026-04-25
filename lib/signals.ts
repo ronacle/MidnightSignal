@@ -1,3 +1,5 @@
+import { CANONICAL_ASSETS } from './assets';
+
 export type TraderMode = 'scalp' | 'swing' | 'position';
 export type Experience = 'beginner' | 'pro';
 export type SignalLabel = 'Bullish' | 'Neutral' | 'Bearish';
@@ -16,15 +18,7 @@ export type AssetSignal = {
   why: string;
 };
 
-const assets = [
-  ['ADA', 'Cardano', 0.62, 4.3], ['BTC', 'Bitcoin', 68420, 1.4], ['ETH', 'Ethereum', 3420, 2.6],
-  ['MID', 'Midnight', 0.18, 7.1], ['SOL', 'Solana', 151, -1.8], ['XRP', 'XRP', 0.58, 0.9],
-  ['LINK', 'Chainlink', 17.9, 3.2], ['AVAX', 'Avalanche', 38.2, -2.7], ['DOT', 'Polkadot', 7.3, 1.9],
-  ['MATIC', 'Polygon', 0.91, -0.6], ['SUI', 'Sui', 1.72, 5.8], ['ARB', 'Arbitrum', 1.08, -1.2],
-  ['RNDR', 'Render', 9.6, 6.3], ['NEAR', 'Near', 6.4, 2.2], ['ATOM', 'Cosmos', 8.2, -3.1],
-  ['FIL', 'Filecoin', 6.1, 0.5], ['AAVE', 'Aave', 112, 4.9], ['UNI', 'Uniswap', 9.8, -0.8],
-  ['DOGE', 'Dogecoin', 0.15, 1.1], ['LTC', 'Litecoin', 82.4, -1.6]
-] as const;
+const assets = CANONICAL_ASSETS.map(asset => [asset.symbol, asset.name, asset.defaultPrice, asset.defaultChange24h] as const);
 
 function clamp(value: number, min = 0, max = 100) { return Math.max(min, Math.min(max, value)); }
 function seeded(symbol: string, salt: number) {
