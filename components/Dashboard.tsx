@@ -775,7 +775,7 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Recommendation Explainability</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Pattern Intelligence</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, global discovery, and recommendations that explain why they were ranked for you.</p>
         </div>
@@ -884,7 +884,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Recommendation Explainability · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Pattern Intelligence · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
@@ -896,9 +896,9 @@ function PersonalIntelligenceCard({ profile, isPro, message, onSelect, onAddToWa
     <section className="rounded-[2rem] border border-signal-blue/20 bg-signal-blue/10 p-5 shadow-soft">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Sparkles size={14} /> Personal Intelligence Layer</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Sparkles size={14} /> Pattern Intelligence</div>
           <h2 className="text-2xl font-black">Recommended for you</h2>
-          <p className="mt-1 text-sm text-slate-300">A blended feed that uses watchlist ownership, feedback outcomes, ignored signals, and global breakouts to decide what you should review next.</p>
+          <p className="mt-1 text-sm text-slate-300">A pattern-aware feed that uses watchlist ownership, feedback outcomes, ignored signals, global breakouts, and repeatable behavior to decide what you should review next.</p>
         </div>
         <span className="rounded-full border border-white/10 bg-white/[.05] px-3 py-1 text-xs font-bold text-slate-300">{profile.riskStyle} style</span>
       </div>
@@ -907,6 +907,11 @@ function PersonalIntelligenceCard({ profile, isPro, message, onSelect, onAddToWa
         <BriefCard label="Win tendency" value={profile.winRate ? profile.winRate + '%' : 'Learning'} detail="Feedback + receipts" />
         <BriefCard label="Preferred assets" value={profile.preferredAssets[0] || 'None yet'} detail={profile.preferredAssets.slice(1, 3).join(' · ') || 'Built from behavior'} />
         <BriefCard label="Signal bias" value={profile.preferredSignalTypes[0] || 'Mixed'} detail={profile.learningBias} />
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <PatternBrief pattern={profile.strongestPattern} fallback="No winning pattern yet" />
+        <PatternBrief pattern={profile.avoidPattern} fallback="No avoid pattern yet" />
+        <PatternBrief pattern={profile.opportunityPattern} fallback="No opportunity pattern yet" />
       </div>
       {lead && <div className="mt-4 rounded-3xl border border-white/10 bg-black/15 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -930,10 +935,11 @@ function PersonalIntelligenceCard({ profile, isPro, message, onSelect, onAddToWa
           <BriefCard label="History" value={lead.scoreBreakdown.historicalPerformance + '%'} detail="Wins, losses, and receipts" />
           <BriefCard label="Global strength" value={lead.scoreBreakdown.globalStrength + '%'} detail="Current signal confidence" />
           <BriefCard label="Freshness" value={lead.scoreBreakdown.freshness + '%'} detail="Recent movement context" />
+          <BriefCard label="Pattern match" value={lead.scoreBreakdown.patternMatch + '%'} detail="Strengths, avoids, and opportunities" />
         </div>
         <div className="mt-4 rounded-3xl border border-white/10 bg-white/[.04] p-4">
           <p className="mb-2 flex items-center gap-2 text-sm font-black text-white"><Info size={15} /> Why this?</p>
-          <div className="grid gap-2 md:grid-cols-3">{lead.explanation.map(item => <div key={item} className="rounded-2xl border border-white/10 bg-black/10 p-3 text-xs text-slate-400">{item}</div>)}</div>
+          <div className="grid gap-2 md:grid-cols-3">{lead.explanation.map(item => <div key={item} className="rounded-2xl border border-white/10 bg-black/10 p-3 text-xs text-slate-400">{item}</div>)}</div>{lead.patternReasons.length > 0 && <div className="mt-3 grid gap-2 md:grid-cols-2">{lead.patternReasons.map(item => <div key={item} className="rounded-2xl border border-signal-green/20 bg-signal-green/10 p-3 text-xs font-bold text-signal-green">{item}</div>)}</div>}
         </div>
       </div>}
       {message && <p className="mt-3 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3 text-sm font-bold text-signal-blue">{message}</p>}
@@ -976,6 +982,11 @@ function AccessModal({ earlyEmail, setEarlyEmail, onGuest, onJoin }: { earlyEmai
   return <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md"><section className="card max-w-2xl rounded-3xl p-6"><div className="mb-4 flex items-center gap-3"><span className="rounded-2xl bg-signal-blue/10 p-3 text-signal-blue"><Mail /></span><div><h1 className="text-2xl font-black">Join Early Access</h1><p className="text-sm text-slate-300">Save your place for real accounts, Pro insights, and founder pricing.</p></div></div><input value={earlyEmail} onChange={e => setEarlyEmail(e.target.value)} placeholder="email@example.com" className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /><div className="mt-4 grid gap-3 sm:grid-cols-2"><button onClick={onJoin} disabled={!earlyEmail.includes('@')} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950 disabled:opacity-40">Join Early Access</button><button onClick={onGuest} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-bold text-white">Continue as Guest</button></div></section></div>;
 }
 function BriefCard({ label, value, detail }: { label: string; value: string; detail: string }) { return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs uppercase tracking-[.16em] text-slate-400">{label}</p><p className="mt-2 text-lg font-bold">{value}</p><p className="mt-1 text-sm text-slate-300">{detail}</p></div>; }
+function PatternBrief({ pattern, fallback }: { pattern?: UserIntelligenceProfile['patterns'][number]; fallback: string }) {
+  const tone = pattern?.direction === 'strength' ? 'text-signal-green border-signal-green/20 bg-signal-green/10' : pattern?.direction === 'weakness' ? 'text-signal-amber border-signal-amber/20 bg-signal-amber/10' : 'text-signal-blue border-signal-blue/20 bg-signal-blue/10';
+  return <div className={'rounded-3xl border p-4 ' + tone}><p className="text-xs font-black uppercase tracking-[.16em]">{pattern?.direction || 'learning'}</p><p className="mt-2 text-lg font-black text-white">{pattern?.title || fallback}</p><p className="mt-1 text-sm text-slate-300">{pattern?.description || 'Keep using feedback controls and signal outcomes to train this insight.'}</p>{pattern && <p className="mt-2 text-xs font-bold">{pattern.confidence}% confidence · {pattern.action}</p>}</div>;
+}
+
 
 function RetentionIntelligenceCard({ digest, events, missedClicks, isPro, onDigest, onWeekly, onMissedOpportunity, onUpgrade }: { digest: RetentionDigest; events: number; missedClicks: number; isPro: boolean; onDigest: () => void; onWeekly: () => void; onMissedOpportunity: () => void; onUpgrade: () => void }) {
   return <section className="mt-4 grid gap-4 lg:grid-cols-[1.15fr_.85fr]">

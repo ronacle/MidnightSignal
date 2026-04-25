@@ -1,31 +1,31 @@
-# Midnight Signal v16.1 — Recommendation Quality + Explainability
+# Midnight Signal v16.2 - Pattern Intelligence
 
-This build upgrades v16 Personal Intelligence with a trust layer for recommendations.
+v16.2 adds repeatable pattern detection on top of the Personal Intelligence layer.
 
-## Added in v16.1
+## Highlights
 
-- **Why this?** explanations for the top recommended signal
-- recommendation score breakdown: personal match, history, global strength, freshness
-- user controls: **More like this**, **Less like this**, and **Not interested**
-- recommendation feedback loop that adjusts future personalized ranking
-- Supabase support for explicit recommendation feedback
-- updated personalization API support for v16.1 events
+- Detects strongest user signal patterns from feedback and receipts
+- Detects avoid/suppression patterns from losses and ignored signals
+- Adds a new opportunity pattern for high-strength global assets outside the watchlist
+- Adds pattern-aware recommendation scoring
+- Adds Pattern Intelligence cards inside the Recommended for You panel
+- Adds `app/api/personalization/patterns` for storing and logging pattern insights
+- Adds `supabase/pattern_intelligence.sql`
 
-## SQL
-
-Run or re-run:
-
-```sql
--- supabase/personal_intelligence.sql
-```
-
-It is idempotent and adds the v16.1 `recommendation_feedback` table plus expanded personalization event types.
-
-## Local build
+## Local setup
 
 ```bash
 npm install
 npm run build
+npm run dev
+```
+
+## Supabase SQL
+
+Run the SQL files in `supabase/` as needed. New for v16.2:
+
+```text
+supabase/pattern_intelligence.sql
 ```
 
 Educational use only. Not financial advice.
