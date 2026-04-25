@@ -8,6 +8,7 @@ import { BUILD } from '@/lib/build';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PerformanceOutcome, SignalResult, buildProPerformanceAnalytics, buildSignalReceiptText, buildSignalResults, formatHoldTime, outcomeLabel, summarizePerformance } from '@/lib/performance';
+import { buildPersonalIntelligenceProfile, type UserIntelligenceProfile } from '@/lib/personalization';
 
 type AccessMode = 'unset' | 'guest' | 'early';
 type Plan = 'free' | 'pro';
@@ -54,7 +55,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v15-9';
+const storageKey = 'midnight-signal-v16';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 const defaultAlertPreferences: AlertPreferences = { highConfidenceAlerts: true, dailyRecap: true, settlementAlerts: true, proOnlyAlerts: true };
@@ -137,31 +138,31 @@ function buildPerformanceEngine(map: FeedbackMap, currentSignal: AssetSignal, mo
 }
 function readFeedback(): FeedbackMap {
   if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v15-9') || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v16') || '{}'); } catch { return {}; }
 }
 function writeFeedback(next: FeedbackMap) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v15-9', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v16', JSON.stringify(next));
 }
 function readConversionEvents(): ConversionEvent[] {
   if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem('midnight-signal-conversion-v15-9') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-conversion-v16') || '[]'); } catch { return []; }
 }
 function writeConversionEvents(next: ConversionEvent[]) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-conversion-v15-9', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-conversion-v16', JSON.stringify(next));
 }
 function readRetentionEvents(): RetentionEvent[] {
   if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem('midnight-signal-retention-v15-9') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-retention-v16') || '[]'); } catch { return []; }
 }
 function writeRetentionEvents(next: RetentionEvent[]) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-retention-v15-9', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-retention-v16', JSON.stringify(next));
 }
 function readNotificationPreferences(): NotificationPreferences {
   if (typeof window === 'undefined') return defaultNotificationPreferences;
-  try { return { ...defaultNotificationPreferences, ...JSON.parse(localStorage.getItem('midnight-signal-notifications-v15-9') || '{}') }; } catch { return defaultNotificationPreferences; }
+  try { return { ...defaultNotificationPreferences, ...JSON.parse(localStorage.getItem('midnight-signal-notifications-v16') || '{}') }; } catch { return defaultNotificationPreferences; }
 }
 function writeNotificationPreferences(next: NotificationPreferences) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-notifications-v15-9', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-notifications-v16', JSON.stringify(next));
 }
 function buildRetentionDigest(personalSignal: AssetSignal, globalSignal: AssetSignal, gap: number, summary: ReturnType<typeof summarizePerformance>, feedbackCount: number, conversionCount: number): RetentionDigest {
   const missedOpportunity = globalSignal.symbol !== personalSignal.symbol && gap >= 4;
@@ -472,6 +473,7 @@ export default function Dashboard() {
   const globalConversionCount = conversionEvents.filter(event => event.symbol === globalTop.symbol).length;
   const retentionDigest = useMemo(() => buildRetentionDigest(userTop, globalTop, topSignalGap, performanceSummary, globalFeedbackStats.total, conversionEvents.length), [userTop, globalTop, topSignalGap, performanceSummary, globalFeedbackStats.total, conversionEvents.length]);
   const missedOpportunityCount = retentionEvents.filter(event => event.type === 'missed_opportunity_clicked').length;
+  const personalIntelligence = useMemo(() => buildPersonalIntelligenceProfile({ signals, watchlist, feedback: allFeedback, conversionEvents, retentionEvents, performanceResults, mode }), [signals, watchlist, allFeedback, conversionEvents, retentionEvents, performanceResults, mode]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -553,6 +555,20 @@ export default function Dashboard() {
     recordConversionEvent('global_tracked', globalTop);
     setSelected(globalTop.symbol);
     markRitual('topSignal');
+  }
+
+  function addSymbolToWatchlist(symbol: string, message: string) {
+    const normalized = symbol.toUpperCase();
+    if (!watchlist.includes(normalized)) toggleWatch(normalized);
+    setSelected(normalized);
+    setWatchlistMessage(normalized + ' added from ' + message + '.');
+    if (authUser?.id) {
+      fetch('/api/personalization/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id, eventType: 'recommendation_added_to_watchlist', symbol: normalized, metadata: { mode } })
+      }).catch(() => undefined);
+    }
   }
 
   function recordRetentionEvent(type: RetentionEventType, symbol?: string, metadata?: Record<string, unknown>) {
@@ -754,6 +770,8 @@ export default function Dashboard() {
 
       <SignalDiscoveryHero userTop={userTop} globalTop={globalTop} gap={topSignalGap} shouldExpose={shouldExposeGlobalTop} isPro={plan === 'pro'} currency={currency} userSummary={userTopSummary} globalSummary={globalTopSummary} globalInWatchlist={watchlist.includes(globalTop.symbol)} conversionCount={globalConversionCount} onSelect={selectSignal} onAddGlobal={addGlobalTopToWatchlist} onTrackGlobal={trackGlobalSignal} onUpgrade={() => { recordConversionEvent('global_upgrade_clicked', globalTop); upgradeToPro(); }} />
 
+      <PersonalIntelligenceCard profile={personalIntelligence} isPro={plan === 'pro'} onSelect={selectSignal} onAddToWatchlist={(symbol) => addSymbolToWatchlist(symbol, 'Personal intelligence recommendation')} />
+
       <RetentionIntelligenceCard digest={retentionDigest} events={retentionEvents.length} missedClicks={missedOpportunityCount} isPro={plan === 'pro'} onDigest={() => queueNotification('daily_digest', ['email'])} onWeekly={() => queueNotification('weekly_report', ['email'])} onMissedOpportunity={reviewMissedOpportunity} onUpgrade={() => { recordRetentionEvent('digest_upgrade_clicked', globalTop.symbol, { gap: topSignalGap }); upgradeToPro(); }} />
 
       <NotificationDeliveryCard preferences={notificationPreferences} status={notificationStatus} isSignedIn={Boolean(authUser?.id)} email={authEmail || earlyEmail || authUser?.email || ''} onToggle={updateNotificationPreference} onSendDaily={() => queueNotification('daily_digest', notificationPreferences.pushDailyDigest ? ['email', 'push'] : ['email'])} onSendWeekly={() => queueNotification('weekly_report', ['email'])} onEnablePush={enableBrowserPush} />
@@ -833,11 +851,51 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Notification Automation · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Personal Intelligence · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
 
+
+function PersonalIntelligenceCard({ profile, isPro, onSelect, onAddToWatchlist }: { profile: UserIntelligenceProfile; isPro: boolean; onSelect: (symbol: string) => void; onAddToWatchlist: (symbol: string) => void }) {
+  const lead = profile.recommendations[0];
+  return (
+    <section className="rounded-[2rem] border border-signal-blue/20 bg-signal-blue/10 p-5 shadow-soft">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Sparkles size={14} /> Personal Intelligence Layer</div>
+          <h2 className="text-2xl font-black">Recommended for you</h2>
+          <p className="mt-1 text-sm text-slate-300">A blended feed that uses watchlist ownership, feedback outcomes, ignored signals, and global breakouts to decide what you should review next.</p>
+        </div>
+        <span className="rounded-full border border-white/10 bg-white/[.05] px-3 py-1 text-xs font-bold text-slate-300">{profile.riskStyle} style</span>
+      </div>
+      <div className="grid gap-3 md:grid-cols-4">
+        <BriefCard label="Acted rate" value={profile.actedRate ? profile.actedRate + '%' : 'New'} detail="Actions vs ignores" />
+        <BriefCard label="Win tendency" value={profile.winRate ? profile.winRate + '%' : 'Learning'} detail="Feedback + receipts" />
+        <BriefCard label="Preferred assets" value={profile.preferredAssets[0] || 'None yet'} detail={profile.preferredAssets.slice(1, 3).join(' · ') || 'Built from behavior'} />
+        <BriefCard label="Signal bias" value={profile.preferredSignalTypes[0] || 'Mixed'} detail={profile.learningBias} />
+      </div>
+      {lead && <div className="mt-4 rounded-3xl border border-white/10 bg-black/15 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Next best personalized review</p>
+            <h3 className="mt-1 text-2xl font-black text-white">{lead.symbol} · {lead.personalScore}% fit</h3>
+            <p className="mt-1 text-sm text-slate-300">{lead.reason}</p>
+          </div>
+          <span className="rounded-full border border-white/10 bg-white/[.05] px-3 py-1 text-xs font-bold text-slate-300">{lead.source}</span>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button onClick={() => onSelect(lead.symbol)} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 text-sm font-bold text-signal-blue"><Target className="mr-2 inline" size={15} /> Review signal</button>
+          {lead.action === 'add_to_watchlist' && <button onClick={() => onAddToWatchlist(lead.symbol)} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-4 py-3 text-sm font-bold text-signal-green"><PlusCircle className="mr-2 inline" size={15} /> Add to watchlist</button>}
+          {!isPro && <span className="rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3 text-sm font-bold text-slate-300"><Lock className="mr-2 inline" size={15} /> Pro unlocks deeper adaptive rules</span>}
+        </div>
+      </div>}
+      <div className="mt-4 grid gap-2 md:grid-cols-3">
+        {profile.explainers.map(item => <div key={item} className="rounded-2xl border border-white/10 bg-black/10 p-3 text-xs text-slate-400">{item}</div>)}
+      </div>
+    </section>
+  );
+}
 
 function SignalDiscoveryHero({ userTop, globalTop, gap, shouldExpose, isPro, currency, userSummary, globalSummary, globalInWatchlist, conversionCount, onSelect, onAddGlobal, onTrackGlobal, onUpgrade }: { userTop: AssetSignal; globalTop: AssetSignal; gap: number; shouldExpose: boolean; isPro: boolean; currency: string; userSummary: ReturnType<typeof summarizePerformance>; globalSummary: ReturnType<typeof summarizePerformance>; globalInWatchlist: boolean; conversionCount: number; onSelect: (symbol: string) => void; onAddGlobal: () => void; onTrackGlobal: () => void; onUpgrade: () => void }) {
   const sameSignal = userTop.symbol === globalTop.symbol;
