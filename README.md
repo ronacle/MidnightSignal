@@ -1,30 +1,24 @@
-# Midnight Signal v16.5 - Embedded Learning Layer
+# Midnight Signal v17 - Strategy Layer
 
-This build restores the in-app learning/glossary experience so Midnight Signal remains a learning tool as the product becomes more advanced.
+v17 adds a single active strategy mode to Midnight Signal so users can guide the app through a clear decision framework instead of only reading raw signals.
 
-## What's new
+## Highlights
 
-- Inline glossary term links inside the signal breakdown and recommendation copy
-- Learning Glossary panel with anchor-style jump/highlight behavior
-- Expanded glossary term set for signals, metrics, personalization, and the Midnight Network
-- Optional learning event tracking API at `/api/learning/events`
-- Optional Supabase SQL at `supabase/learning_events.sql`
-
-## Core identity
-
-The default guest watchlist remains the Midnight Network bundle:
-
-- BTC
-- ADA
-- NIGHT
-
-Legacy Midnight/MID aliases continue to resolve to NIGHT.
+- Single active strategy selection: Momentum, Breakout, Conservative, or Aggressive
+- Strategy-ranked top signal
+- Signal-to-strategy fit score and Act / Wait / Avoid guidance
+- Strategy performance summary from recent receipts
+- Strategy terms linked to the embedded learning/glossary panel
+- Supabase-ready strategy persistence via `supabase/strategy_layer.sql`
 
 ## Run locally
 
 ```bash
 npm install
 npm run build
+npm run dev
 ```
 
-Educational use only. Not financial advice.
+## SQL
+
+Run `supabase/strategy_layer.sql` if you want signed-in users' active strategy and strategy events persisted in Supabase.

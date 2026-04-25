@@ -1,6 +1,6 @@
 {
-  "name": "midnight-signal-v16-5",
-  "version": "16.5.0",
+  "name": "midnight-signal-v17",
+  "version": "17.0.0",
   "private": true,
   "type": "module",
   "scripts": {

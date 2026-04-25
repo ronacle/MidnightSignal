@@ -1,1 +1,1 @@
-export const BUILD = { version: '16.5.0', name: 'Embedded Learning Layer', deployedAt: '2026-04-25' };
+export const BUILD = { version: '17.0.0', name: 'Strategy Layer', deployedAt: '2026-04-25' };

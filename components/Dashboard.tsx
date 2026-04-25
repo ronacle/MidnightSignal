@@ -11,6 +11,7 @@ import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PerformanceOutcome, SignalResult, buildProPerformanceAnalytics, buildSignalReceiptText, buildSignalResults, formatHoldTime, outcomeLabel, summarizePerformance } from '@/lib/performance';
 import { buildPersonalIntelligenceProfile, type UserIntelligenceProfile } from '@/lib/personalization';
+import { STRATEGIES, buildStrategyPerformance, getStrategy, rankSignalsByStrategy, scoreSignalForStrategy, type StrategyId } from '@/lib/strategy';
 
 type AccessMode = 'unset' | 'guest' | 'early';
 type Plan = 'free' | 'pro';
@@ -43,6 +44,7 @@ type DailyRecapPreview = { body: string; totalClosed: number; wins: number; loss
 type AuthUser = { id: string; email: string } | null;
 type Stored = {
   agreed?: boolean;
+  strategy?: StrategyId;
   accessMode?: AccessMode;
   earlyEmail?: string;
   mode?: TraderMode;
@@ -59,7 +61,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v16';
+const storageKey = 'midnight-signal-v17';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 const defaultAlertPreferences: AlertPreferences = { highConfidenceAlerts: true, dailyRecap: true, settlementAlerts: true, proOnlyAlerts: true };
@@ -243,6 +245,8 @@ export default function Dashboard() {
   const [notificationStatus, setNotificationStatus] = useState<NotificationStatus>({ email: 'idle', push: 'idle', message: 'Notifications are ready to connect to your retention snapshots.' });
   const [recommendationFeedback, setRecommendationFeedback] = useState<RecommendationFeedback[]>([]);
   const [recommendationMessage, setRecommendationMessage] = useState('');
+  const [activeStrategy, setActiveStrategy] = useState<StrategyId>('momentum');
+  const [strategyMessage, setStrategyMessage] = useState('Momentum is active. Signals are ranked through a strategy lens.');
 
   function openGlossaryTerm(term: string) {
     setActiveGlossaryTerm(term);
@@ -278,11 +282,12 @@ export default function Dashboard() {
     setRetentionEvents(readRetentionEvents());
     setNotificationPreferences(readNotificationPreferences());
     setRecommendationFeedback(readRecommendationFeedback());
+    setActiveStrategy(stored.strategy || 'momentum');
   }, []);
 
   useEffect(() => {
-    writeStored({ agreed, accessMode, earlyEmail, mode, experience, currency, sound, watchlist, watchlistPreferences, selected, lastTop: snapshot.signals[0], visits, ritual });
-  }, [agreed, accessMode, earlyEmail, mode, experience, currency, sound, watchlist, watchlistPreferences, selected, snapshot, visits, ritual]);
+    writeStored({ agreed, accessMode, earlyEmail, mode, experience, currency, sound, watchlist, watchlistPreferences, selected, lastTop: snapshot.signals[0], visits, ritual, strategy: activeStrategy });
+  }, [agreed, accessMode, earlyEmail, mode, experience, currency, sound, watchlist, watchlistPreferences, selected, snapshot, visits, ritual, activeStrategy]);
 
   async function refreshMarket() {
     setLoadingLive(true);
@@ -321,6 +326,33 @@ export default function Dashboard() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    fetch('/api/strategy?userId=' + encodeURIComponent(authUser.id))
+      .then(response => response.ok ? response.json() : Promise.reject(new Error('strategy unavailable')))
+      .then(data => {
+        if (data.strategy) {
+          setActiveStrategy(data.strategy as StrategyId);
+          setStrategyMessage(getStrategy(data.strategy as StrategyId).name + ' strategy loaded.');
+        }
+      })
+      .catch(() => undefined);
+  }, [authUser?.id]);
+
+  async function updateActiveStrategy(strategy: StrategyId) {
+    setActiveStrategy(strategy);
+    const definition = getStrategy(strategy);
+    setStrategyMessage(definition.name + ' strategy active: ' + definition.tagline);
+    writeStored({ ...readStored(), strategy });
+    if (authUser?.id) {
+      fetch('/api/strategy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id, strategy })
+      }).catch(() => undefined);
+    }
+  }
 
   async function refreshPlan(): Promise<Plan> {
     const email = authUser?.email || earlyEmail || authEmail;
@@ -502,6 +534,12 @@ export default function Dashboard() {
   const midnightNetwork = useMemo(() => buildMidnightNetworkInsight(signals), [signals]);
   const missedOpportunityCount = retentionEvents.filter(event => event.type === 'missed_opportunity_clicked').length;
   const personalIntelligence = useMemo(() => buildPersonalIntelligenceProfile({ signals, watchlist, feedback: allFeedback, conversionEvents, retentionEvents, recommendationFeedback, performanceResults, mode }), [signals, watchlist, allFeedback, conversionEvents, retentionEvents, recommendationFeedback, performanceResults, mode]);
+  const strategyDefinition = getStrategy(activeStrategy);
+  const strategyRankedSignals = useMemo(() => rankSignalsByStrategy(signals, activeStrategy, personalIntelligence, mode), [signals, activeStrategy, personalIntelligence, mode]);
+  const strategyTop = strategyRankedSignals[0] || top;
+  const activeStrategyFit = useMemo(() => scoreSignalForStrategy(active, activeStrategy, mode), [active, activeStrategy, mode]);
+  const topStrategyFit = useMemo(() => scoreSignalForStrategy(top, activeStrategy, mode), [top, activeStrategy, mode]);
+  const strategyPerformance = useMemo(() => buildStrategyPerformance(performanceResults, activeStrategy), [performanceResults, activeStrategy]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -791,7 +829,7 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Embedded Learning Layer</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Strategy Layer</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, Midnight Network context, global discovery, and recommendations that explain why they were ranked for you.</p>
         </div>
@@ -856,6 +894,8 @@ export default function Dashboard() {
         <TrustCard icon={<Zap size={18} />} label="Market condition" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} onClick={() => markRitual('market')} />
       </section>
 
+      <StrategyLayerCard strategy={strategyDefinition} activeStrategy={activeStrategy} strategies={STRATEGIES} message={strategyMessage} top={strategyTop} fit={topStrategyFit} activeFit={activeStrategyFit} performance={strategyPerformance} onStrategy={updateActiveStrategy} onSelect={selectSignal} onGlossary={openGlossaryTerm} />
+
       <PerformanceHero summary={performanceSummary} results={performanceResults} analytics={proAnalytics} source={performanceSource} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
 
 
@@ -910,11 +950,54 @@ export default function Dashboard() {
         <BookOpen size={18} /> Learn
       </button>
       {glossaryOpen && <Glossary activeTerm={activeGlossaryTerm} onJump={setActiveGlossaryTerm} onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Embedded Learning Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Strategy Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
 
+
+
+function StrategyLayerCard({ strategy, activeStrategy, strategies, message, top, fit, activeFit, performance, onStrategy, onSelect, onGlossary }: { strategy: ReturnType<typeof getStrategy>; activeStrategy: StrategyId; strategies: typeof STRATEGIES; message: string; top: AssetSignal; fit: ReturnType<typeof scoreSignalForStrategy>; activeFit: ReturnType<typeof scoreSignalForStrategy>; performance: ReturnType<typeof buildStrategyPerformance>; onStrategy: (strategy: StrategyId) => void; onSelect: (symbol: string) => void; onGlossary: (term: string) => void }) {
+  const actionClass = fit.action === 'Act' ? 'border-signal-green/30 bg-signal-green/10 text-signal-green' : fit.action === 'Avoid' ? 'border-signal-red/30 bg-signal-red/10 text-signal-red' : 'border-signal-amber/30 bg-signal-amber/10 text-signal-amber';
+  return <section className="mt-4 rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[.07] via-white/[.03] to-signal-blue/10 p-5 shadow-soft">
+    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Target size={14} /> Strategy Layer</div>
+        <h2 className="text-2xl font-black">Single active strategy: {strategy.name}</h2>
+        <p className="mt-1 max-w-3xl text-sm text-slate-300">{strategy.description}</p>
+      </div>
+      <div className="rounded-3xl border border-white/10 bg-black/20 px-5 py-4 text-right">
+        <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Decision guide</p>
+        <p className="text-3xl font-black text-white">{fit.action}</p>
+        <p className="text-sm font-bold text-signal-blue">{fit.score}% strategy fit</p>
+      </div>
+    </div>
+    <div className="grid gap-3 md:grid-cols-4">
+      {strategies.map(item => <button key={item.id} onClick={() => onStrategy(item.id)} className={`rounded-3xl border p-4 text-left transition hover:-translate-y-0.5 ${activeStrategy === item.id ? 'border-signal-blue/50 bg-signal-blue/10' : 'border-white/10 bg-white/[.04]'}`}>
+        <div className="flex items-center justify-between gap-2"><p className="font-black">{item.name}</p><span className="text-xs text-slate-400">{item.riskLabel}</span></div>
+        <p className="mt-2 text-xs text-slate-300">{item.tagline}</p>
+      </button>)}
+    </div>
+    <div className="mt-4 grid gap-4 lg:grid-cols-[1.05fr_.95fr]">
+      <button onClick={() => onSelect(top.symbol)} className="rounded-3xl border border-white/10 bg-black/20 p-5 text-left transition hover:border-signal-blue/40">
+        <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Strategy-ranked top signal</p>
+        <div className="mt-2 flex items-center justify-between gap-3"><h3 className="text-3xl font-black">{top.symbol}</h3><span className={`rounded-full border px-3 py-1 text-xs font-black ${actionClass}`}>{fit.label}</span></div>
+        <p className="mt-3 text-sm text-slate-300">{fit.reason}</p>
+        <p className="mt-3 text-xs text-slate-500">{message}</p>
+      </button>
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-5">
+        <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Strategy performance</p>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-xs text-slate-500">Win rate</p><p className="text-xl font-black">{performance.winRate || '—'}{performance.winRate ? '%' : ''}</p></div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-xs text-slate-500">Samples</p><p className="text-xl font-black">{performance.total}</p></div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-xs text-slate-500">Avg return</p><p className="text-xl font-black">{performance.averageReturn}%</p></div>
+        </div>
+        <p className="mt-3 text-sm text-slate-300">Selected signal fit: <span className="font-black text-white">{activeFit.score}%</span>. Use the strategy terms below to learn why this ranking changed.</p>
+        <div className="mt-3 flex flex-wrap gap-2">{strategy.glossaryTerms.map(term => <button key={term} onClick={() => onGlossary(term)} className="rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-bold text-signal-blue"><BookOpen className="mr-1 inline" size={12} />{term}</button>)}</div>
+      </div>
+    </div>
+  </section>;
+}
 
 function MidnightNetworkSpotlight({ insight, currency, onSelect, onGlossary }: { insight: ReturnType<typeof buildMidnightNetworkInsight>; currency: string; onSelect: (symbol: string) => void; onGlossary: (term: string) => void }) {
   return <section className="mb-4 rounded-[2rem] border border-signal-blue/20 bg-gradient-to-br from-signal-blue/10 via-white/[.03] to-signal-amber/10 p-5 shadow-soft">
