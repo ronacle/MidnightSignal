@@ -1141,6 +1141,35 @@ function Breakdown({ signal, compact = false, onGlossary }: { signal: AssetSigna
   </div>;
 }
 
+function PerformanceHero({ summary, results, analytics, source, isPro, onUpgrade }: { summary: ReturnType<typeof summarizePerformance>; results: SignalResult[]; analytics: ReturnType<typeof buildProPerformanceAnalytics>; source: 'database' | 'simulated'; isPro: boolean; onUpgrade: () => void }) {
+  const recent = results.slice(0, isPro ? 9 : 3);
+  return <section className="mt-4 card rounded-3xl p-5">
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-green/20 bg-signal-green/10 px-3 py-1 text-xs font-bold text-signal-green"><BarChart3 size={14} /> Signal Receipts + Pro Analytics</div><h2 className="text-3xl font-black">Every signal now leaves a receipt.</h2><p className="mt-2 max-w-3xl text-sm text-slate-300">Closed signals show entry, exit, return, hold time, and outcome. Pro turns those receipts into symbol, confidence, and time-window analytics.</p><p className="mt-2 text-xs text-slate-500">{source === 'database' ? 'Using settled database receipts.' : 'Using deterministic simulated receipts until your cron settles live rows.'} Simulated historical results are not financial advice and do not guarantee future returns.</p></div>{!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlock Pro analytics</button>}</div>
+    <div className="grid gap-3 md:grid-cols-4">
+      <MetricTile icon={<Target size={18} />} label="Win rate" value={`${summary.winRate}%`} detail={`${summary.wins}/${summary.wins + summary.losses} decisive receipts`} />
+      <MetricTile icon={<TrendingUp size={18} />} label="Avg return" value={`${summary.avgReturn >= 0 ? '+' : ''}${summary.avgReturn}%`} detail={`${summary.totalReturn >= 0 ? '+' : ''}${summary.totalReturn}% total tracked`} />
+      <MetricTile icon={<Flame size={18} />} label="Streak" value={`${summary.currentStreak} ${outcomeLabel(summary.currentStreakType)}`} detail="Most recent closed run" />
+      <MetricTile icon={<Clock3 size={18} />} label="Avg hold" value={`${analytics.averageHoldHours}h`} detail="Average receipt settlement time" />
+    </div>
+    <div className="mt-4 grid gap-3 lg:grid-cols-[.8fr_1.2fr]">
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">Receipt extremes</p><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-1"><ResultMini result={analytics.bestReceipt} title="Best receipt" /><ResultMini result={analytics.worstReceipt} title="Needs review" /></div></div>
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">Latest signal receipts</p><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{recent.map(result => <SignalReceiptCard key={result.id} result={result} compact={!isPro} />)}</div>{!isPro && <p className="mt-3 text-xs text-slate-400">Free preview shows the receipt headline. Pro unlocks full receipt notes and analytics breakdowns.</p>}</div>
+    </div>
+  </section>;
+}
+
+function MetricTile({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail: string }) {
+  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-2 flex items-center gap-2 text-signal-blue">{icon}<span className="text-xs font-bold uppercase tracking-[.16em]">{label}</span></div><p className="text-3xl font-black">{value}</p><p className="mt-1 text-xs text-slate-400">{detail}</p></div>;
+}
+
+function ResultMini({ result, title }: { result: SignalResult; title?: string }) {
+  return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-2"><p className="font-black">{title ? title + ': ' : ''}{result.symbol}</p><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(result.outcome)}>{outcomeLabel(result.outcome)}</span></div><p className={result.returnPct >= 0 ? 'mt-2 text-lg font-black text-signal-green' : 'mt-2 text-lg font-black text-signal-red'}>{result.returnPct >= 0 ? '+' : ''}{result.returnPct}%</p><p className="text-xs text-slate-400">{result.direction.toUpperCase()} · {result.confidence}% confidence · {formatHoldTime(result.openedAt, result.closedAt)}</p></div>;
+}
+
+function SignalReceiptCard({ result, compact = false }: { result: SignalResult; compact?: boolean }) {
+  return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-black">{result.symbol} <span className="text-xs font-normal text-slate-400">{result.direction.toUpperCase()}</span></p><p className="text-xs text-slate-400">{new Date(result.closedAt).toLocaleDateString()} · {formatHoldTime(result.openedAt, result.closedAt)}</p></div><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(result.outcome)}>{outcomeLabel(result.outcome)}</span></div><div className="mt-3 rounded-xl border border-white/10 bg-black/10 p-3"><p className="text-xs text-slate-400">Entry → Exit</p><p className="font-bold">{result.entryPrice} → {result.exitPrice}</p><p className={result.returnPct >= 0 ? 'text-sm font-black text-signal-green' : 'text-sm font-black text-signal-red'}>{result.returnPct >= 0 ? '+' : ''}{result.returnPct}%</p></div>{!compact && <><p className="mt-2 text-xs text-slate-300">{buildSignalReceiptText(result)}</p><p className="mt-1 text-xs text-slate-500">{result.note}</p></>}</div>;
+}
+
 function SignalPerformanceCard({ signal, outcome }: { signal: AssetSignal; outcome: SignalOutcome }) {
   return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center gap-2 text-signal-blue"><Activity size={18} /><h3 className="font-bold">Previous Signal Result</h3></div><span className={'inline-flex rounded-full border px-3 py-1 text-xs font-black ' + outcomeClass(outcome)}>{outcome}</span><p className="mt-3 text-sm text-slate-300">{signal.symbol} is reviewed through a simple 24h outcome lens: Worked / Failed / Neutral. This keeps the product honest without pretending to be a guaranteed trading system.</p><p className="mt-3 text-xs text-slate-500">Educational heuristic only · not financial advice</p></div>;
 }
