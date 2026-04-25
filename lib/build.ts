@@ -1,1 +1,1 @@
-export const BUILD = { version: '15.1.0', name: 'Retention OS', deployedAt: '2026-04-24' };
+export const BUILD = { version: '15.2.0', name: 'Feedback Loop', deployedAt: '2026-04-25' };

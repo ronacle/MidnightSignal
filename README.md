@@ -78,3 +78,8 @@ npm run build
 ```
 
 Educational use only. Not financial advice.
+
+
+## v15.2 Feedback Loop
+
+Adds user feedback capture for acted / ignored / win / loss / neutral outcomes. See README-FEEDBACK-LOOP-v15.2.md and supabase/signal_feedback.sql.

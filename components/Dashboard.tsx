@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Flame, History, Info, Lock, Mail, Moon, RefreshCw, Search, Settings2, ShieldCheck, Sparkles, Star, Target, Trophy, TrendingUp, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Flame, History, Info, Lock, Mail, Moon, RefreshCw, Search, Settings2, ShieldCheck, Sparkles, Star, Target, ThumbsDown, ThumbsUp, Trophy, TrendingUp, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '@/lib/signals';
 import { BUILD } from '@/lib/build';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
@@ -12,6 +12,11 @@ import { PerformanceOutcome, SignalResult, buildProPerformanceAnalytics, buildSi
 type AccessMode = 'unset' | 'guest' | 'early';
 type Plan = 'free' | 'pro';
 type SignalOutcome = 'Worked' | 'Failed' | 'Neutral';
+type FeedbackAction = 'acted' | 'ignored';
+type FeedbackOutcome = 'win' | 'loss' | 'neutral' | null;
+type SignalFeedback = { signalId: string; symbol: string; action: FeedbackAction; outcome: FeedbackOutcome; note?: string; createdAt: string; source?: 'database' | 'local' };
+type FeedbackStats = { total: number; acted: number; ignored: number; wins: number; losses: number; neutrals: number; winRate: number; latest?: SignalFeedback };
+type FeedbackMap = Record<string, SignalFeedback[]>;
 type SignalHistoryItem = AssetSignal & { outcome: SignalOutcome; note: string; age: string };
 type AlertPreferenceKey = 'highConfidenceAlerts' | 'dailyRecap' | 'settlementAlerts' | 'proOnlyAlerts';
 type AlertPreferences = Record<AlertPreferenceKey, boolean>;
@@ -38,7 +43,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v15-1';
+const storageKey = 'midnight-signal-v15-2';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 const defaultAlertPreferences: AlertPreferences = { highConfidenceAlerts: true, dailyRecap: true, settlementAlerts: true, proOnlyAlerts: true };
@@ -81,6 +86,31 @@ function buildSignalHistory(signals: AssetSignal[]): SignalHistoryItem[] {
     return { ...signal, outcome, note, age: ages[index] || 'Recent' };
   });
 }
+
+function signalId(signal: AssetSignal, mode: TraderMode) {
+  return [mode, signal.symbol, signal.label, signal.confidence].join('-').toLowerCase();
+}
+function feedbackStats(items: SignalFeedback[]): FeedbackStats {
+  const total = items.length;
+  const acted = items.filter(item => item.action === 'acted').length;
+  const ignored = items.filter(item => item.action === 'ignored').length;
+  const wins = items.filter(item => item.outcome === 'win').length;
+  const losses = items.filter(item => item.outcome === 'loss').length;
+  const neutrals = items.filter(item => item.outcome === 'neutral').length;
+  const decisive = wins + losses;
+  return { total, acted, ignored, wins, losses, neutrals, winRate: decisive ? Math.round((wins / decisive) * 100) : 0, latest: items[0] };
+}
+function flattenFeedback(map: FeedbackMap) {
+  return Object.values(map).flat().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+function readFeedback(): FeedbackMap {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v15-2') || '{}'); } catch { return {}; }
+}
+function writeFeedback(next: FeedbackMap) {
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v15-2', JSON.stringify(next));
+}
+
 function journeyLevel(visits: number, watchlistCount: number, completed: number) {
   const score = visits * 12 + watchlistCount * 8 + completed * 10;
   if (score >= 90) return { title: 'Advanced Signal Reader', stage: 4, progress: 100, note: 'You are building a repeatable signal-reading habit.' };
@@ -128,6 +158,8 @@ export default function Dashboard() {
   const [alertEvents, setAlertEvents] = useState<AlertEventPreview[]>([]);
   const [dailyRecap, setDailyRecap] = useState<DailyRecapPreview>(null);
   const [lastTop, setLastTop] = useState<AssetSignal | undefined>();
+  const [feedback, setFeedback] = useState<FeedbackMap>({});
+  const [feedbackMessage, setFeedbackMessage] = useState('');
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -146,6 +178,7 @@ export default function Dashboard() {
     setLastTop(stored.lastTop);
     setVisits((stored.visits || 0) + 1);
     setRitual(stored.ritual || defaultRitual);
+    setFeedback(readFeedback());
   }, []);
 
   useEffect(() => {
@@ -351,6 +384,11 @@ export default function Dashboard() {
     plan === 'pro' ? 'Compare Pro analytics by symbol before changing your watchlist priority.' : 'Free plan: track the top 3 watchlist names and unlock Pro when you need deeper receipt history.'
   ];
   const riskPosture = top.confidence >= 75 && snapshot.marketCondition !== 'volatile' ? 'Constructive' : snapshot.marketCondition === 'volatile' ? 'Cautious' : 'Balanced';
+  const allFeedback = useMemo(() => flattenFeedback(feedback), [feedback]);
+  const topSignalId = signalId(top, mode);
+  const topFeedbackStats = useMemo(() => feedbackStats(feedback[topSignalId] || []), [feedback, topSignalId]);
+  const globalFeedbackStats = useMemo(() => feedbackStats(allFeedback), [allFeedback]);
+  const learningLoopScore = Math.min(100, retentionScore + Math.min(18, globalFeedbackStats.total * 3) + (globalFeedbackStats.winRate ? Math.round(globalFeedbackStats.winRate / 10) : 0));
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -378,6 +416,27 @@ export default function Dashboard() {
     const id = setTimeout(() => setSignalChanged(false), 900);
     return () => clearTimeout(id);
   }, [top.symbol, top.confidence, mode]);
+
+
+  async function recordSignalFeedback(signal: AssetSignal, action: FeedbackAction, outcome: FeedbackOutcome = null) {
+    const id = signalId(signal, mode);
+    const item: SignalFeedback = { signalId: id, symbol: signal.symbol, action, outcome, createdAt: new Date().toISOString(), source: authUser?.id ? 'database' : 'local' };
+    const next = { ...feedback, [id]: [item, ...(feedback[id] || [])].slice(0, 20) };
+    setFeedback(next);
+    writeFeedback(next);
+    setFeedbackMessage(action === 'ignored' ? signal.symbol + ' ignored — learning loop updated.' : signal.symbol + ' marked as ' + (outcome || 'acted') + '.');
+    if (authUser?.id) {
+      fetch('/api/signals/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id, signalId: id, signal, mode, action, outcome })
+      }).then(response => response.ok ? response.json() : Promise.reject(new Error('feedback unavailable'))).then(() => {
+        setFeedbackMessage(signal.symbol + ' feedback saved to Supabase.');
+      }).catch(() => {
+        setFeedbackMessage(signal.symbol + ' feedback saved locally. Add Supabase SQL to sync it.');
+      });
+    }
+  }
 
   function markRitual(key: keyof RitualState) { setRitual(r => ({ ...r, [key]: true })); }
   function toggleWatch(symbol: string) {
@@ -485,9 +544,9 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Retention OS</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Feedback Loop</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
-          <p className="mt-2 max-w-2xl text-slate-300">One clear read, proof up front, and a nightly retention loop that turns signals into repeatable habits.</p>
+          <p className="mt-2 max-w-2xl text-slate-300">One clear read, proof up front, and a feedback loop that teaches Midnight Signal what users actually do.</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access…' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in · ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
       </header>
@@ -503,7 +562,7 @@ export default function Dashboard() {
           <div className="mb-3 flex items-center gap-2 text-signal-blue"><ShieldCheck size={18} /><p className="text-sm font-semibold uppercase tracking-[.2em]">Retention score</p></div>
           <div className="flex items-end justify-between gap-3"><p className="text-5xl font-black">{retentionScore}</p><span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-slate-300">{riskPosture} posture</span></div>
           <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-signal-blue" style={{ width: retentionScore + '%' }} /></div>
-          <p className="mt-3 text-sm text-slate-300">Blends journey progress, receipt quality, and plan depth into one nightly habit signal.</p>
+          <p className="mt-3 text-sm text-slate-300">Blends journey progress, receipt quality, plan depth, and recorded signal feedback.</p>
         </div>
         <div className="card rounded-3xl p-5">
           <div className="mb-3 flex items-center gap-2 text-signal-blue"><CheckCircle2 size={18} /><p className="text-sm font-semibold uppercase tracking-[.2em]">Tonight's review plan</p></div>
@@ -581,6 +640,7 @@ export default function Dashboard() {
           <Breakdown signal={top} />
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <SignalPerformanceCard signal={top} outcome={topOutcome} />
+            <FeedbackLoopCard signal={top} stats={topFeedbackStats} globalStats={globalFeedbackStats} message={feedbackMessage} onFeedback={(action, outcome) => recordSignalFeedback(top, action, outcome)} />
             <SignalHistoryPanel results={performanceResults} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
             <ProAnalyticsPanel analytics={proAnalytics} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
           </div>
@@ -602,7 +662,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Retention OS · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Feedback Loop · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
@@ -728,3 +788,7 @@ function AuthPanel({ authUser, plan, authEmail, setAuthEmail, authMessage, onMag
 function JourneyCard({ visits, journey, completed }: { visits: number; journey: { title: string; stage: number; progress: number; note: string }; completed: number }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><Trophy size={18} /><h2 className="text-xl font-bold">Your Signal Journey</h2></div><p className="text-2xl font-black">{journey.title}</p><p className="mt-1 text-sm text-slate-300">Stage {journey.stage} · {visits} visits · {completed}/4 ritual steps</p><div className="mt-4 h-3 rounded-full bg-white/10"><div className="h-3 rounded-full bg-signal-blue" style={{ width: `${journey.progress}%` }} /></div><p className="mt-3 text-sm text-slate-300">{journey.note}</p></div>; }
 function RitualCard({ ritual, mark }: { ritual: RitualState; mark: (key: keyof RitualState) => void }) { const items: [keyof RitualState, string][] = [['topSignal', 'Check Top Signal'], ['confidence', 'Review Confidence'], ['watchlist', 'Scan Watchlist'], ['market', 'Read Market Condition']]; return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><CheckCircle2 size={18} /><h2 className="text-xl font-bold">Tonight’s Ritual</h2></div><div className="space-y-2">{items.map(([key, label]) => <button key={key} onClick={() => mark(key)} className={`flex w-full items-center justify-between rounded-2xl border p-3 text-left ${ritual[key] ? 'border-signal-green/30 bg-signal-green/10 text-signal-green' : 'border-white/10 bg-white/[.04] text-slate-200'}`}><span>{label}</span><CheckCircle2 size={18} /></button>)}</div></div>; }
 function Glossary({ onClose }: { onClose: () => void }) { const terms = [['Signal', 'A simplified read of current market posture.'], ['Confidence', 'How strongly the heuristic agrees with itself.'], ['Journey', 'A lightweight progression system that rewards repeated learning behavior.'], ['Daily Ritual', 'A repeatable checklist that teaches users what to review before reacting.'], ['Market condition', 'A plain-English read of whether the current tape is calm, active, or volatile.'], ['Data source', 'Shows whether live CoinGecko prices loaded or the fallback dataset is protecting the app.'], ['Momentum', 'How much energy price action appears to have.'], ['MTF', 'Multi-timeframe weighting across short and longer views.']]; return <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm"><aside className="h-full w-full max-w-md overflow-auto border-l border-white/10 bg-midnight-950 p-6 shadow-soft"><div className="mb-5 flex items-center justify-between"><h2 className="text-2xl font-black">Floating Glossary</h2><button onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2">Close</button></div><div className="space-y-3">{terms.map(([term, definition]) => <div key={term} className="rounded-2xl border border-white/10 bg-white/[.04] p-4"><p className="font-bold text-signal-blue">{term}</p><p className="mt-1 text-sm text-slate-300">{definition}</p></div>)}</div></aside></div>; }
+
+function FeedbackLoopCard({ signal, stats, globalStats, message, onFeedback }: { signal: AssetSignal; stats: FeedbackStats; globalStats: FeedbackStats; message: string; onFeedback: (action: FeedbackAction, outcome?: FeedbackOutcome) => void }) {
+  return <div className="rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-4"><div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><DatabaseZap size={14} /> Feedback loop</div><h3 className="text-xl font-black">Did you act on {signal.symbol}?</h3><p className="mt-1 text-sm text-slate-300">v15.2 tracks acted, ignored, and outcome feedback so future scoring can learn from real behavior.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs sm:min-w-[220px]"><div className="rounded-2xl border border-white/10 bg-white/[.05] p-3"><p className="text-slate-400">This signal</p><p className="text-2xl font-black">{stats.total}</p></div><div className="rounded-2xl border border-white/10 bg-white/[.05] p-3"><p className="text-slate-400">All feedback</p><p className="text-2xl font-black">{globalStats.total}</p></div></div></div><div className="grid gap-2 sm:grid-cols-4"><button onClick={() => onFeedback('acted', 'win')} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-3 py-3 text-sm font-black text-signal-green hover:bg-signal-green/15"><ThumbsUp className="mr-2 inline" size={16} /> Acted + Win</button><button onClick={() => onFeedback('acted', 'loss')} className="rounded-2xl border border-signal-red/30 bg-signal-red/10 px-3 py-3 text-sm font-black text-signal-red hover:bg-signal-red/15"><ThumbsDown className="mr-2 inline" size={16} /> Acted + Loss</button><button onClick={() => onFeedback('acted', 'neutral')} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-3 text-sm font-black text-signal-amber hover:bg-signal-amber/15">Neutral</button><button onClick={() => onFeedback('ignored', null)} className="rounded-2xl border border-white/10 bg-white/[.05] px-3 py-3 text-sm font-black text-slate-200 hover:bg-white/10">Ignored</button></div><div className="mt-3 grid gap-2 sm:grid-cols-4"><BriefCard label="Acted" value={String(globalStats.acted)} detail="Total action taps" /><BriefCard label="Ignored" value={String(globalStats.ignored)} detail="Skipped signals" /><BriefCard label="Wins" value={String(globalStats.wins)} detail="User-marked wins" /><BriefCard label="User win rate" value={globalStats.winRate ? globalStats.winRate + '%' : '—'} detail="Wins / decisive" /></div>{message && <p className="mt-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-200">{message}</p>}</div>;
+}
