@@ -901,6 +901,14 @@ export default function Dashboard() {
         <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Pro Access</h2><p className="mt-2 text-slate-300">One clear upgrade path: full receipt history, advanced analytics, Pro alerts, and expanded watchlists.</p><button onClick={plan === 'pro' ? refreshPlan : upgradeToPro} className="mt-4 w-full rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue">{checkoutSyncing ? 'Finalizing Pro access...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening Checkout...' : 'Upgrade to Pro'}</button></div>
       </section>
 
+      <button
+        type="button"
+        onClick={() => openGlossaryTerm(activeGlossaryTerm || 'Signal')}
+        aria-label="Open learning glossary"
+        className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full border border-signal-blue/40 bg-signal-blue px-5 py-3 font-black text-midnight-950 shadow-soft transition hover:-translate-y-0.5 hover:bg-signal-blue/90 focus:outline-none focus:ring-4 focus:ring-signal-blue/30"
+      >
+        <BookOpen size={18} /> Learn
+      </button>
       {glossaryOpen && <Glossary activeTerm={activeGlossaryTerm} onJump={setActiveGlossaryTerm} onClose={() => setGlossaryOpen(false)} />}
       <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Embedded Learning Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
@@ -1251,8 +1259,8 @@ function Glossary({ activeTerm, onJump, onClose }: { activeTerm: string; onJump:
     if (typeof window === 'undefined') return;
     window.requestAnimationFrame(() => document.getElementById(activeId)?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
   }, [activeId]);
-  return <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm">
-    <aside className="h-full w-full max-w-md overflow-auto border-l border-white/10 bg-midnight-950 p-6 shadow-soft">
+  return <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <aside className="h-full w-full max-w-md overflow-auto border-l border-white/10 bg-midnight-950 p-6 shadow-soft" onClick={(event) => event.stopPropagation()}>
       <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-5 border-b border-white/10 bg-midnight-950/95 p-6 backdrop-blur">
         <div className="flex items-center justify-between gap-3"><div><h2 className="text-2xl font-black">Learning Glossary</h2><p className="mt-1 text-sm text-slate-400">Click linked terms anywhere in the app to jump here.</p></div><button onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2">Close</button></div>
         <div className="mt-4 flex flex-wrap gap-2">{terms.slice(0, 8).map(([term]) => <button key={term} onClick={() => onJump(term)} className={active === term ? 'rounded-full border border-signal-blue/50 bg-signal-blue/20 px-3 py-1 text-xs font-bold text-signal-blue' : 'rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300'}>{term}</button>)}</div>
