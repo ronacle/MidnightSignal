@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Flame, History, Info, Lock, Mail, Moon, RefreshCw, Settings2, Sparkles, Star, Target, Trophy, TrendingUp, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Flame, History, Info, Lock, Mail, Moon, RefreshCw, Search, Settings2, Sparkles, Star, Target, Trophy, TrendingUp, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '@/lib/signals';
 import { BUILD } from '@/lib/build';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
@@ -16,6 +16,8 @@ type SignalHistoryItem = AssetSignal & { outcome: SignalOutcome; note: string; a
 type AlertPreferenceKey = 'highConfidenceAlerts' | 'dailyRecap' | 'settlementAlerts' | 'proOnlyAlerts';
 type AlertPreferences = Record<AlertPreferenceKey, boolean>;
 type AlertEventPreview = { id: string; title: string; body: string; type: string; createdAt: string };
+type WatchlistPreference = { symbol: string; highConfidenceAlerts: boolean; settlementAlerts: boolean; isPrimary: boolean };
+type WatchlistApiItem = { symbol: string; highConfidenceAlerts?: boolean; settlementAlerts?: boolean; isPrimary?: boolean };
 type DailyRecapPreview = { body: string; totalClosed: number; wins: number; losses: number; winRate: number; avgReturn: number; best: string | null } | null;
 type AuthUser = { id: string; email: string } | null;
 type Stored = {
@@ -27,6 +29,7 @@ type Stored = {
   currency?: string;
   sound?: boolean;
   watchlist?: string[];
+  watchlistPreferences?: WatchlistPreference[];
   selected?: string;
   lastTop?: AssetSignal;
   visits?: number;
@@ -105,6 +108,10 @@ export default function Dashboard() {
   const [currency, setCurrency] = useState('USD');
   const [sound, setSound] = useState(false);
   const [watchlist, setWatchlist] = useState<string[]>(['ADA', 'MID', 'BTC']);
+  const [watchlistPreferences, setWatchlistPreferences] = useState<WatchlistPreference[]>([]);
+  const [watchlistInput, setWatchlistInput] = useState('');
+  const [watchlistMessage, setWatchlistMessage] = useState('');
+  const [watchlistSource, setWatchlistSource] = useState<'local' | 'database'>('local');
   const [selected, setSelected] = useState('ADA');
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [signalChanged, setSignalChanged] = useState(false);
@@ -134,6 +141,7 @@ export default function Dashboard() {
     setCurrency(stored.currency || 'USD');
     setSound(Boolean(stored.sound));
     setWatchlist(stored.watchlist?.length ? stored.watchlist : ['ADA', 'MID', 'BTC']);
+    setWatchlistPreferences(stored.watchlistPreferences || []);
     setSelected(stored.selected || 'ADA');
     setLastTop(stored.lastTop);
     setVisits((stored.visits || 0) + 1);
@@ -141,8 +149,8 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    writeStored({ agreed, accessMode, earlyEmail, mode, experience, currency, sound, watchlist, selected, lastTop: snapshot.signals[0], visits, ritual });
-  }, [agreed, accessMode, earlyEmail, mode, experience, currency, sound, watchlist, selected, snapshot, visits, ritual]);
+    writeStored({ agreed, accessMode, earlyEmail, mode, experience, currency, sound, watchlist, watchlistPreferences, selected, lastTop: snapshot.signals[0], visits, ritual });
+  }, [agreed, accessMode, earlyEmail, mode, experience, currency, sound, watchlist, watchlistPreferences, selected, snapshot, visits, ritual]);
 
   async function refreshMarket() {
     setLoadingLive(true);
@@ -205,6 +213,8 @@ export default function Dashboard() {
 
   useEffect(() => { refreshPlan(); }, [authUser, earlyEmail, authEmail]);
 
+  const watchlistLimit = plan === 'pro' ? 50 : 3;
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (authUser?.id) params.set('userId', authUser.id);
@@ -227,6 +237,55 @@ export default function Dashboard() {
       .then(data => setDailyRecap(data.recap || null))
       .catch(() => setDailyRecap(null));
   }, [authUser?.id, performanceSource, snapshot.updatedAt]);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    fetch('/api/watchlist?userId=' + encodeURIComponent(authUser.id))
+      .then(response => response.ok ? response.json() : Promise.reject(new Error('watchlist unavailable')))
+      .then(data => {
+        const items = Array.isArray(data.items) ? data.items as WatchlistApiItem[] : [];
+        if (items.length) {
+          const symbols = items.map(item => item.symbol).filter(Boolean);
+          setWatchlist(symbols);
+          setWatchlistPreferences(items.map(item => ({ symbol: item.symbol, highConfidenceAlerts: item.highConfidenceAlerts ?? true, settlementAlerts: item.settlementAlerts ?? true, isPrimary: item.isPrimary ?? false })));
+          setWatchlistSource('database');
+        }
+      })
+      .catch(() => setWatchlistSource('local'));
+  }, [authUser?.id]);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    fetch('/api/watchlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: authUser.id, symbols: watchlist, preferences: watchlistPreferences })
+    }).catch(() => undefined);
+  }, [authUser?.id, watchlist, watchlistPreferences]);
+
+  useEffect(() => {
+    if (watchlist.length <= watchlistLimit) return;
+    setWatchlist(list => list.slice(0, watchlistLimit));
+    setWatchlistMessage(plan === 'pro' ? '' : 'Free watchlists are capped at 3 symbols. Upgrade to Pro for unlimited personalization.');
+  }, [plan, watchlist.length, watchlistLimit]);
+
+  useEffect(() => {
+    setWatchlistPreferences(current => {
+      const existing = new Map(current.map(item => [item.symbol, item]));
+      return watchlist.map((symbol, index) => existing.get(symbol) || { symbol, highConfidenceAlerts: true, settlementAlerts: true, isPrimary: index === 0 });
+    });
+  }, [watchlist]);
+
+  useEffect(() => {
+    if (watchlist.includes(selected) || !watchlist.length) return;
+    setSelected(watchlist[0]);
+  }, [watchlist, selected]);
+
+  useEffect(() => {
+    if (!watchlistMessage) return;
+    const id = setTimeout(() => setWatchlistMessage(''), 4000);
+    return () => clearTimeout(id);
+  }, [watchlistMessage]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || checkoutReturnHandled.current) return;
@@ -270,13 +329,17 @@ export default function Dashboard() {
 
   const signals = snapshot.signals;
   const pinned = useMemo(() => signals.filter(s => watchlist.includes(s.symbol)), [signals, watchlist]);
-  const top = signals[0];
+  const personalizedSignals = pinned.length ? pinned : signals.slice(0, 3);
+  const top = personalizedSignals[0] || signals[0];
   const active = signals.find(s => s.symbol === selected) || top;
+  const watchlistLocked = plan !== 'pro' && watchlist.length >= watchlistLimit;
   const completedRitual = Object.values(ritual).filter(Boolean).length;
   const journey = journeyLevel(visits, watchlist.length, completedRitual);
   const signalHistory = useMemo(() => buildSignalHistory(signals), [signals]);
   const simulatedPerformanceResults = useMemo(() => buildSignalResults(signals, mode), [signals, mode]);
   const performanceResults = persistentResults.length ? persistentResults : simulatedPerformanceResults;
+  const personalizedPerformanceResults = useMemo(() => performanceResults.filter(result => watchlist.includes(result.symbol)), [performanceResults, watchlist]);
+  const watchlistSummary = useMemo(() => summarizePerformance(personalizedPerformanceResults.length ? personalizedPerformanceResults : performanceResults), [personalizedPerformanceResults, performanceResults]);
   const performanceSummary = useMemo(() => summarizePerformance(performanceResults), [performanceResults]);
   const proAnalytics = useMemo(() => buildProPerformanceAnalytics(performanceResults), [performanceResults]);
   const topOutcome = outcomeForSignal(top);
@@ -310,8 +373,35 @@ export default function Dashboard() {
 
   function markRitual(key: keyof RitualState) { setRitual(r => ({ ...r, [key]: true })); }
   function toggleWatch(symbol: string) {
-    setWatchlist(list => list.includes(symbol) ? list.filter(item => item !== symbol) : [symbol, ...list]);
+    setWatchlist(list => {
+      if (list.includes(symbol)) return list.filter(item => item !== symbol);
+      if (plan !== 'pro' && list.length >= watchlistLimit) {
+        setWatchlistMessage('Free watchlists are capped at 3 symbols. Upgrade to Pro for unlimited personalization.');
+        return list;
+      }
+      return [symbol, ...list];
+    });
     markRitual('watchlist');
+  }
+  function addWatchlistSymbol() {
+    const symbol = watchlistInput.trim().toUpperCase();
+    if (!symbol) return;
+    const exists = signals.some(signal => signal.symbol === symbol);
+    if (!exists) { setWatchlistMessage(symbol + ' is not in the current signal universe yet.'); return; }
+    if (watchlist.includes(symbol)) { setSelected(symbol); setWatchlistInput(''); return; }
+    if (plan !== 'pro' && watchlist.length >= watchlistLimit) { setWatchlistMessage('Free watchlists are capped at 3 symbols. Upgrade to Pro for unlimited personalization.'); return; }
+    setWatchlist(list => [symbol, ...list]);
+    setSelected(symbol);
+    setWatchlistInput('');
+    markRitual('watchlist');
+  }
+  function updateSymbolPreference(symbol: string, key: 'highConfidenceAlerts' | 'settlementAlerts', value: boolean) {
+    setWatchlistPreferences(current => current.map(item => item.symbol === symbol ? { ...item, [key]: value } : item));
+  }
+  function setPrimaryWatchlistSymbol(symbol: string) {
+    setWatchlist(list => [symbol, ...list.filter(item => item !== symbol)]);
+    setSelected(symbol);
+    setWatchlistPreferences(current => current.map(item => ({ ...item, isPrimary: item.symbol === symbol })));
   }
   function selectSignal(symbol: string) { setSelected(symbol); markRitual('topSignal'); }
   function acceptAgreement() { if (confirmedLearning && confirmedRisk) setAgreed(true); }
@@ -429,11 +519,13 @@ export default function Dashboard() {
 
       <PerformanceHero summary={performanceSummary} results={performanceResults} analytics={proAnalytics} source={performanceSource} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
 
+      <PersonalizedWatchlistHero signals={signals} personalizedSignals={personalizedSignals} watchlist={watchlist} preferences={watchlistPreferences} summary={watchlistSummary} input={watchlistInput} message={watchlistMessage} source={watchlistSource} limit={watchlistLimit} locked={watchlistLocked} isPro={plan === 'pro'} onInput={setWatchlistInput} onAdd={addWatchlistSymbol} onSelect={selectSignal} onToggle={toggleWatch} onPreference={updateSymbolPreference} onPrimary={setPrimaryWatchlistSymbol} onUpgrade={upgradeToPro} />
+
       <section className="mt-4 grid gap-4 lg:grid-cols-[.85fr_1.15fr]">
         <div className="space-y-4">
           <div className="card rounded-3xl p-5">
-            <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-bold">Pinned Signals</h2><span className="text-xs text-slate-400">Watchlist first</span></div>
-            <div className="space-y-3">{pinned.map(item => <SignalRow key={item.symbol} signal={item} active={item.symbol === active.symbol} currency={currency} onSelect={() => selectSignal(item.symbol)} onStar={() => toggleWatch(item.symbol)} starred />)}</div>
+            <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-bold">Personal Watchlist</h2><span className="text-xs text-slate-400">{watchlist.length}/{watchlistLimit} symbols</span></div>
+            <div className="space-y-3">{personalizedSignals.map(item => <SignalRow key={item.symbol} signal={item} active={item.symbol === active.symbol} currency={currency} onSelect={() => selectSignal(item.symbol)} onStar={() => toggleWatch(item.symbol)} starred />)}</div>
           </div>
           <AuthPanel authUser={authUser} plan={plan} authEmail={authEmail} setAuthEmail={setAuthEmail} authMessage={authMessage} onMagicLink={sendMagicLink} onSignOut={signOut} onUpgrade={upgradeToPro} upgrading={upgrading} checkoutSyncing={checkoutSyncing} />
           <JourneyCard visits={visits} journey={journey} completed={completedRitual} />
@@ -468,7 +560,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Alerts + Daily Recap · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Personalized Watchlists · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
@@ -480,6 +572,32 @@ function AccessModal({ earlyEmail, setEarlyEmail, onGuest, onJoin }: { earlyEmai
   return <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/65 p-4 backdrop-blur-md"><section className="card max-w-2xl rounded-3xl p-6"><div className="mb-4 flex items-center gap-3"><span className="rounded-2xl bg-signal-blue/10 p-3 text-signal-blue"><Mail /></span><div><h1 className="text-2xl font-black">Join Early Access</h1><p className="text-sm text-slate-300">Save your place for real accounts, Pro insights, and founder pricing.</p></div></div><input value={earlyEmail} onChange={e => setEarlyEmail(e.target.value)} placeholder="email@example.com" className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /><div className="mt-4 grid gap-3 sm:grid-cols-2"><button onClick={onJoin} disabled={!earlyEmail.includes('@')} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950 disabled:opacity-40">Join Early Access</button><button onClick={onGuest} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-bold text-white">Continue as Guest</button></div></section></div>;
 }
 function BriefCard({ label, value, detail }: { label: string; value: string; detail: string }) { return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs uppercase tracking-[.16em] text-slate-400">{label}</p><p className="mt-2 text-lg font-bold">{value}</p><p className="mt-1 text-sm text-slate-300">{detail}</p></div>; }
+function PersonalizedWatchlistHero({ signals, personalizedSignals, watchlist, preferences, summary, input, message, source, limit, locked, isPro, onInput, onAdd, onSelect, onToggle, onPreference, onPrimary, onUpgrade }: { signals: AssetSignal[]; personalizedSignals: AssetSignal[]; watchlist: string[]; preferences: WatchlistPreference[]; summary: ReturnType<typeof summarizePerformance>; input: string; message: string; source: 'local' | 'database'; limit: number; locked: boolean; isPro: boolean; onInput: (value: string) => void; onAdd: () => void; onSelect: (symbol: string) => void; onToggle: (symbol: string) => void; onPreference: (symbol: string, key: 'highConfidenceAlerts' | 'settlementAlerts', value: boolean) => void; onPrimary: (symbol: string) => void; onUpgrade: () => void }) {
+  const suggestions = signals.filter(signal => !watchlist.includes(signal.symbol)).slice(0, 6);
+  const primary = personalizedSignals[0];
+  return <section className="mt-4 rounded-3xl border border-signal-blue/20 bg-signal-blue/5 p-5">
+    <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+      <div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-bold text-signal-blue"><Target size={14} /> Personalized Watchlists</div><h2 className="text-3xl font-black">Your top signal is now picked from your watchlist.</h2><p className="mt-2 max-w-3xl text-sm text-slate-300">Free users can personalize up to 3 symbols. Pro unlocks expanded watchlists, per-symbol alerts, and deeper personalized analytics.</p><p className="mt-2 text-xs text-slate-500">Watchlist source: {source === 'database' ? 'Supabase profile sync' : 'local session fallback'} · Educational use only · Not financial advice.</p></div>
+      {!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlimited watchlist</button>}
+    </div>
+    <div className="grid gap-4 lg:grid-cols-[.9fr_1.1fr]">
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4">
+        <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-[.16em] text-slate-400">Top signal for you</p><h3 className="mt-1 text-2xl font-black">{primary?.symbol || 'N/A'}</h3></div><span className="rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black text-signal-blue">{watchlist.length}/{limit}</span></div>
+        {primary && <><p className="text-sm text-slate-300">{primary.why}</p><div className="mt-3 grid gap-2 sm:grid-cols-3"><BriefCard label="Personal win rate" value={summary.winRate + '%'} detail={summary.totalSignals + ' watchlist outcomes'} /><BriefCard label="Avg return" value={(summary.avgReturn >= 0 ? '+' : '') + summary.avgReturn + '%'} detail="Watchlist-weighted receipts" /><BriefCard label="Best watch" value={summary.best.symbol + ' ' + (summary.best.returnPct >= 0 ? '+' : '') + summary.best.returnPct + '%'} detail="Best closed receipt" /></div></>}
+        <div className="mt-4 flex gap-2"><div className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-3 text-slate-500" size={17} /><input value={input} onChange={event => onInput(event.target.value.toUpperCase())} onKeyDown={event => { if (event.key === 'Enter') onAdd(); }} placeholder="Add symbol, e.g. SOL" className="w-full rounded-2xl border border-white/10 bg-black/20 py-3 pl-10 pr-3 text-sm text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /></div><button onClick={onAdd} disabled={locked && !watchlist.includes(input.trim().toUpperCase())} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 text-sm font-bold text-signal-blue disabled:cursor-not-allowed disabled:opacity-50">Add</button></div>
+        {message && <p className="mt-3 rounded-2xl border border-signal-amber/30 bg-signal-amber/10 p-3 text-sm text-signal-amber">{message}</p>}
+        <div className="mt-3 flex flex-wrap gap-2">{suggestions.map(signal => <button key={signal.symbol} onClick={() => onToggle(signal.symbol)} disabled={locked} className="rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300 disabled:opacity-40">+ {signal.symbol}</button>)}</div>
+      </div>
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4">
+        <div className="mb-3 flex items-center justify-between"><h3 className="font-black">Symbols you care about</h3>{!isPro && <span className="text-xs text-signal-amber">Free cap: 3</span>}</div>
+        <div className="space-y-2">{personalizedSignals.map(signal => {
+          const pref = preferences.find(item => item.symbol === signal.symbol) || { symbol: signal.symbol, highConfidenceAlerts: true, settlementAlerts: true, isPrimary: false };
+          return <div key={signal.symbol} className="rounded-2xl border border-white/10 bg-black/10 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><button onClick={() => onSelect(signal.symbol)} className="text-left"><span className="font-black">{signal.symbol}</span><span className="ml-2 text-sm text-slate-400">{signal.name}</span></button><div className="flex gap-2"><button onClick={() => onPrimary(signal.symbol)} className={pref.isPrimary ? 'rounded-full bg-signal-green/20 px-3 py-1 text-xs font-black text-signal-green' : 'rounded-full bg-white/10 px-3 py-1 text-xs font-black text-slate-400'}>{pref.isPrimary ? 'PRIMARY' : 'Make primary'}</button><button onClick={() => onToggle(signal.symbol)} className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-slate-400">Remove</button></div></div><div className="mt-3 grid gap-2 sm:grid-cols-2"><button onClick={() => onPreference(signal.symbol, 'highConfidenceAlerts', !pref.highConfidenceAlerts)} className={pref.highConfidenceAlerts ? 'rounded-xl border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-xs font-bold text-signal-green' : 'rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 text-xs font-bold text-slate-400'}>High-confidence alerts {pref.highConfidenceAlerts ? 'ON' : 'OFF'}</button><button onClick={() => onPreference(signal.symbol, 'settlementAlerts', !pref.settlementAlerts)} className={pref.settlementAlerts ? 'rounded-xl border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-xs font-bold text-signal-green' : 'rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 text-xs font-bold text-slate-400'}>Settlement alerts {pref.settlementAlerts ? 'ON' : 'OFF'}</button></div></div>;
+        })}</div>
+      </div>
+    </div>
+  </section>;
+}
 function TrustCard({ icon, label, value, detail, onClick, action }: { icon: React.ReactNode; label: string; value: string; detail: string; onClick?: () => void; action?: string }) { return <div className="card rounded-3xl p-4"><div className="mb-2 flex items-center gap-2 text-signal-blue">{icon}<span className="text-xs font-bold uppercase tracking-[.16em]">{label}</span></div><p className="text-xl font-black capitalize">{value}</p><p className="mt-1 text-sm text-slate-300">{detail}</p>{onClick && <button onClick={onClick} className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10">{action || 'Mark reviewed'}</button>}</div>; }
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: readonly string[] }) { return <label className="block"><span className="mb-1 block text-xs uppercase tracking-[.16em] text-slate-400">{label}</span><div className="relative"><select value={value} onChange={e => onChange(e.target.value)} className="w-full appearance-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 capitalize text-white outline-none ring-signal-blue/0 transition focus:ring-4">{options.map(option => <option key={option} value={option} className="bg-midnight-900">{option}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-3 text-slate-400" /></div></label>; }
 function SignalRow({ signal, currency, active, starred, onSelect, onStar }: { signal: AssetSignal; currency: string; active: boolean; starred: boolean; onSelect: () => void; onStar: () => void }) { return <div className={`flex items-center justify-between rounded-2xl border p-3 ${active ? 'border-signal-blue/50 bg-signal-blue/10' : 'border-white/10 bg-white/[.04]'}`}><button onClick={onSelect} className="text-left"><p className="font-bold">{signal.symbol} <span className="text-sm font-normal text-slate-400">{signal.name}</span></p><p className="text-sm text-slate-300">{formatPrice(signal.price, currency)} · {signal.confidence}%</p></button><button onClick={onStar} className="rounded-xl p-2 text-signal-amber hover:bg-white/10"><Star fill={starred ? 'currentColor' : 'none'} /></button></div>; }
@@ -549,7 +667,7 @@ function NotificationsCard({ top, outcome, condition, preferences, events, daily
     ['settlementAlerts', 'Settlement alerts', 'Notify when a tracked signal closes.', true],
     ['proOnlyAlerts', 'Pro-only alerts', 'Immediate Pro alert stream for premium signals.', isPro]
   ];
-  return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-signal-blue"><BellRing size={18} /><h2 className="text-xl font-bold">Alerts + Daily Recap</h2></div><Mail size={18} className="text-slate-500" /></div>{dailyRecap && <div className="mb-3 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3"><p className="text-xs font-bold uppercase tracking-[.16em] text-signal-blue">Today’s recap</p><p className="mt-1 text-sm text-slate-200">{dailyRecap.body}</p><p className="mt-1 text-xs text-slate-400">Best: {dailyRecap.best || 'No closed signal yet'}</p></div>}<div className="space-y-2">{alerts.map(alert => <div key={alert} className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-300">{alert}</div>)}</div><div className="mt-4 space-y-2">{toggles.map(([key, label, detail, enabled]) => <div key={key} className={!enabled ? 'opacity-60' : ''}><button disabled={!enabled} onClick={() => enabled ? onToggle(key, !preferences[key]) : onUpgrade()} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.03] p-3 text-left"><span><span className="block text-sm font-bold text-slate-100">{label}</span><span className="block text-xs text-slate-400">{enabled ? detail : 'Pro unlock required.'}</span></span><span className={preferences[key] && enabled ? 'rounded-full bg-signal-green/20 px-3 py-1 text-xs font-black text-signal-green' : 'rounded-full bg-white/10 px-3 py-1 text-xs font-black text-slate-400'}>{preferences[key] && enabled ? 'ON' : 'OFF'}</span></button></div>)}</div></div>;
+  return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-signal-blue"><BellRing size={18} /><h2 className="text-xl font-bold">Personalized Watchlists</h2></div><Mail size={18} className="text-slate-500" /></div>{dailyRecap && <div className="mb-3 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3"><p className="text-xs font-bold uppercase tracking-[.16em] text-signal-blue">Today’s recap</p><p className="mt-1 text-sm text-slate-200">{dailyRecap.body}</p><p className="mt-1 text-xs text-slate-400">Best: {dailyRecap.best || 'No closed signal yet'}</p></div>}<div className="space-y-2">{alerts.map(alert => <div key={alert} className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-300">{alert}</div>)}</div><div className="mt-4 space-y-2">{toggles.map(([key, label, detail, enabled]) => <div key={key} className={!enabled ? 'opacity-60' : ''}><button disabled={!enabled} onClick={() => enabled ? onToggle(key, !preferences[key]) : onUpgrade()} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.03] p-3 text-left"><span><span className="block text-sm font-bold text-slate-100">{label}</span><span className="block text-xs text-slate-400">{enabled ? detail : 'Pro unlock required.'}</span></span><span className={preferences[key] && enabled ? 'rounded-full bg-signal-green/20 px-3 py-1 text-xs font-black text-signal-green' : 'rounded-full bg-white/10 px-3 py-1 text-xs font-black text-slate-400'}>{preferences[key] && enabled ? 'ON' : 'OFF'}</span></button></div>)}</div></div>;
 }
 
 function AuthPanel({ authUser, plan, authEmail, setAuthEmail, authMessage, onMagicLink, onSignOut, onUpgrade, upgrading, checkoutSyncing }: { authUser: AuthUser; plan: Plan; authEmail: string; setAuthEmail: (v: string) => void; authMessage: string; onMagicLink: () => void; onSignOut: () => void; onUpgrade: () => void; upgrading: boolean; checkoutSyncing: boolean }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><UserRound size={18} /><h2 className="text-xl font-bold">Account + Pro</h2></div>{authUser ? <><p className="text-sm text-slate-300">Signed in as <strong className="text-white">{authUser.email}</strong></p><p className="mt-2 text-2xl font-black">Plan: <span className={plan === 'pro' ? 'text-signal-green' : ''}>{checkoutSyncing ? 'SYNCING' : plan.toUpperCase()}</span></p><div className="mt-4 grid gap-2 sm:grid-cols-2"><button onClick={onUpgrade} disabled={plan === 'pro' || checkoutSyncing} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950 disabled:opacity-40">{checkoutSyncing ? 'Finalizing...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button><button onClick={onSignOut} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-bold">Sign out</button></div></> : <><p className="text-sm text-slate-300">Enter the same email you use at checkout. Magic link is optional; Pro can sync by email.</p><input value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email@example.com" className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /><div className="mt-3 grid gap-2 sm:grid-cols-2"><button onClick={onMagicLink} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950">Send Magic Link</button><button onClick={onUpgrade} disabled={checkoutSyncing} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 font-bold text-signal-amber disabled:opacity-50">{checkoutSyncing ? 'Finalizing...' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button></div></>}{authMessage && <p className="mt-3 text-xs text-slate-400">{authMessage}</p>}</div>; }

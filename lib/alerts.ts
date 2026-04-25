@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { SignalResult } from './performance';
 import { summarizePerformance } from './performance';
 import { getSupabaseAdminClient } from './supabase-server';
+import { fetchWatchlist } from './watchlist';
 
 export type AlertPreferences = {
   highConfidenceAlerts: boolean;
@@ -128,6 +129,12 @@ export async function createHighConfidenceAlertEvents(rows: Array<{ user_id?: st
   for (const row of rows.filter(item => item.confidence >= 72)) {
     const prefs = await fetchAlertPreferences(row.user_id);
     if (!prefs.highConfidenceAlerts) continue;
+    if (row.user_id) {
+      const watchlist = await fetchWatchlist(row.user_id);
+      const symbolPref = watchlist.find(item => item.symbol === row.symbol);
+      if (watchlist.length && !symbolPref) continue;
+      if (symbolPref && !symbolPref.highConfidenceAlerts) continue;
+    }
     const error = await insertAlertEvent(supabase, {
       user_id: row.user_id ?? null,
       type: 'high_confidence',
@@ -150,6 +157,12 @@ export async function createSettlementAlertEvent(result: SignalResult, userId?: 
   if (!supabase) return { created: 0, skipped: true, reason: 'Supabase service role env vars are not set.' };
   const prefs = await fetchAlertPreferences(userId);
   if (!prefs.settlementAlerts) return { created: 0, skipped: true, reason: 'Settlement alerts disabled.' };
+  if (userId) {
+    const watchlist = await fetchWatchlist(userId);
+    const symbolPref = watchlist.find(item => item.symbol === result.symbol);
+    if (watchlist.length && !symbolPref) return { created: 0, skipped: true, reason: 'Symbol is not on watchlist.' };
+    if (symbolPref && !symbolPref.settlementAlerts) return { created: 0, skipped: true, reason: 'Symbol settlement alerts disabled.' };
+  }
 
   const sign = result.returnPct >= 0 ? '+' : '';
   const error = await insertAlertEvent(supabase, {
