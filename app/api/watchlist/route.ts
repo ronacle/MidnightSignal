@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as Payload;
     if (!body.userId) return NextResponse.json({ ok: false, error: 'userId is required' }, { status: 400 });
     const result = await saveWatchlist(body.userId, body.symbols || [], body.preferences || []);
-    return NextResponse.json({ ok: result.ok, ...result });
+    return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unable to save watchlist' }, { status: 500 });
   }
