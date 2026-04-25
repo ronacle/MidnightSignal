@@ -8,6 +8,9 @@ import { BUILD } from '@/lib/build';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PerformanceOutcome, SignalResult, buildProPerformanceAnalytics, buildSignalReceiptText, buildSignalResults, formatHoldTime, outcomeLabel, summarizePerformance } from '@/lib/performance';
+import PerformanceSummary from './Analytics/PerformanceSummary'
+import SignalHeatmap from './Analytics/SignalHeatmap'
+import ProAnalytics from './Analytics/ProAnalytics'
 
 type AccessMode = 'unset' | 'guest' | 'early';
 type Plan = 'free' | 'pro';
@@ -519,7 +522,11 @@ export default function Dashboard() {
             <BriefCard label="Best signal" value={`${performanceSummary.best.symbol} ${performanceSummary.best.returnPct >= 0 ? '+' : ''}${performanceSummary.best.returnPct}%`} detail={performanceSummary.best.note} />
           </div>
         </div>
+<PerformanceSummary stats={performance} />
 
+<SignalHeatmap />
+
+<ProAnalytics isPro={isPro} stats={performance} />
         <div className="card rounded-3xl p-5">
           <div className="mb-4 flex items-center gap-2"><Settings2 className="text-signal-blue" /><h2 className="text-xl font-bold">Session Settings</h2></div>
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
