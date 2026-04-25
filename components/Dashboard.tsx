@@ -460,7 +460,7 @@ export default function Dashboard() {
 
   if (!mounted) {
     return (
-      <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 sm:px-6 lg:px-8" suppressHydrationWarning>
+      <main className="mx-auto min-h-screen max-w-6xl px-4 py-5 sm:px-6 lg:px-8" suppressHydrationWarning>
         <section className="card rounded-3xl p-6">
           <p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Midnight Signal</p>
           <h1 className="mt-2 text-3xl font-black">Loading signal dashboard…</h1>
@@ -471,15 +471,15 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+    <main className="mx-auto min-h-screen max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
       {!agreed && <AgreementModal confirmedLearning={confirmedLearning} confirmedRisk={confirmedRisk} setConfirmedLearning={setConfirmedLearning} setConfirmedRisk={setConfirmedRisk} onAccept={acceptAgreement} />}
       {agreed && accessMode === 'unset' && <AccessModal earlyEmail={earlyEmail} setEarlyEmail={setEarlyEmail} onGuest={() => setAccessMode('guest')} onJoin={joinEarlyAccess} />}
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · {BUILD.name}</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Layout Polish</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
-          <p className="mt-2 max-w-2xl text-slate-300">Explainable market posture with proof-first signal performance, a daily ritual, and a clear path from guest to Pro.</p>
+          <p className="mt-2 max-w-2xl text-slate-300">One clear read, proof up front, and deeper detail only when you need it.</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access…' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in · ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
       </header>
@@ -490,9 +490,28 @@ export default function Dashboard() {
         </section>
       )}
 
+      <section className={`mb-4 card rounded-[2rem] border-signal-blue/20 p-5 sm:p-6 ${signalChanged ? 'animate-pulseSignal' : ''}`}>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Tonight’s signal</p>
+            <div className="mt-2 flex flex-wrap items-end gap-3">
+              <h2 className="text-5xl font-black sm:text-6xl">{top.symbol}</h2>
+              <p className="pb-2 text-lg text-slate-400">{top.name}</p>
+              <span className={`mb-2 rounded-full border px-4 py-2 text-sm font-bold ${labelClass(top.label)}`}>{top.label}</span>
+            </div>
+            <p className="mt-4 rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-4 text-base text-slate-100">{top.why}</p>
+          </div>
+          <div className="grid min-w-[240px] gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <BriefCard label="Confidence" value={`${top.confidence}%`} detail="Combined signal posture" />
+            <BriefCard label="Price" value={formatPrice(top.price, currency)} detail={`${top.change24h >= 0 ? '+' : ''}${top.change24h}% over 24h`} />
+            <BriefCard label="Market" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} />
+          </div>
+        </div>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-[1.35fr_.85fr]">
         <div className="card rounded-3xl p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Midnight Signal Panel</p><h2 className="text-2xl font-bold">Tonight’s Brief</h2></div><button onClick={() => setSound(!sound)} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-slate-200 hover:bg-white/10" aria-label="Toggle sound">{sound ? <Volume2 /> : <VolumeX />}</button></div>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Performance proof</p><h2 className="text-2xl font-bold">At-a-glance receipts</h2></div><button onClick={() => setSound(!sound)} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-slate-200 hover:bg-white/10" aria-label="Toggle sound">{sound ? <Volume2 /> : <VolumeX />}</button></div>
           <div className="grid gap-4 md:grid-cols-4">
             <BriefCard label="Win rate" value={`${performanceSummary.winRate}%`} detail={`${performanceSummary.wins} wins · ${performanceSummary.losses} losses from decisive outcomes`} />
             <BriefCard label="Avg return" value={`${performanceSummary.avgReturn >= 0 ? '+' : ''}${performanceSummary.avgReturn}%`} detail={`${performanceSummary.totalSignals} ${performanceSource === 'database' ? 'settled database' : 'simulated'} outcomes`} />
@@ -550,17 +569,17 @@ export default function Dashboard() {
       </section>
 
       <section className="mt-4 card rounded-3xl p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-black">Top 20 Signal Grid</h2><p className="text-sm text-slate-400">Tap a card to open its signal breakdown. Star it to pin it.</p></div><button onClick={() => setGlossaryOpen(true)} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue"><BookOpen className="mr-2 inline" size={18} /> Glossary</button></div>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-black">Top Signal Grid</h2><p className="text-sm text-slate-400">Tap a card to open its signal breakdown. Star it to pin it.</p></div><button onClick={() => setGlossaryOpen(true)} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue"><BookOpen className="mr-2 inline" size={18} /> Glossary</button></div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">{signals.map(signal => <AssetCard key={signal.symbol} signal={signal} currency={currency} active={signal.symbol === active.symbol} starred={watchlist.includes(signal.symbol)} onSelect={() => selectSignal(signal.symbol)} onStar={() => toggleWatch(signal.symbol)} />)}</div>
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_.8fr]">
         <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Selected Signal: {active.symbol}</h2><p className="mt-1 text-slate-300">{active.why}</p><div className="mt-4"><Breakdown signal={active} compact /></div></div>
-        <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Founder Pro Access</h2><p className="mt-2 text-slate-300">$9/month founder plan. Enter an email, checkout through Stripe, and Midnight Signal will sync Pro from Supabase.</p><button onClick={plan === 'pro' ? refreshPlan : upgradeToPro} className="mt-4 w-full rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue">{checkoutSyncing ? 'Finalizing Pro access...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening Checkout...' : 'Upgrade to Pro'}</button></div>
+        <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Pro Access</h2><p className="mt-2 text-slate-300">One clear upgrade path: full receipt history, advanced analytics, Pro alerts, and expanded watchlists.</p><button onClick={plan === 'pro' ? refreshPlan : upgradeToPro} className="mt-4 w-full rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue">{checkoutSyncing ? 'Finalizing Pro access...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening Checkout...' : 'Upgrade to Pro'}</button></div>
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Personalized Watchlists · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Layout Polish + Product Clarity · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
