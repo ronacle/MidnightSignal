@@ -1,1 +1,1 @@
-export const BUILD = { version: '15.4.0', name: 'Dual Signal Discovery', deployedAt: '2026-04-25' };
+export const BUILD = { version: '15.5.0', name: 'Conversion Intelligence', deployedAt: '2026-04-25' };

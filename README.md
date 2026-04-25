@@ -1,56 +1,41 @@
-# Midnight Signal v15.4 — Dual Signal Discovery
+# Midnight Signal v15.5 — Conversion Intelligence
 
-Production-ready Next.js App Router bundle for Vercel.
+v15.5 turns the dual-signal system into an action layer. The dashboard no longer keeps an obsolete single Top Signal card above the experience. It replaces that area with two clear panels:
 
-## What's new in v15.4
+- **Your Top Signal** — the best current signal inside the user's watchlist, with deeper personal context.
+- **Global Top Signal** — the best current signal across the full asset universe, with lightweight but credible comparison data.
 
-- Adds a separate **Your Top Signal** panel for the best current signal inside the user's watchlist.
-- Adds a separate **Global Top Signal** discovery panel for the best current signal across the full asset universe.
-- Adds smart exposure logic so the global signal is emphasized only when materially stronger, high-confidence, or Pro.
-- Keeps user control intact: discovery does not replace or reorder the user's watchlist flow.
-- Adds Pro monetization hooks around deeper global analytics.
-- Updates copy across the feedback loop and performance engine to distinguish personal signals from global opportunities.
+## What's new in v15.5
 
-## Product logic
+- Replaces the old single hero Top Signal with the two-panel signal layout.
+- Adds comparable but intentionally lighter Global Top Signal intelligence:
+  - global confidence
+  - global tracked win rate
+  - exposure state
+  - “why it matters” discovery context
+  - comparison against the user's top signal
+- Adds Global Signal conversion actions:
+  - **Track this signal**
+  - **Add to watchlist**
+  - **Unlock global analytics**
+- Tracks local conversion events for global signal interactions and syncs them to Supabase when signed in.
+- Adds Supabase SQL for `signal_conversion_events`.
+- Keeps the user's watchlist as the control layer while Global Top Signal acts as a discovery and monetization layer.
 
-Midnight Signal now shows two truths clearly:
+## Product principle
 
-1. **Personal relevance** — what matters most inside the user's chosen assets.
-2. **Objective discovery** — what is performing best outside or beyond that watchlist.
+Your Top Signal gets depth. Global Top Signal gets enough proof to create action without duplicating the whole dashboard.
 
-This avoids the misleading experience where “top signal” secretly means “top signal from your watchlist,” while still preserving the user's sense of control.
+## Setup notes
 
-## Required environment variables
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_ID=
-
-NEXT_PUBLIC_SITE_URL=https://your-vercel-app.vercel.app
-```
-
-## Deploy
+1. Run the existing Supabase SQL files.
+2. Add `supabase/signal_conversion_events.sql` for the v15.5 conversion event table.
+3. Configure Supabase and Stripe environment variables as in prior versions.
+4. Run locally:
 
 ```bash
 npm install
 npm run build
 ```
-
-## Supabase setup
-
-Run the SQL files in `supabase/` as needed:
-
-- `user_state.sql`
-- `watchlists.sql`
-- `signal_results.sql`
-- `signal_feedback.sql`
-- `signal_performance_views.sql`
-- `alerts.sql`
 
 Educational use only. Not financial advice.

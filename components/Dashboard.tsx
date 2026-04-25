@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Flame, History, Info, Lock, Mail, Moon, RefreshCw, Search, Settings2, ShieldCheck, Sparkles, Star, Target, ThumbsDown, ThumbsUp, Trophy, TrendingUp, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Flame, History, Info, Lock, Mail, Moon, PlusCircle, RefreshCw, Search, Settings2, ShieldCheck, Sparkles, Star, Target, ThumbsDown, ThumbsUp, Trophy, TrendingUp, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '@/lib/signals';
 import { BUILD } from '@/lib/build';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
@@ -20,6 +20,8 @@ type FeedbackMap = Record<string, SignalFeedback[]>;
 type PerformanceRow = { label: string; total: number; acted: number; ignored: number; wins: number; losses: number; neutrals: number; winRate: number; actionRate: number };
 type PerformanceEngine = { total: number; acted: number; ignored: number; wins: number; losses: number; neutrals: number; winRate: number; actionRate: number; bestType: PerformanceRow | null; byType: PerformanceRow[]; bySymbol: PerformanceRow[]; informedConfidence: number; sampleSize: number };
 type ApiPerformanceEngine = PerformanceEngine & { source?: string };
+type ConversionEventType = 'global_added_to_watchlist' | 'global_tracked' | 'global_upgrade_clicked';
+type ConversionEvent = { type: ConversionEventType; symbol: string; gap: number; createdAt: string; source?: 'database' | 'local' };
 type SignalHistoryItem = AssetSignal & { outcome: SignalOutcome; note: string; age: string };
 type AlertPreferenceKey = 'highConfidenceAlerts' | 'dailyRecap' | 'settlementAlerts' | 'proOnlyAlerts';
 type AlertPreferences = Record<AlertPreferenceKey, boolean>;
@@ -46,7 +48,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v15-4';
+const storageKey = 'midnight-signal-v15-5';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 const defaultAlertPreferences: AlertPreferences = { highConfidenceAlerts: true, dailyRecap: true, settlementAlerts: true, proOnlyAlerts: true };
@@ -129,10 +131,17 @@ function buildPerformanceEngine(map: FeedbackMap, currentSignal: AssetSignal, mo
 }
 function readFeedback(): FeedbackMap {
   if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v15-4') || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v15-5') || '{}'); } catch { return {}; }
 }
 function writeFeedback(next: FeedbackMap) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v15-4', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v15-5', JSON.stringify(next));
+}
+function readConversionEvents(): ConversionEvent[] {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem('midnight-signal-conversion-v15-5') || '[]'); } catch { return []; }
+}
+function writeConversionEvents(next: ConversionEvent[]) {
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-conversion-v15-5', JSON.stringify(next));
 }
 
 function journeyLevel(visits: number, watchlistCount: number, completed: number) {
@@ -185,6 +194,7 @@ export default function Dashboard() {
   const [feedback, setFeedback] = useState<FeedbackMap>({});
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [apiPerformance, setApiPerformance] = useState<ApiPerformanceEngine | null>(null);
+  const [conversionEvents, setConversionEvents] = useState<ConversionEvent[]>([]);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -204,6 +214,7 @@ export default function Dashboard() {
     setVisits((stored.visits || 0) + 1);
     setRitual(stored.ritual || defaultRitual);
     setFeedback(readFeedback());
+    setConversionEvents(readConversionEvents());
   }, []);
 
   useEffect(() => {
@@ -403,6 +414,8 @@ export default function Dashboard() {
   const performanceResults = persistentResults.length ? persistentResults : simulatedPerformanceResults;
   const personalizedPerformanceResults = useMemo(() => performanceResults.filter(result => watchlist.includes(result.symbol)), [performanceResults, watchlist]);
   const watchlistSummary = useMemo(() => summarizePerformance(personalizedPerformanceResults.length ? personalizedPerformanceResults : performanceResults), [personalizedPerformanceResults, performanceResults]);
+  const userTopSummary = useMemo(() => summarizePerformance(performanceResults.filter(result => result.symbol === userTop.symbol)), [performanceResults, userTop.symbol]);
+  const globalTopSummary = useMemo(() => summarizePerformance(performanceResults.filter(result => result.symbol === globalTop.symbol)), [performanceResults, globalTop.symbol]);
   const performanceSummary = useMemo(() => summarizePerformance(performanceResults), [performanceResults]);
   const proAnalytics = useMemo(() => buildProPerformanceAnalytics(performanceResults), [performanceResults]);
   const topOutcome = outcomeForSignal(top);
@@ -421,6 +434,7 @@ export default function Dashboard() {
   const localPerformanceEngine = useMemo(() => buildPerformanceEngine(feedback, top, mode), [feedback, top, mode]);
   const performanceEngine = apiPerformance && apiPerformance.total >= localPerformanceEngine.total ? apiPerformance : localPerformanceEngine;
   const learningLoopScore = Math.min(100, retentionScore + Math.min(18, globalFeedbackStats.total * 3) + (globalFeedbackStats.winRate ? Math.round(globalFeedbackStats.winRate / 10) : 0));
+  const globalConversionCount = conversionEvents.filter(event => event.symbol === globalTop.symbol).length;
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -477,6 +491,31 @@ export default function Dashboard() {
         setFeedbackMessage(signal.symbol + ' feedback saved locally. Add Supabase SQL to sync it.');
       });
     }
+  }
+
+  function recordConversionEvent(type: ConversionEventType, signal: AssetSignal) {
+    const item: ConversionEvent = { type, symbol: signal.symbol, gap: topSignalGap, createdAt: new Date().toISOString(), source: authUser?.id ? 'database' : 'local' };
+    const next = [item, ...conversionEvents].slice(0, 80);
+    setConversionEvents(next);
+    writeConversionEvents(next);
+    if (authUser?.id) {
+      fetch('/api/signals/conversion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id, type, symbol: signal.symbol, signalId: signalId(signal, mode), gap: topSignalGap, mode })
+      }).catch(() => undefined);
+    }
+  }
+  function addGlobalTopToWatchlist() {
+    recordConversionEvent('global_added_to_watchlist', globalTop);
+    if (!watchlist.includes(globalTop.symbol)) toggleWatch(globalTop.symbol);
+    setSelected(globalTop.symbol);
+    setWatchlistMessage(globalTop.symbol + ' added from Global Top Signal discovery. It now belongs to your system.');
+  }
+  function trackGlobalSignal() {
+    recordConversionEvent('global_tracked', globalTop);
+    setSelected(globalTop.symbol);
+    markRitual('topSignal');
   }
 
   function markRitual(key: keyof RitualState) { setRitual(r => ({ ...r, [key]: true })); }
@@ -585,7 +624,7 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Dual Signal Discovery</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Conversion Intelligence</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, a separate global discovery read, and a performance engine that turns user feedback into signal intelligence.</p>
         </div>
@@ -611,24 +650,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className={`mb-4 card rounded-[2rem] border-signal-blue/20 p-5 sm:p-6 ${signalChanged ? 'animate-pulseSignal' : ''}`}>
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Tonight’s signal</p>
-            <div className="mt-2 flex flex-wrap items-end gap-3">
-              <h2 className="text-5xl font-black sm:text-6xl">{top.symbol}</h2>
-              <p className="pb-2 text-lg text-slate-400">{top.name}</p>
-              <span className={`mb-2 rounded-full border px-4 py-2 text-sm font-bold ${labelClass(top.label)}`}>{top.label}</span>
-            </div>
-            <p className="mt-4 rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-4 text-base text-slate-100">{top.why}</p>
-          </div>
-          <div className="grid min-w-[240px] gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            <BriefCard label="Confidence" value={`${performanceEngine.informedConfidence}%`} detail={performanceEngine.sampleSize >= 3 ? 'Feedback-informed score' : 'Combined signal posture'} />
-            <BriefCard label="Price" value={formatPrice(top.price, currency)} detail={`${top.change24h >= 0 ? '+' : ''}${top.change24h}% over 24h`} />
-            <BriefCard label="Market" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} />
-          </div>
-        </div>
-      </section>
+      <SignalDiscoveryHero userTop={userTop} globalTop={globalTop} gap={topSignalGap} shouldExpose={shouldExposeGlobalTop} isPro={plan === 'pro'} currency={currency} userSummary={userTopSummary} globalSummary={globalTopSummary} globalInWatchlist={watchlist.includes(globalTop.symbol)} conversionCount={globalConversionCount} onSelect={selectSignal} onAddGlobal={addGlobalTopToWatchlist} onTrackGlobal={trackGlobalSignal} onUpgrade={() => { recordConversionEvent('global_upgrade_clicked', globalTop); upgradeToPro(); }} />
 
       <section className="grid gap-4 lg:grid-cols-[1.35fr_.85fr]">
         <div className="card rounded-3xl p-5">
@@ -661,7 +683,6 @@ export default function Dashboard() {
 
       <PerformanceHero summary={performanceSummary} results={performanceResults} analytics={proAnalytics} source={performanceSource} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
 
-      <SignalDiscoveryHero userTop={userTop} globalTop={globalTop} gap={topSignalGap} shouldExpose={shouldExposeGlobalTop} isPro={plan === 'pro'} currency={currency} onSelect={selectSignal} onUpgrade={upgradeToPro} />
 
       <PersonalizedWatchlistHero signals={signals} personalizedSignals={personalizedSignals} watchlist={watchlist} preferences={watchlistPreferences} summary={watchlistSummary} input={watchlistInput} message={watchlistMessage} source={watchlistSource} limit={watchlistLimit} locked={watchlistLocked} isPro={plan === 'pro'} onInput={setWatchlistInput} onAdd={addWatchlistSymbol} onSelect={selectSignal} onToggle={toggleWatch} onPreference={updateSymbolPreference} onPrimary={setPrimaryWatchlistSymbol} onUpgrade={upgradeToPro} />
 
@@ -706,31 +727,33 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Dual Signal Discovery · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Conversion Intelligence · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
 
 
-function SignalDiscoveryHero({ userTop, globalTop, gap, shouldExpose, isPro, currency, onSelect, onUpgrade }: { userTop: AssetSignal; globalTop: AssetSignal; gap: number; shouldExpose: boolean; isPro: boolean; currency: string; onSelect: (symbol: string) => void; onUpgrade: () => void }) {
+function SignalDiscoveryHero({ userTop, globalTop, gap, shouldExpose, isPro, currency, userSummary, globalSummary, globalInWatchlist, conversionCount, onSelect, onAddGlobal, onTrackGlobal, onUpgrade }: { userTop: AssetSignal; globalTop: AssetSignal; gap: number; shouldExpose: boolean; isPro: boolean; currency: string; userSummary: ReturnType<typeof summarizePerformance>; globalSummary: ReturnType<typeof summarizePerformance>; globalInWatchlist: boolean; conversionCount: number; onSelect: (symbol: string) => void; onAddGlobal: () => void; onTrackGlobal: () => void; onUpgrade: () => void }) {
   const sameSignal = userTop.symbol === globalTop.symbol;
   const locked = !isPro && shouldExpose && gap >= 4;
-  return <section className="mt-4 grid gap-4 lg:grid-cols-2">
-    <div className="rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-5">
+  const comparison = sameSignal ? 'Your watchlist already contains the global leader.' : gap > 0 ? '+' + gap + '% confidence vs your top signal' : 'Different opportunity profile';
+  const globalReason = globalSummary.totalSignals > 0 ? globalTop.symbol + ' has ' + globalSummary.winRate + '% tracked win rate across ' + globalSummary.totalSignals + ' receipts.' : globalTop.symbol + ' leads by current signal strength while history builds.';
+  return <section className="mb-4 grid gap-4 lg:grid-cols-2">
+    <div className="rounded-[2rem] border border-signal-blue/25 bg-signal-blue/10 p-5 sm:p-6">
       <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Target size={14} /> Your Top Signal</div>
-      <h2 className="text-2xl font-black">{userTop.symbol} <span className="text-sm font-medium text-slate-400">{userTop.name}</span></h2>
-      <p className="mt-2 text-sm text-slate-300">Best current read inside your watchlist. This keeps the dashboard anchored to assets you chose.</p>
-      <div className="mt-4 grid gap-2 sm:grid-cols-3"><BriefCard label="Confidence" value={`${userTop.confidence}%`} detail="Personal scope" /><BriefCard label="24h move" value={`${userTop.change24h >= 0 ? '+' : ''}${userTop.change24h}%`} detail={formatPrice(userTop.price, currency)} /><BriefCard label="Signal" value={userTop.label} detail="Watchlist leader" /></div>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-5xl font-black sm:text-6xl">{userTop.symbol}</h2><p className="mt-1 text-slate-400">{userTop.name}</p></div><span className={'rounded-full border px-4 py-2 text-sm font-bold ' + labelClass(userTop.label)}>{userTop.label}</span></div>
+      <p className="mt-4 rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-4 text-sm text-slate-100">{userTop.why}</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-3"><BriefCard label="Confidence" value={userTop.confidence + '%'} detail="Watchlist scope" /><BriefCard label="Personal win rate" value={userSummary.winRate + '%'} detail={userSummary.totalSignals + ' tracked receipts'} /><BriefCard label="24h move" value={(userTop.change24h >= 0 ? '+' : '') + userTop.change24h + '%'} detail={formatPrice(userTop.price, currency)} /></div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2"><BriefCard label="Role" value="Control" detail="Deep analysis stays anchored to assets the user chose." /><BriefCard label="Next action" value="Review" detail="Use feedback controls below after acting or ignoring." /></div>
     </div>
-    <div className={(locked ? 'premium-lock ' : '') + "rounded-3xl border border-signal-amber/25 bg-gradient-to-br from-signal-amber/15 via-white/[.04] to-signal-blue/10 p-5"}>
+    <div className={(locked ? 'premium-lock ' : '') + "rounded-[2rem] border border-signal-amber/30 bg-gradient-to-br from-signal-amber/15 via-white/[.04] to-signal-blue/10 p-5 sm:p-6"}>
       <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-amber/30 bg-signal-amber/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-amber"><Flame size={14} /> Global Top Signal</div>
-      <h2 className="text-2xl font-black">{globalTop.symbol} <span className="text-sm font-medium text-slate-400">{globalTop.name}</span></h2>
-      <p className="mt-2 text-sm text-slate-300">Best current read across the full signal universe. It is intentionally separate from your watchlist so discovery does not overwrite control.</p>
-      <div className="mt-4 grid gap-2 sm:grid-cols-3"><BriefCard label="Confidence" value={`${globalTop.confidence}%`} detail={sameSignal ? 'Same as your top' : `${gap}% above your top`} /><BriefCard label="24h move" value={`${globalTop.change24h >= 0 ? '+' : ''}${globalTop.change24h}%`} detail={formatPrice(globalTop.price, currency)} /><BriefCard label="Exposure" value={shouldExpose ? 'Shown' : 'Quiet'} detail={shouldExpose ? 'Material opportunity' : 'No major gap'} /></div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button onClick={() => onSelect(globalTop.symbol)} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber">View global signal</button>
-        {!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-white/10 bg-white/[.05] px-4 py-3 text-sm font-bold text-white"><Lock className="mr-2 inline" size={15} /> Unlock global analytics</button>}
-      </div>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-5xl font-black sm:text-6xl">{globalTop.symbol}</h2><p className="mt-1 text-slate-400">{globalTop.name} · outside your watchlist universe unless added</p></div><span className={'rounded-full border px-4 py-2 text-sm font-bold ' + labelClass(globalTop.label)}>{globalTop.label}</span></div>
+      <p className="mt-4 rounded-3xl border border-signal-amber/20 bg-signal-amber/10 p-4 text-sm text-slate-100">{globalReason}</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-3"><BriefCard label="Confidence" value={globalTop.confidence + '%'} detail={comparison} /><BriefCard label="Global win rate" value={globalSummary.winRate + '%'} detail={globalSummary.totalSignals + ' receipts analyzed'} /><BriefCard label="Exposure" value={shouldExpose ? 'Shown' : 'Quiet'} detail={shouldExpose ? 'Material opportunity' : 'No major gap'} /></div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2"><BriefCard label="Why it matters" value={sameSignal ? 'Aligned' : 'Discovery'} detail={sameSignal ? 'Personal and global signals agree.' : 'Shows better opportunities beyond current assets.'} /><BriefCard label="Conversion events" value={String(conversionCount)} detail="Views, tracking, adds, or upgrade intent" /></div>
+      <div className="mt-4 flex flex-wrap gap-2"><button onClick={onTrackGlobal} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber">Track this signal</button><button onClick={onAddGlobal} disabled={globalInWatchlist} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-4 py-3 text-sm font-bold text-signal-green disabled:opacity-50"><PlusCircle className="mr-2 inline" size={15} /> {globalInWatchlist ? 'Already in watchlist' : 'Add to watchlist'}</button>{!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-white/10 bg-white/[.05] px-4 py-3 text-sm font-bold text-white"><Lock className="mr-2 inline" size={15} /> Unlock global analytics</button>}</div>
+      {!isPro && <p className="mt-3 text-xs text-slate-500">Free shows headline global intelligence. Pro unlocks deeper history, breakdowns, and advanced comparison.</p>}
     </div>
   </section>;
 }
@@ -860,12 +883,12 @@ function Glossary({ onClose }: { onClose: () => void }) { const terms = [['Signa
 function PerformanceEngineCard({ engine, isPro, onUpgrade }: { engine: PerformanceEngine; isPro: boolean; onUpgrade: () => void }) {
   const rows = isPro ? engine.bySymbol.slice(0, 4) : engine.bySymbol.slice(0, 2);
   const bestType = engine.bestType?.label || 'Learning';
-  return <div className="rounded-3xl border border-signal-green/25 bg-signal-green/10 p-4"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-green/30 bg-signal-green/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-green"><BarChart3 size={14} /> v15.4 performance engine</div><h3 className="text-xl font-black">Feedback now becomes signal performance.</h3><p className="mt-1 text-sm text-slate-300">Win rate, action rate, signal type, and symbol history now feed the visible confidence layer.</p></div>{!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlock deeper analytics</button>}</div><div className="grid gap-2 sm:grid-cols-4"><BriefCard label="Tracked feedback" value={String(engine.total)} detail="All recorded taps" /><BriefCard label="Win rate" value={engine.winRate ? engine.winRate + '%' : '—'} detail="Wins / decisive outcomes" /><BriefCard label="Action rate" value={engine.actionRate ? engine.actionRate + '%' : '—'} detail="Acted / total feedback" /><BriefCard label="Best type" value={bestType} detail={engine.bestType ? engine.bestType.winRate + '% win rate' : 'Needs feedback'} /></div><div className="mt-3 rounded-2xl border border-white/10 bg-black/10 p-3"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-500">Feedback-informed confidence</p><p className="text-3xl font-black text-white">{engine.informedConfidence}%</p></div><p className="max-w-md text-right text-xs text-slate-400">{engine.sampleSize >= 3 ? 'Blends current signal posture with actual recorded outcomes.' : 'Collect at least 3 feedback events to override the static confidence score.'}</p></div></div><div className={isPro ? 'mt-3 grid gap-2 sm:grid-cols-2' : 'premium-lock mt-3 grid gap-2 opacity-75 sm:grid-cols-2'}>{rows.length ? rows.map(row => <PerformanceMiniRow key={row.label} row={row} />) : <p className="rounded-2xl border border-white/10 bg-white/[.03] p-3 text-sm text-slate-400">No performance rows yet. Use the feedback buttons below to start the engine.</p>}</div>{!isPro && <p className="mt-3 text-xs text-slate-500">Free shows the headline engine. Pro unlocks deeper symbol and signal-type breakdowns.</p>}</div>;
+  return <div className="rounded-3xl border border-signal-green/25 bg-signal-green/10 p-4"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-green/30 bg-signal-green/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-green"><BarChart3 size={14} /> v15.5 performance engine</div><h3 className="text-xl font-black">Feedback now becomes signal performance.</h3><p className="mt-1 text-sm text-slate-300">Win rate, action rate, signal type, and symbol history now feed the visible confidence layer.</p></div>{!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlock deeper analytics</button>}</div><div className="grid gap-2 sm:grid-cols-4"><BriefCard label="Tracked feedback" value={String(engine.total)} detail="All recorded taps" /><BriefCard label="Win rate" value={engine.winRate ? engine.winRate + '%' : '—'} detail="Wins / decisive outcomes" /><BriefCard label="Action rate" value={engine.actionRate ? engine.actionRate + '%' : '—'} detail="Acted / total feedback" /><BriefCard label="Best type" value={bestType} detail={engine.bestType ? engine.bestType.winRate + '% win rate' : 'Needs feedback'} /></div><div className="mt-3 rounded-2xl border border-white/10 bg-black/10 p-3"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-500">Feedback-informed confidence</p><p className="text-3xl font-black text-white">{engine.informedConfidence}%</p></div><p className="max-w-md text-right text-xs text-slate-400">{engine.sampleSize >= 3 ? 'Blends current signal posture with actual recorded outcomes.' : 'Collect at least 3 feedback events to override the static confidence score.'}</p></div></div><div className={isPro ? 'mt-3 grid gap-2 sm:grid-cols-2' : 'premium-lock mt-3 grid gap-2 opacity-75 sm:grid-cols-2'}>{rows.length ? rows.map(row => <PerformanceMiniRow key={row.label} row={row} />) : <p className="rounded-2xl border border-white/10 bg-white/[.03] p-3 text-sm text-slate-400">No performance rows yet. Use the feedback buttons below to start the engine.</p>}</div>{!isPro && <p className="mt-3 text-xs text-slate-500">Free shows the headline engine. Pro unlocks deeper symbol and signal-type breakdowns.</p>}</div>;
 }
 function PerformanceMiniRow({ row }: { row: PerformanceRow }) {
   return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-2"><p className="font-black">{row.label}</p><span className="rounded-full border border-white/10 bg-white/[.06] px-2 py-1 text-xs font-bold text-slate-200">{row.total} events</span></div><div className="mt-2 grid grid-cols-3 gap-2 text-xs text-slate-400"><span>{row.winRate || '—'}% win</span><span>{row.actionRate || '—'}% acted</span><span>{row.ignored} ignored</span></div></div>;
 }
 
 function FeedbackLoopCard({ signal, stats, globalStats, message, onFeedback }: { signal: AssetSignal; stats: FeedbackStats; globalStats: FeedbackStats; message: string; onFeedback: (action: FeedbackAction, outcome?: FeedbackOutcome) => void }) {
-  return <div className="rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-4"><div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><DatabaseZap size={14} /> Feedback loop</div><h3 className="text-xl font-black">Did you act on {signal.symbol}?</h3><p className="mt-1 text-sm text-slate-300">v15.4 feeds every action into the performance engine while keeping personal and global signals separate.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs sm:min-w-[220px]"><div className="rounded-2xl border border-white/10 bg-white/[.05] p-3"><p className="text-slate-400">This signal</p><p className="text-2xl font-black">{stats.total}</p></div><div className="rounded-2xl border border-white/10 bg-white/[.05] p-3"><p className="text-slate-400">All feedback</p><p className="text-2xl font-black">{globalStats.total}</p></div></div></div><div className="grid gap-2 sm:grid-cols-4"><button onClick={() => onFeedback('acted', 'win')} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-3 py-3 text-sm font-black text-signal-green hover:bg-signal-green/15"><ThumbsUp className="mr-2 inline" size={16} /> Acted + Win</button><button onClick={() => onFeedback('acted', 'loss')} className="rounded-2xl border border-signal-red/30 bg-signal-red/10 px-3 py-3 text-sm font-black text-signal-red hover:bg-signal-red/15"><ThumbsDown className="mr-2 inline" size={16} /> Acted + Loss</button><button onClick={() => onFeedback('acted', 'neutral')} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-3 text-sm font-black text-signal-amber hover:bg-signal-amber/15">Neutral</button><button onClick={() => onFeedback('ignored', null)} className="rounded-2xl border border-white/10 bg-white/[.05] px-3 py-3 text-sm font-black text-slate-200 hover:bg-white/10">Ignored</button></div><div className="mt-3 grid gap-2 sm:grid-cols-4"><BriefCard label="Acted" value={String(globalStats.acted)} detail="Total action taps" /><BriefCard label="Ignored" value={String(globalStats.ignored)} detail="Skipped signals" /><BriefCard label="Wins" value={String(globalStats.wins)} detail="User-marked wins" /><BriefCard label="User win rate" value={globalStats.winRate ? globalStats.winRate + '%' : '—'} detail="Wins / decisive" /></div>{message && <p className="mt-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-200">{message}</p>}</div>;
+  return <div className="rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-4"><div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><DatabaseZap size={14} /> Feedback loop</div><h3 className="text-xl font-black">Did you act on {signal.symbol}?</h3><p className="mt-1 text-sm text-slate-300">v15.5 feeds every action into the performance engine while keeping personal and global signals separate.</p></div><div className="grid grid-cols-2 gap-2 text-center text-xs sm:min-w-[220px]"><div className="rounded-2xl border border-white/10 bg-white/[.05] p-3"><p className="text-slate-400">This signal</p><p className="text-2xl font-black">{stats.total}</p></div><div className="rounded-2xl border border-white/10 bg-white/[.05] p-3"><p className="text-slate-400">All feedback</p><p className="text-2xl font-black">{globalStats.total}</p></div></div></div><div className="grid gap-2 sm:grid-cols-4"><button onClick={() => onFeedback('acted', 'win')} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-3 py-3 text-sm font-black text-signal-green hover:bg-signal-green/15"><ThumbsUp className="mr-2 inline" size={16} /> Acted + Win</button><button onClick={() => onFeedback('acted', 'loss')} className="rounded-2xl border border-signal-red/30 bg-signal-red/10 px-3 py-3 text-sm font-black text-signal-red hover:bg-signal-red/15"><ThumbsDown className="mr-2 inline" size={16} /> Acted + Loss</button><button onClick={() => onFeedback('acted', 'neutral')} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-3 text-sm font-black text-signal-amber hover:bg-signal-amber/15">Neutral</button><button onClick={() => onFeedback('ignored', null)} className="rounded-2xl border border-white/10 bg-white/[.05] px-3 py-3 text-sm font-black text-slate-200 hover:bg-white/10">Ignored</button></div><div className="mt-3 grid gap-2 sm:grid-cols-4"><BriefCard label="Acted" value={String(globalStats.acted)} detail="Total action taps" /><BriefCard label="Ignored" value={String(globalStats.ignored)} detail="Skipped signals" /><BriefCard label="Wins" value={String(globalStats.wins)} detail="User-marked wins" /><BriefCard label="User win rate" value={globalStats.winRate ? globalStats.winRate + '%' : '—'} detail="Wins / decisive" /></div>{message && <p className="mt-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-200">{message}</p>}</div>;
 }
