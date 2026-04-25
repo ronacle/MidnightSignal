@@ -1,35 +1,31 @@
-# Midnight Signal v16.3 - Asset Identity Layer
+# Midnight Signal v16.4 - Asset-Aware Signal Intelligence
 
-v16.3 adds canonical asset identity so ambiguous symbols resolve correctly across the app. The Midnight Network default experience now highlights:
-
-- BTC - Bitcoin
-- ADA - Cardano
-- NIGHT - Midnight on Cardano
+v16.4 adds Midnight Network context on top of the v16.3 Asset Identity Layer.
 
 ## What changed
 
-- Added `lib/assets.ts` as the canonical asset registry.
-- Replaced the old guest default watchlist `ADA / MID / BTC` with `BTC / ADA / NIGHT`.
-- Added alias normalization so `Midnight`, `Midnight Network`, and legacy `MID` resolve to `NIGHT`.
-- Updated signal generation to source assets from the registry instead of scattered hardcoded tuples.
-- Updated CoinGecko lookup mapping to use canonical symbols where live IDs exist.
-- Added `supabase/asset_identity.sql` for optional database-side identity and alias storage.
+- Guest default watchlist remains **BTC / ADA / NIGHT**.
+- `NIGHT` is treated as the correct Midnight asset; legacy `MID` aliases still normalize to `NIGHT`.
+- Added a Midnight Network spotlight for BTC, ADA, and NIGHT.
+- Added asset-aware roles:
+  - BTC = liquidity / macro anchor
+  - ADA = Cardano ecosystem anchor
+  - NIGHT = Midnight ecosystem asset
+- Added bundle-level intelligence:
+  - network strength score
+  - strongest contributor
+  - weakest contributor
+  - divergence alert
+- Added optional SQL: `supabase/midnight_network.sql`.
 
-## SQL
-
-Run the new SQL file if you want Supabase to also store canonical identities and aliases:
-
-```sql
--- supabase/asset_identity.sql
-```
-
-This is additive. Existing watchlist rows using `MID` will be normalized in the client to `NIGHT` when loaded.
-
-## Local build
+## Local run
 
 ```bash
 npm install
 npm run build
+npm run dev
 ```
 
-Educational use only. Not financial advice.
+## Notes
+
+Midnight Signal is educational market guidance, not financial advice.

@@ -6,6 +6,7 @@ import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clo
 import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '@/lib/signals';
 import { BUILD } from '@/lib/build';
 import { MIDNIGHT_NETWORK_DEFAULT_WATCHLIST, normalizeAssetSymbol } from '@/lib/assets';
+import { buildMidnightNetworkInsight, midnightAssetRole } from '@/lib/midnight-network';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PerformanceOutcome, SignalResult, buildProPerformanceAnalytics, buildSignalReceiptText, buildSignalResults, formatHoldTime, outcomeLabel, summarizePerformance } from '@/lib/performance';
@@ -485,6 +486,7 @@ export default function Dashboard() {
   const learningLoopScore = Math.min(100, retentionScore + Math.min(18, globalFeedbackStats.total * 3) + (globalFeedbackStats.winRate ? Math.round(globalFeedbackStats.winRate / 10) : 0));
   const globalConversionCount = conversionEvents.filter(event => event.symbol === globalTop.symbol).length;
   const retentionDigest = useMemo(() => buildRetentionDigest(userTop, globalTop, topSignalGap, performanceSummary, globalFeedbackStats.total, conversionEvents.length), [userTop, globalTop, topSignalGap, performanceSummary, globalFeedbackStats.total, conversionEvents.length]);
+  const midnightNetwork = useMemo(() => buildMidnightNetworkInsight(signals), [signals]);
   const missedOpportunityCount = retentionEvents.filter(event => event.type === 'missed_opportunity_clicked').length;
   const personalIntelligence = useMemo(() => buildPersonalIntelligenceProfile({ signals, watchlist, feedback: allFeedback, conversionEvents, retentionEvents, recommendationFeedback, performanceResults, mode }), [signals, watchlist, allFeedback, conversionEvents, retentionEvents, recommendationFeedback, performanceResults, mode]);
 
@@ -776,9 +778,9 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Asset Identity Layer</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Asset-Aware Signal Intelligence</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
-          <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, global discovery, and recommendations that explain why they were ranked for you.</p>
+          <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, Midnight Network context, global discovery, and recommendations that explain why they were ranked for you.</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access…' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in · ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
       </header>
@@ -803,6 +805,8 @@ export default function Dashboard() {
       </section>
 
       <SignalDiscoveryHero userTop={userTop} globalTop={globalTop} gap={topSignalGap} shouldExpose={shouldExposeGlobalTop} isPro={plan === 'pro'} currency={currency} userSummary={userTopSummary} globalSummary={globalTopSummary} globalInWatchlist={watchlist.includes(globalTop.symbol)} conversionCount={globalConversionCount} onSelect={selectSignal} onAddGlobal={addGlobalTopToWatchlist} onTrackGlobal={trackGlobalSignal} onUpgrade={() => { recordConversionEvent('global_upgrade_clicked', globalTop); upgradeToPro(); }} />
+
+      <MidnightNetworkSpotlight insight={midnightNetwork} currency={currency} onSelect={selectSignal} />
 
       <PersonalIntelligenceCard profile={personalIntelligence} isPro={plan === 'pro'} message={recommendationMessage} onSelect={selectSignal} onAddToWatchlist={(symbol) => addSymbolToWatchlist(symbol, 'Personal intelligence recommendation')} onFeedback={recordRecommendationFeedback} />
 
@@ -885,11 +889,43 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Asset Identity Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Asset-Aware Signal Intelligence · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
 
+
+function MidnightNetworkSpotlight({ insight, currency, onSelect }: { insight: ReturnType<typeof buildMidnightNetworkInsight>; currency: string; onSelect: (symbol: string) => void }) {
+  return <section className="mb-4 rounded-[2rem] border border-signal-blue/20 bg-gradient-to-br from-signal-blue/10 via-white/[.03] to-signal-amber/10 p-5 shadow-soft">
+    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Moon size={14} /> Midnight Network Spotlight</div>
+        <h2 className="text-2xl font-black">BTC · ADA · NIGHT basket intelligence</h2>
+        <p className="mt-1 max-w-3xl text-sm text-slate-300">The default guest watchlist now highlights the Midnight Network stack: BTC as the macro liquidity anchor, ADA as the Cardano ecosystem anchor, and NIGHT as the Midnight ecosystem asset.</p>
+      </div>
+      <div className="rounded-3xl border border-white/10 bg-black/20 px-5 py-4 text-right">
+        <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Network strength</p>
+        <p className="text-4xl font-black text-white">{insight.score || '—'}</p>
+        <p className="text-sm font-bold text-signal-blue">{insight.posture}</p>
+      </div>
+    </div>
+    <div className="grid gap-3 md:grid-cols-3">
+      {insight.basket.map(signal => {
+        const role = midnightAssetRole(signal.symbol);
+        return <button key={signal.symbol} onClick={() => onSelect(signal.symbol)} className="rounded-3xl border border-white/10 bg-black/15 p-4 text-left transition hover:border-signal-blue/40 hover:bg-white/[.06]">
+          <div className="mb-2 flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">{role?.shortRole || 'Network leg'}</p><h3 className="mt-1 text-2xl font-black text-white">{signal.symbol}</h3></div><span className={`rounded-full border px-3 py-1 text-xs font-bold ${labelClass(signal.label)}`}>{signal.label}</span></div>
+          <p className="text-sm text-slate-300">{role?.thesis}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2 text-sm"><div className="rounded-2xl border border-white/10 bg-white/[.04] p-3"><p className="text-xs text-slate-500">Confidence</p><p className="font-black text-white">{signal.confidence}%</p></div><div className="rounded-2xl border border-white/10 bg-white/[.04] p-3"><p className="text-xs text-slate-500">Price</p><p className="font-black text-white">{formatPrice(signal.price, currency)}</p></div></div>
+        </button>;
+      })}
+    </div>
+    <div className="mt-4 grid gap-3 md:grid-cols-3">
+      <BriefCard label="Basket read" value={insight.posture} detail={insight.summary} />
+      <BriefCard label="Top contributor" value={insight.strongest?.symbol || '—'} detail={insight.topContributor} />
+      <BriefCard label="Divergence alert" value={insight.weakest?.symbol || 'Aligned'} detail={insight.divergence + ' ' + insight.drag} />
+    </div>
+  </section>;
+}
 
 function PersonalIntelligenceCard({ profile, isPro, message, onSelect, onAddToWatchlist, onFeedback }: { profile: UserIntelligenceProfile; isPro: boolean; message: string; onSelect: (symbol: string) => void; onAddToWatchlist: (symbol: string) => void; onFeedback: (symbol: string, action: RecommendationFeedbackAction, metadata?: Record<string, unknown>) => void }) {
   const lead = profile.recommendations[0];
@@ -897,7 +933,7 @@ function PersonalIntelligenceCard({ profile, isPro, message, onSelect, onAddToWa
     <section className="rounded-[2rem] border border-signal-blue/20 bg-signal-blue/10 p-5 shadow-soft">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Sparkles size={14} /> Asset Identity Layer</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Sparkles size={14} /> Asset-Aware Signal Intelligence</div>
           <h2 className="text-2xl font-black">Recommended for you</h2>
           <p className="mt-1 text-sm text-slate-300">A pattern-aware feed that uses watchlist ownership, feedback outcomes, ignored signals, global breakouts, and repeatable behavior to decide what you should review next.</p>
         </div>

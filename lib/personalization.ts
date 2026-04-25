@@ -195,7 +195,7 @@ export function buildPersonalIntelligenceProfile(input: {
     : 'Not enough behavior yet; using blended watchlist plus global signal strength.';
 
   return {
-    profileVersion: '16.3.0',
+    profileVersion: '16.4.0',
     mode: input.mode,
     preferredAssets,
     preferredSignalTypes,
