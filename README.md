@@ -1,31 +1,30 @@
-# Midnight Signal v16.4 - Asset-Aware Signal Intelligence
+# Midnight Signal v16.5 - Embedded Learning Layer
 
-v16.4 adds Midnight Network context on top of the v16.3 Asset Identity Layer.
+This build restores the in-app learning/glossary experience so Midnight Signal remains a learning tool as the product becomes more advanced.
 
-## What changed
+## What's new
 
-- Guest default watchlist remains **BTC / ADA / NIGHT**.
-- `NIGHT` is treated as the correct Midnight asset; legacy `MID` aliases still normalize to `NIGHT`.
-- Added a Midnight Network spotlight for BTC, ADA, and NIGHT.
-- Added asset-aware roles:
-  - BTC = liquidity / macro anchor
-  - ADA = Cardano ecosystem anchor
-  - NIGHT = Midnight ecosystem asset
-- Added bundle-level intelligence:
-  - network strength score
-  - strongest contributor
-  - weakest contributor
-  - divergence alert
-- Added optional SQL: `supabase/midnight_network.sql`.
+- Inline glossary term links inside the signal breakdown and recommendation copy
+- Learning Glossary panel with anchor-style jump/highlight behavior
+- Expanded glossary term set for signals, metrics, personalization, and the Midnight Network
+- Optional learning event tracking API at `/api/learning/events`
+- Optional Supabase SQL at `supabase/learning_events.sql`
 
-## Local run
+## Core identity
+
+The default guest watchlist remains the Midnight Network bundle:
+
+- BTC
+- ADA
+- NIGHT
+
+Legacy Midnight/MID aliases continue to resolve to NIGHT.
+
+## Run locally
 
 ```bash
 npm install
 npm run build
-npm run dev
 ```
 
-## Notes
-
-Midnight Signal is educational market guidance, not financial advice.
+Educational use only. Not financial advice.

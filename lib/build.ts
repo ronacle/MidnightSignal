@@ -1,1 +1,1 @@
-export const BUILD = { version: '16.4.0', name: 'Asset-Aware Signal Intelligence', deployedAt: '2026-04-25' };
+export const BUILD = { version: '16.5.0', name: 'Embedded Learning Layer', deployedAt: '2026-04-25' };

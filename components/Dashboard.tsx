@@ -219,6 +219,7 @@ export default function Dashboard() {
   const [watchlistSource, setWatchlistSource] = useState<'local' | 'database'>('local');
   const [selected, setSelected] = useState('ADA');
   const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [activeGlossaryTerm, setActiveGlossaryTerm] = useState('');
   const [signalChanged, setSignalChanged] = useState(false);
   const [visits, setVisits] = useState(1);
   const [ritual, setRitual] = useState<RitualState>(defaultRitual);
@@ -242,6 +243,18 @@ export default function Dashboard() {
   const [notificationStatus, setNotificationStatus] = useState<NotificationStatus>({ email: 'idle', push: 'idle', message: 'Notifications are ready to connect to your retention snapshots.' });
   const [recommendationFeedback, setRecommendationFeedback] = useState<RecommendationFeedback[]>([]);
   const [recommendationMessage, setRecommendationMessage] = useState('');
+
+  function openGlossaryTerm(term: string) {
+    setActiveGlossaryTerm(term);
+    setGlossaryOpen(true);
+    if (authUser?.id) {
+      fetch('/api/learning/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id, term, source: 'inline_glossary' })
+      }).catch(() => undefined);
+    }
+  }
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -778,7 +791,7 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Asset-Aware Signal Intelligence</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Embedded Learning Layer</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, Midnight Network context, global discovery, and recommendations that explain why they were ranked for you.</p>
         </div>
@@ -806,9 +819,9 @@ export default function Dashboard() {
 
       <SignalDiscoveryHero userTop={userTop} globalTop={globalTop} gap={topSignalGap} shouldExpose={shouldExposeGlobalTop} isPro={plan === 'pro'} currency={currency} userSummary={userTopSummary} globalSummary={globalTopSummary} globalInWatchlist={watchlist.includes(globalTop.symbol)} conversionCount={globalConversionCount} onSelect={selectSignal} onAddGlobal={addGlobalTopToWatchlist} onTrackGlobal={trackGlobalSignal} onUpgrade={() => { recordConversionEvent('global_upgrade_clicked', globalTop); upgradeToPro(); }} />
 
-      <MidnightNetworkSpotlight insight={midnightNetwork} currency={currency} onSelect={selectSignal} />
+      <MidnightNetworkSpotlight insight={midnightNetwork} currency={currency} onSelect={selectSignal} onGlossary={openGlossaryTerm} />
 
-      <PersonalIntelligenceCard profile={personalIntelligence} isPro={plan === 'pro'} message={recommendationMessage} onSelect={selectSignal} onAddToWatchlist={(symbol) => addSymbolToWatchlist(symbol, 'Personal intelligence recommendation')} onFeedback={recordRecommendationFeedback} />
+      <PersonalIntelligenceCard profile={personalIntelligence} isPro={plan === 'pro'} message={recommendationMessage} onSelect={selectSignal} onAddToWatchlist={(symbol) => addSymbolToWatchlist(symbol, 'Personal intelligence recommendation')} onFeedback={recordRecommendationFeedback} onGlossary={openGlossaryTerm} />
 
       <RetentionIntelligenceCard digest={retentionDigest} events={retentionEvents.length} missedClicks={missedOpportunityCount} isPro={plan === 'pro'} onDigest={() => queueNotification('daily_digest', ['email'])} onWeekly={() => queueNotification('weekly_report', ['email'])} onMissedOpportunity={reviewMissedOpportunity} onUpgrade={() => { recordRetentionEvent('digest_upgrade_clicked', globalTop.symbol, { gap: topSignalGap }); upgradeToPro(); }} />
 
@@ -863,7 +876,7 @@ export default function Dashboard() {
         <div className={`card rounded-3xl p-5 ${signalChanged ? 'animate-pulseSignal' : ''}`}>
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Your Top Signal</p><h2 className="text-4xl font-black">{top.symbol} <span className="text-lg font-medium text-slate-400">{top.name}</span></h2></div><span className={`rounded-full border px-4 py-2 text-sm font-bold ${labelClass(top.label)}`}>{top.label}</span></div>
           <p className="mb-4 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-4 text-slate-100">{top.why}</p>
-          <Breakdown signal={top} />
+          <Breakdown signal={top} onGlossary={openGlossaryTerm} />
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <SignalPerformanceCard signal={top} outcome={topOutcome} />
             <PerformanceEngineCard engine={performanceEngine} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
@@ -879,23 +892,23 @@ export default function Dashboard() {
       </section>
 
       <section className="mt-4 card rounded-3xl p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-black">Top Signal Grid</h2><p className="text-sm text-slate-400">Tap a card to open its signal breakdown. Star it to add it to your watchlist.</p></div><button onClick={() => setGlossaryOpen(true)} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue"><BookOpen className="mr-2 inline" size={18} /> Glossary</button></div>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-black">Top Signal Grid</h2><p className="text-sm text-slate-400">Tap a card to open its signal breakdown. Star it to add it to your watchlist.</p></div><button onClick={() => openGlossaryTerm('Signal')} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue"><BookOpen className="mr-2 inline" size={18} /> Glossary</button></div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">{signals.map(signal => <AssetCard key={signal.symbol} signal={signal} currency={currency} active={signal.symbol === active.symbol} starred={watchlist.includes(signal.symbol)} onSelect={() => selectSignal(signal.symbol)} onStar={() => toggleWatch(signal.symbol)} />)}</div>
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_.8fr]">
-        <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Selected Signal: {active.symbol}</h2><p className="mt-1 text-slate-300">{active.why}</p><div className="mt-4"><Breakdown signal={active} compact /></div></div>
+        <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Selected Signal: {active.symbol}</h2><p className="mt-1 text-slate-300">{active.why}</p><div className="mt-4"><Breakdown signal={active} compact onGlossary={openGlossaryTerm} /></div></div>
         <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Pro Access</h2><p className="mt-2 text-slate-300">One clear upgrade path: full receipt history, advanced analytics, Pro alerts, and expanded watchlists.</p><button onClick={plan === 'pro' ? refreshPlan : upgradeToPro} className="mt-4 w-full rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue">{checkoutSyncing ? 'Finalizing Pro access...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening Checkout...' : 'Upgrade to Pro'}</button></div>
       </section>
 
-      {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Asset-Aware Signal Intelligence · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      {glossaryOpen && <Glossary activeTerm={activeGlossaryTerm} onJump={setActiveGlossaryTerm} onClose={() => setGlossaryOpen(false)} />}
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Embedded Learning Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
 
 
-function MidnightNetworkSpotlight({ insight, currency, onSelect }: { insight: ReturnType<typeof buildMidnightNetworkInsight>; currency: string; onSelect: (symbol: string) => void }) {
+function MidnightNetworkSpotlight({ insight, currency, onSelect, onGlossary }: { insight: ReturnType<typeof buildMidnightNetworkInsight>; currency: string; onSelect: (symbol: string) => void; onGlossary: (term: string) => void }) {
   return <section className="mb-4 rounded-[2rem] border border-signal-blue/20 bg-gradient-to-br from-signal-blue/10 via-white/[.03] to-signal-amber/10 p-5 shadow-soft">
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -927,15 +940,15 @@ function MidnightNetworkSpotlight({ insight, currency, onSelect }: { insight: Re
   </section>;
 }
 
-function PersonalIntelligenceCard({ profile, isPro, message, onSelect, onAddToWatchlist, onFeedback }: { profile: UserIntelligenceProfile; isPro: boolean; message: string; onSelect: (symbol: string) => void; onAddToWatchlist: (symbol: string) => void; onFeedback: (symbol: string, action: RecommendationFeedbackAction, metadata?: Record<string, unknown>) => void }) {
+function PersonalIntelligenceCard({ profile, isPro, message, onSelect, onAddToWatchlist, onFeedback, onGlossary }: { profile: UserIntelligenceProfile; isPro: boolean; message: string; onSelect: (symbol: string) => void; onAddToWatchlist: (symbol: string) => void; onFeedback: (symbol: string, action: RecommendationFeedbackAction, metadata?: Record<string, unknown>) => void; onGlossary: (term: string) => void }) {
   const lead = profile.recommendations[0];
   return (
     <section className="rounded-[2rem] border border-signal-blue/20 bg-signal-blue/10 p-5 shadow-soft">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Sparkles size={14} /> Asset-Aware Signal Intelligence</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Sparkles size={14} /> Embedded Learning Layer</div>
           <h2 className="text-2xl font-black">Recommended for you</h2>
-          <p className="mt-1 text-sm text-slate-300">A pattern-aware feed that uses watchlist ownership, feedback outcomes, ignored signals, global breakouts, and repeatable behavior to decide what you should review next.</p>
+          <p className="mt-1 text-sm text-slate-300">A pattern-aware feed that uses <GlossaryTerm term="Watchlist" onClick={onGlossary}>watchlist ownership</GlossaryTerm>, feedback outcomes, ignored signals, <GlossaryTerm term="Breakout" onClick={onGlossary}>global breakouts</GlossaryTerm>, and repeatable behavior to decide what you should review next.</p>
         </div>
         <span className="rounded-full border border-white/10 bg-white/[.05] px-3 py-1 text-xs font-bold text-slate-300">{profile.riskStyle} style</span>
       </div>
@@ -1112,41 +1125,20 @@ function TrustCard({ icon, label, value, detail, onClick, action }: { icon: Reac
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: readonly string[] }) { return <label className="block"><span className="mb-1 block text-xs uppercase tracking-[.16em] text-slate-400">{label}</span><div className="relative"><select value={value} onChange={e => onChange(e.target.value)} className="w-full appearance-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 capitalize text-white outline-none ring-signal-blue/0 transition focus:ring-4">{options.map(option => <option key={option} value={option} className="bg-midnight-900">{option}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-3 text-slate-400" /></div></label>; }
 function SignalRow({ signal, currency, active, starred, onSelect, onStar }: { signal: AssetSignal; currency: string; active: boolean; starred: boolean; onSelect: () => void; onStar: () => void }) { return <div className={`flex items-center justify-between rounded-2xl border p-3 ${active ? 'border-signal-blue/50 bg-signal-blue/10' : 'border-white/10 bg-white/[.04]'}`}><button onClick={onSelect} className="text-left"><p className="font-bold">{signal.symbol} <span className="text-sm font-normal text-slate-400">{signal.name}</span></p><p className="text-sm text-slate-300">{formatPrice(signal.price, currency)} · {signal.confidence}%</p></button><button onClick={onStar} className="rounded-xl p-2 text-signal-amber hover:bg-white/10"><Star fill={starred ? 'currentColor' : 'none'} /></button></div>; }
 function AssetCard({ signal, currency, active, starred, onSelect, onStar }: { signal: AssetSignal; currency: string; active: boolean; starred: boolean; onSelect: () => void; onStar: () => void }) { return <div className={`group rounded-3xl border p-4 transition hover:-translate-y-0.5 hover:bg-white/[.07] ${active ? 'border-signal-blue/50 bg-signal-blue/10' : 'border-white/10 bg-white/[.04]'}`}><div className="flex items-start justify-between"><button onClick={onSelect} className="text-left"><p className="text-lg font-black">{signal.symbol}</p><p className="text-sm text-slate-400">{signal.name}</p></button><button onClick={onStar} className="rounded-xl p-2 text-signal-amber transition group-hover:scale-110"><Star fill={starred ? 'currentColor' : 'none'} /></button></div><div className="mt-4 flex items-end justify-between"><div><p className="font-bold">{formatPrice(signal.price, currency)}</p><p className={signal.change24h >= 0 ? 'text-sm text-signal-green' : 'text-sm text-signal-red'}>{signal.change24h >= 0 ? '+' : ''}{signal.change24h}%</p></div><span className={`rounded-full border px-3 py-1 text-xs font-bold ${labelClass(signal.label)}`}>{signal.confidence}%</span></div></div>; }
-function Breakdown({ signal, compact = false }: { signal: AssetSignal; compact?: boolean }) { const rows = [['Momentum', signal.momentum], ['Trend', signal.trend], ['Volatility', signal.volatility], ['MTF Weight', signal.mtf]] as const; return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center gap-2"><Zap className="text-signal-blue" size={18} /><h3 className="font-bold">Signal Breakdown</h3></div><div className="space-y-3">{rows.map(([label, value]) => <div key={label}><div className="mb-1 flex justify-between text-sm"><span className="text-slate-300">{label}</span><span className="font-bold">{value}%</span></div><div className="h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-signal-blue" style={{ width: `${value}%` }} /></div></div>)}</div>{!compact && <p className="mt-4 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3 text-sm text-slate-200"><Info className="mr-2 inline text-signal-blue" size={16} />Heuristic education signal: trend + momentum + volatility + multi-timeframe posture.</p>}</div>; }
-function ProLock({ title, body, isPro, onUpgrade }: { title: string; body: string; isPro: boolean; onUpgrade: () => void }) { return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className={`mb-2 flex items-center gap-2 ${isPro ? 'text-signal-green' : 'text-signal-amber'}`}>{isPro ? <CheckCircle2 size={18} /> : <Lock size={18} />}<p className="font-bold">{title}</p></div><p className="text-sm text-slate-300">{isPro ? `${body} Unlocked for your Pro account.` : body}</p>{isPro ? <span className="mt-3 inline-block rounded-xl border border-signal-green/30 bg-signal-green/10 px-3 py-2 text-xs font-bold text-signal-green">Pro unlocked</span> : <button onClick={onUpgrade} className="mt-3 rounded-xl border border-signal-amber/30 bg-signal-amber/10 px-3 py-2 text-xs font-bold text-signal-amber">Unlock deeper signal intelligence</button>}</div>; }
-function performanceOutcomeClass(outcome: PerformanceOutcome) {
-  if (outcome === 'win') return 'text-signal-green bg-signal-green/10 border-signal-green/30';
-  if (outcome === 'loss') return 'text-signal-red bg-signal-red/10 border-signal-red/30';
-  return 'text-signal-amber bg-signal-amber/10 border-signal-amber/30';
+function GlossaryTerm({ term, children, onClick }: { term: string; children: React.ReactNode; onClick: (term: string) => void }) {
+  return <button type="button" onClick={() => onClick(term)} className="font-bold text-signal-blue underline decoration-signal-blue/40 underline-offset-4 transition hover:text-white">{children}</button>;
 }
 
-function PerformanceHero({ summary, results, analytics, source, isPro, onUpgrade }: { summary: ReturnType<typeof summarizePerformance>; results: SignalResult[]; analytics: ReturnType<typeof buildProPerformanceAnalytics>; source: 'database' | 'simulated'; isPro: boolean; onUpgrade: () => void }) {
-  const recent = results.slice(0, isPro ? 9 : 3);
-  return <section className="mt-4 card rounded-3xl p-5">
-    <div className="mb-5 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-green/20 bg-signal-green/10 px-3 py-1 text-xs font-bold text-signal-green"><BarChart3 size={14} /> Signal Receipts + Pro Analytics</div><h2 className="text-3xl font-black">Every signal now leaves a receipt.</h2><p className="mt-2 max-w-3xl text-sm text-slate-300">Closed signals show entry, exit, return, hold time, and outcome. Pro turns those receipts into symbol, confidence, and time-window analytics.</p><p className="mt-2 text-xs text-slate-500">{source === 'database' ? 'Using settled database receipts.' : 'Using deterministic simulated receipts until your cron settles live rows.'} Simulated historical results are not financial advice and do not guarantee future returns.</p></div>{!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlock Pro analytics</button>}</div>
-    <div className="grid gap-3 md:grid-cols-4">
-      <MetricTile icon={<Target size={18} />} label="Win rate" value={`${summary.winRate}%`} detail={`${summary.wins}/${summary.wins + summary.losses} decisive receipts`} />
-      <MetricTile icon={<TrendingUp size={18} />} label="Avg return" value={`${summary.avgReturn >= 0 ? '+' : ''}${summary.avgReturn}%`} detail={`${summary.totalReturn >= 0 ? '+' : ''}${summary.totalReturn}% total tracked`} />
-      <MetricTile icon={<Flame size={18} />} label="Streak" value={`${summary.currentStreak} ${outcomeLabel(summary.currentStreakType)}`} detail="Most recent closed run" />
-      <MetricTile icon={<Clock3 size={18} />} label="Avg hold" value={`${analytics.averageHoldHours}h`} detail="Average receipt settlement time" />
-    </div>
-    <div className="mt-4 grid gap-3 lg:grid-cols-[.8fr_1.2fr]">
-      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">Receipt extremes</p><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-1"><ResultMini result={analytics.bestReceipt} title="Best receipt" /><ResultMini result={analytics.worstReceipt} title="Needs review" /></div></div>
-      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">Latest signal receipts</p><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{recent.map(result => <SignalReceiptCard key={result.id} result={result} compact={!isPro} />)}</div>{!isPro && <p className="mt-3 text-xs text-slate-400">Free preview shows the receipt headline. Pro unlocks full receipt notes and analytics breakdowns.</p>}</div>
-    </div>
-  </section>;
-}
-
-function MetricTile({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail: string }) {
-  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-2 flex items-center gap-2 text-signal-blue">{icon}<span className="text-xs font-bold uppercase tracking-[.16em]">{label}</span></div><p className="text-3xl font-black">{value}</p><p className="mt-1 text-xs text-slate-400">{detail}</p></div>;
-}
-
-function ResultMini({ result, title }: { result: SignalResult; title?: string }) {
-  return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-2"><p className="font-black">{title ? title + ': ' : ''}{result.symbol}</p><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(result.outcome)}>{outcomeLabel(result.outcome)}</span></div><p className={result.returnPct >= 0 ? 'mt-2 text-lg font-black text-signal-green' : 'mt-2 text-lg font-black text-signal-red'}>{result.returnPct >= 0 ? '+' : ''}{result.returnPct}%</p><p className="text-xs text-slate-400">{result.direction.toUpperCase()} · {result.confidence}% confidence · {formatHoldTime(result.openedAt, result.closedAt)}</p></div>;
-}
-
-function SignalReceiptCard({ result, compact = false }: { result: SignalResult; compact?: boolean }) {
-  return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-black">{result.symbol} <span className="text-xs font-normal text-slate-400">{result.direction.toUpperCase()}</span></p><p className="text-xs text-slate-400">{new Date(result.closedAt).toLocaleDateString()} · {formatHoldTime(result.openedAt, result.closedAt)}</p></div><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(result.outcome)}>{outcomeLabel(result.outcome)}</span></div><div className="mt-3 rounded-xl border border-white/10 bg-black/10 p-3"><p className="text-xs text-slate-400">Entry → Exit</p><p className="font-bold">{result.entryPrice} → {result.exitPrice}</p><p className={result.returnPct >= 0 ? 'text-sm font-black text-signal-green' : 'text-sm font-black text-signal-red'}>{result.returnPct >= 0 ? '+' : ''}{result.returnPct}%</p></div>{!compact && <><p className="mt-2 text-xs text-slate-300">{buildSignalReceiptText(result)}</p><p className="mt-1 text-xs text-slate-500">{result.note}</p></>}</div>;
+function Breakdown({ signal, compact = false, onGlossary }: { signal: AssetSignal; compact?: boolean; onGlossary: (term: string) => void }) {
+  const rows = [['Momentum', signal.momentum], ['Trend', signal.trend], ['Volatility', signal.volatility], ['MTF Weight', signal.mtf]] as const;
+  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4">
+    <div className="mb-3 flex items-center gap-2"><Zap className="text-signal-blue" size={18} /><h3 className="font-bold">Signal Breakdown</h3></div>
+    <div className="space-y-3">{rows.map(([label, value]) => <div key={label}>
+      <div className="mb-1 flex justify-between text-sm"><span className="text-slate-300"><GlossaryTerm term={label === 'MTF Weight' ? 'MTF' : label} onClick={onGlossary}>{label}</GlossaryTerm></span><span className="font-bold">{value}%</span></div>
+      <div className="h-2 rounded-full bg-white/10"><div className="h-2 rounded-full bg-signal-blue" style={{ width: `${value}%` }} /></div>
+    </div>)}</div>
+    {!compact && <p className="mt-4 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3 text-sm text-slate-200"><Info className="mr-2 inline text-signal-blue" size={16} />Heuristic education signal: <GlossaryTerm term="Trend" onClick={onGlossary}>trend</GlossaryTerm> + <GlossaryTerm term="Momentum" onClick={onGlossary}>momentum</GlossaryTerm> + <GlossaryTerm term="Volatility" onClick={onGlossary}>volatility</GlossaryTerm> + <GlossaryTerm term="MTF" onClick={onGlossary}>multi-timeframe posture</GlossaryTerm>.</p>}
+  </div>;
 }
 
 function SignalPerformanceCard({ signal, outcome }: { signal: AssetSignal; outcome: SignalOutcome }) {
@@ -1183,7 +1175,46 @@ function NotificationsCard({ top, outcome, condition, preferences, events, daily
 function AuthPanel({ authUser, plan, authEmail, setAuthEmail, authMessage, onMagicLink, onSignOut, onUpgrade, upgrading, checkoutSyncing }: { authUser: AuthUser; plan: Plan; authEmail: string; setAuthEmail: (v: string) => void; authMessage: string; onMagicLink: () => void; onSignOut: () => void; onUpgrade: () => void; upgrading: boolean; checkoutSyncing: boolean }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><UserRound size={18} /><h2 className="text-xl font-bold">Account + Pro</h2></div>{authUser ? <><p className="text-sm text-slate-300">Signed in as <strong className="text-white">{authUser.email}</strong></p><p className="mt-2 text-2xl font-black">Plan: <span className={plan === 'pro' ? 'text-signal-green' : ''}>{checkoutSyncing ? 'SYNCING' : plan.toUpperCase()}</span></p><div className="mt-4 grid gap-2 sm:grid-cols-2"><button onClick={onUpgrade} disabled={plan === 'pro' || checkoutSyncing} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950 disabled:opacity-40">{checkoutSyncing ? 'Finalizing...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button><button onClick={onSignOut} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-bold">Sign out</button></div></> : <><p className="text-sm text-slate-300">Enter the same email you use at checkout. Magic link is optional; Pro can sync by email.</p><input value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email@example.com" className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /><div className="mt-3 grid gap-2 sm:grid-cols-2"><button onClick={onMagicLink} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950">Send Magic Link</button><button onClick={onUpgrade} disabled={checkoutSyncing} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 font-bold text-signal-amber disabled:opacity-50">{checkoutSyncing ? 'Finalizing...' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button></div></>}{authMessage && <p className="mt-3 text-xs text-slate-400">{authMessage}</p>}</div>; }
 function JourneyCard({ visits, journey, completed }: { visits: number; journey: { title: string; stage: number; progress: number; note: string }; completed: number }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><Trophy size={18} /><h2 className="text-xl font-bold">Your Signal Journey</h2></div><p className="text-2xl font-black">{journey.title}</p><p className="mt-1 text-sm text-slate-300">Stage {journey.stage} · {visits} visits · {completed}/4 ritual steps</p><div className="mt-4 h-3 rounded-full bg-white/10"><div className="h-3 rounded-full bg-signal-blue" style={{ width: `${journey.progress}%` }} /></div><p className="mt-3 text-sm text-slate-300">{journey.note}</p></div>; }
 function RitualCard({ ritual, mark }: { ritual: RitualState; mark: (key: keyof RitualState) => void }) { const items: [keyof RitualState, string][] = [['topSignal', 'Check Top Signal'], ['confidence', 'Review Confidence'], ['watchlist', 'Scan Watchlist'], ['market', 'Read Market Condition']]; return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><CheckCircle2 size={18} /><h2 className="text-xl font-bold">Tonight’s Ritual</h2></div><div className="space-y-2">{items.map(([key, label]) => <button key={key} onClick={() => mark(key)} className={`flex w-full items-center justify-between rounded-2xl border p-3 text-left ${ritual[key] ? 'border-signal-green/30 bg-signal-green/10 text-signal-green' : 'border-white/10 bg-white/[.04] text-slate-200'}`}><span>{label}</span><CheckCircle2 size={18} /></button>)}</div></div>; }
-function Glossary({ onClose }: { onClose: () => void }) { const terms = [['Signal', 'A simplified read of current market posture.'], ['Confidence', 'How strongly the heuristic agrees with itself.'], ['Journey', 'A lightweight progression system that rewards repeated learning behavior.'], ['Daily Ritual', 'A repeatable checklist that teaches users what to review before reacting.'], ['Market condition', 'A plain-English read of whether the current tape is calm, active, or volatile.'], ['Data source', 'Shows whether live CoinGecko prices loaded or the fallback dataset is protecting the app.'], ['Momentum', 'How much energy price action appears to have.'], ['MTF', 'Multi-timeframe weighting across short and longer views.']]; return <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm"><aside className="h-full w-full max-w-md overflow-auto border-l border-white/10 bg-midnight-950 p-6 shadow-soft"><div className="mb-5 flex items-center justify-between"><h2 className="text-2xl font-black">Floating Glossary</h2><button onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2">Close</button></div><div className="space-y-3">{terms.map(([term, definition]) => <div key={term} className="rounded-2xl border border-white/10 bg-white/[.04] p-4"><p className="font-bold text-signal-blue">{term}</p><p className="mt-1 text-sm text-slate-300">{definition}</p></div>)}</div></aside></div>; }
+function Glossary({ activeTerm, onJump, onClose }: { activeTerm: string; onJump: (term: string) => void; onClose: () => void }) {
+  const terms = [
+    ['Signal', 'A simplified read of current market posture. It is educational context, not a trading instruction.', 'Signals'],
+    ['Confidence', 'How strongly the heuristic agrees with itself across trend, momentum, volatility, and multi-timeframe posture.', 'Signals'],
+    ['Momentum', 'How much energy price action appears to have. Strong momentum means the move has force behind it.', 'Signals'],
+    ['Trend', 'The general direction of price action over the current reading window.', 'Signals'],
+    ['Volatility', 'How wide or unstable recent movement is. Higher volatility can increase opportunity and risk.', 'Signals'],
+    ['MTF', 'Multi-timeframe weighting across short and longer views.', 'Signals'],
+    ['Breakout', 'A move that pushes beyond a recent range or level with enough strength to matter.', 'Signals'],
+    ['Divergence', 'When assets or indicators that usually move together start disagreeing.', 'Signals'],
+    ['Win Rate', 'The share of decisive tracked outcomes marked as wins.', 'Metrics'],
+    ['Action Rate', 'How often signals were acted on compared with ignored.', 'Metrics'],
+    ['Watchlist', 'The assets a user chooses to follow closely. Guest mode defaults to BTC, ADA, and NIGHT.', 'Personalization'],
+    ['Global Top Signal', 'The best-ranked signal across the full available signal universe, even outside the user watchlist.', 'Personalization'],
+    ['Your Top Signal', 'The best-ranked signal inside the user watchlist.', 'Personalization'],
+    ['Midnight Network', 'The app focus bundle of BTC, ADA, and NIGHT: macro liquidity, Cardano ecosystem, and Midnight ecosystem context.', 'Midnight Network'],
+    ['NIGHT', 'The Midnight ecosystem asset ticker used by this app. Legacy MID aliases resolve to NIGHT.', 'Midnight Network'],
+    ['Market condition', 'A plain-English read of whether the current tape is calm, active, or volatile.', 'Basics'],
+    ['Data source', 'Shows whether live market prices loaded or the fallback dataset is protecting the app.', 'Basics'],
+    ['Daily Ritual', 'A repeatable checklist that teaches users what to review before reacting.', 'Learning'],
+    ['Journey', 'A lightweight progression system that rewards repeated learning behavior.', 'Learning']
+  ] as const;
+  const active = activeTerm || 'Signal';
+  const activeId = 'glossary-' + active.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.requestAnimationFrame(() => document.getElementById(activeId)?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+  }, [activeId]);
+  return <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm">
+    <aside className="h-full w-full max-w-md overflow-auto border-l border-white/10 bg-midnight-950 p-6 shadow-soft">
+      <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-5 border-b border-white/10 bg-midnight-950/95 p-6 backdrop-blur">
+        <div className="flex items-center justify-between gap-3"><div><h2 className="text-2xl font-black">Learning Glossary</h2><p className="mt-1 text-sm text-slate-400">Click linked terms anywhere in the app to jump here.</p></div><button onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2">Close</button></div>
+        <div className="mt-4 flex flex-wrap gap-2">{terms.slice(0, 8).map(([term]) => <button key={term} onClick={() => onJump(term)} className={active === term ? 'rounded-full border border-signal-blue/50 bg-signal-blue/20 px-3 py-1 text-xs font-bold text-signal-blue' : 'rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300'}>{term}</button>)}</div>
+      </div>
+      <div className="space-y-3">{terms.map(([term, definition, group]) => <div id={'glossary-' + term.toLowerCase().replace(/[^a-z0-9]+/g, '-')} key={term} className={active === term ? 'rounded-2xl border border-signal-blue/50 bg-signal-blue/15 p-4 shadow-soft' : 'rounded-2xl border border-white/10 bg-white/[.04] p-4'}>
+        <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">{group}</p><p className="mt-1 font-bold text-signal-blue">{term}</p><p className="mt-1 text-sm text-slate-300">{definition}</p>
+      </div>)}</div>
+    </aside>
+  </div>;
+}
 
 function PerformanceEngineCard({ engine, isPro, onUpgrade }: { engine: PerformanceEngine; isPro: boolean; onUpgrade: () => void }) {
   const rows = isPro ? engine.bySymbol.slice(0, 4) : engine.bySymbol.slice(0, 2);
