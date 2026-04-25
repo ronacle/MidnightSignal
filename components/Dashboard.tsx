@@ -1162,6 +1162,12 @@ function MetricTile({ icon, label, value, detail }: { icon: React.ReactNode; lab
   return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-2 flex items-center gap-2 text-signal-blue">{icon}<span className="text-xs font-bold uppercase tracking-[.16em]">{label}</span></div><p className="text-3xl font-black">{value}</p><p className="mt-1 text-xs text-slate-400">{detail}</p></div>;
 }
 
+function performanceOutcomeClass(outcome: PerformanceOutcome) {
+  if (outcome === 'win') return 'border-signal-green/30 bg-signal-green/10 text-signal-green';
+  if (outcome === 'loss') return 'border-signal-red/30 bg-signal-red/10 text-signal-red';
+  return 'border-slate-400/30 bg-slate-400/10 text-slate-300';
+}
+
 function ResultMini({ result, title }: { result: SignalResult; title?: string }) {
   return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-2"><p className="font-black">{title ? title + ': ' : ''}{result.symbol}</p><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(result.outcome)}>{outcomeLabel(result.outcome)}</span></div><p className={result.returnPct >= 0 ? 'mt-2 text-lg font-black text-signal-green' : 'mt-2 text-lg font-black text-signal-red'}>{result.returnPct >= 0 ? '+' : ''}{result.returnPct}%</p><p className="text-xs text-slate-400">{result.direction.toUpperCase()} · {result.confidence}% confidence · {formatHoldTime(result.openedAt, result.closedAt)}</p></div>;
 }
