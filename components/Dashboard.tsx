@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Flame, History, Info, Lock, Mail, Moon, RefreshCw, Search, Settings2, Sparkles, Star, Target, Trophy, TrendingUp, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
+import { Activity, BarChart3, BellRing, BookOpen, CheckCircle2, ChevronDown, Clock3, DatabaseZap, Flame, History, Info, Lock, Mail, Moon, RefreshCw, Search, Settings2, ShieldCheck, Sparkles, Star, Target, Trophy, TrendingUp, UserRound, Volume2, VolumeX, Zap } from 'lucide-react';
 import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '@/lib/signals';
 import { BUILD } from '@/lib/build';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
@@ -38,7 +38,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v13-4';
+const storageKey = 'midnight-signal-v15-1';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 const defaultAlertPreferences: AlertPreferences = { highConfidenceAlerts: true, dailyRecap: true, settlementAlerts: true, proOnlyAlerts: true };
@@ -343,6 +343,14 @@ export default function Dashboard() {
   const performanceSummary = useMemo(() => summarizePerformance(performanceResults), [performanceResults]);
   const proAnalytics = useMemo(() => buildProPerformanceAnalytics(performanceResults), [performanceResults]);
   const topOutcome = outcomeForSignal(top);
+  const retentionScore = Math.min(100, journey.progress + Math.round(performanceSummary.winRate / 8) + (plan === 'pro' ? 8 : 0));
+  const tonightPlan = [
+    `Review ${top.symbol} first because it leads the current watchlist stack.`,
+    `Confirm the ${snapshot.marketCondition} market condition before acting on momentum.`,
+    performanceSummary.currentStreakType === 'win' ? 'Protect the current receipt streak with smaller, cleaner decisions.' : 'Use the latest receipt notes to tighten your next signal review.',
+    plan === 'pro' ? 'Compare Pro analytics by symbol before changing your watchlist priority.' : 'Free plan: track the top 3 watchlist names and unlock Pro when you need deeper receipt history.'
+  ];
+  const riskPosture = top.confidence >= 75 && snapshot.marketCondition !== 'volatile' ? 'Constructive' : snapshot.marketCondition === 'volatile' ? 'Cautious' : 'Balanced';
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -477,9 +485,9 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Conversion Layer</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Retention OS</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
-          <p className="mt-2 max-w-2xl text-slate-300">One clear read, proof up front, and a sharper upgrade path when you want the full edge.</p>
+          <p className="mt-2 max-w-2xl text-slate-300">One clear read, proof up front, and a nightly retention loop that turns signals into repeatable habits.</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access…' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in · ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
       </header>
@@ -489,6 +497,19 @@ export default function Dashboard() {
           <strong className="text-signal-blue">Finalizing your Pro access…</strong> Stripe confirmed your checkout. Midnight Signal is waiting for the webhook to finish syncing your Supabase plan.
         </section>
       )}
+
+      <section className="mb-4 grid gap-4 lg:grid-cols-[.9fr_1.1fr]">
+        <div className="card rounded-3xl p-5">
+          <div className="mb-3 flex items-center gap-2 text-signal-blue"><ShieldCheck size={18} /><p className="text-sm font-semibold uppercase tracking-[.2em]">Retention score</p></div>
+          <div className="flex items-end justify-between gap-3"><p className="text-5xl font-black">{retentionScore}</p><span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-slate-300">{riskPosture} posture</span></div>
+          <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-signal-blue" style={{ width: retentionScore + '%' }} /></div>
+          <p className="mt-3 text-sm text-slate-300">Blends journey progress, receipt quality, and plan depth into one nightly habit signal.</p>
+        </div>
+        <div className="card rounded-3xl p-5">
+          <div className="mb-3 flex items-center gap-2 text-signal-blue"><CheckCircle2 size={18} /><p className="text-sm font-semibold uppercase tracking-[.2em]">Tonight's review plan</p></div>
+          <div className="grid gap-2">{tonightPlan.map((item, index) => <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-200"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal-blue/15 text-xs font-black text-signal-blue">{index + 1}</span><span>{item}</span></div>)}</div>
+        </div>
+      </section>
 
       <section className={`mb-4 card rounded-[2rem] border-signal-blue/20 p-5 sm:p-6 ${signalChanged ? 'animate-pulseSignal' : ''}`}>
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -581,7 +602,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Conversion Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Retention OS · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
