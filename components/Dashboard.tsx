@@ -25,9 +25,9 @@ type ConversionEvent = { type: ConversionEventType; symbol: string; gap: number;
 type RetentionEventType = 'digest_viewed' | 'weekly_report_viewed' | 'missed_opportunity_clicked' | 'digest_upgrade_clicked';
 type RetentionEvent = { type: RetentionEventType; symbol?: string; createdAt: string; source?: 'database' | 'local'; metadata?: Record<string, unknown> };
 type RetentionDigest = { personalSignal: AssetSignal; globalSignal: AssetSignal; gap: number; winRate: number; missedOpportunity: boolean; action: string; weeklyNote: string; events: number };
-type NotificationPreferences = { emailDailyDigest: boolean; emailWeeklyReport: boolean; pushDailyDigest: boolean; pushMissedOpportunity: boolean; quietHoursStart: string; quietHoursEnd: string };
+type NotificationPreferences = { emailDailyDigest: boolean; emailWeeklyReport: boolean; pushDailyDigest: boolean; pushWeeklyReport: boolean; pushMissedOpportunity: boolean; quietHoursStart: string; quietHoursEnd: string };
 type NotificationStatus = { email: 'idle' | 'sent' | 'queued' | 'error'; push: 'idle' | 'enabled' | 'queued' | 'blocked' | 'error'; message: string };
-const defaultNotificationPreferences: NotificationPreferences = { emailDailyDigest: true, emailWeeklyReport: true, pushDailyDigest: false, pushMissedOpportunity: true, quietHoursStart: '22:00', quietHoursEnd: '08:00' };
+const defaultNotificationPreferences: NotificationPreferences = { emailDailyDigest: true, emailWeeklyReport: true, pushDailyDigest: false, pushWeeklyReport: false, pushMissedOpportunity: true, quietHoursStart: '22:00', quietHoursEnd: '08:00' };
 type SignalHistoryItem = AssetSignal & { outcome: SignalOutcome; note: string; age: string };
 type AlertPreferenceKey = 'highConfidenceAlerts' | 'dailyRecap' | 'settlementAlerts' | 'proOnlyAlerts';
 type AlertPreferences = Record<AlertPreferenceKey, boolean>;
@@ -54,7 +54,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v15-8';
+const storageKey = 'midnight-signal-v15-9';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 const defaultAlertPreferences: AlertPreferences = { highConfidenceAlerts: true, dailyRecap: true, settlementAlerts: true, proOnlyAlerts: true };
@@ -137,31 +137,31 @@ function buildPerformanceEngine(map: FeedbackMap, currentSignal: AssetSignal, mo
 }
 function readFeedback(): FeedbackMap {
   if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v15-8') || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v15-9') || '{}'); } catch { return {}; }
 }
 function writeFeedback(next: FeedbackMap) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v15-8', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v15-9', JSON.stringify(next));
 }
 function readConversionEvents(): ConversionEvent[] {
   if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem('midnight-signal-conversion-v15-8') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-conversion-v15-9') || '[]'); } catch { return []; }
 }
 function writeConversionEvents(next: ConversionEvent[]) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-conversion-v15-8', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-conversion-v15-9', JSON.stringify(next));
 }
 function readRetentionEvents(): RetentionEvent[] {
   if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem('midnight-signal-retention-v15-8') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-retention-v15-9') || '[]'); } catch { return []; }
 }
 function writeRetentionEvents(next: RetentionEvent[]) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-retention-v15-8', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-retention-v15-9', JSON.stringify(next));
 }
 function readNotificationPreferences(): NotificationPreferences {
   if (typeof window === 'undefined') return defaultNotificationPreferences;
-  try { return { ...defaultNotificationPreferences, ...JSON.parse(localStorage.getItem('midnight-signal-notifications-v15-8') || '{}') }; } catch { return defaultNotificationPreferences; }
+  try { return { ...defaultNotificationPreferences, ...JSON.parse(localStorage.getItem('midnight-signal-notifications-v15-9') || '{}') }; } catch { return defaultNotificationPreferences; }
 }
 function writeNotificationPreferences(next: NotificationPreferences) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-notifications-v15-8', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-notifications-v15-9', JSON.stringify(next));
 }
 function buildRetentionDigest(personalSignal: AssetSignal, globalSignal: AssetSignal, gap: number, summary: ReturnType<typeof summarizePerformance>, feedbackCount: number, conversionCount: number): RetentionDigest {
   const missedOpportunity = globalSignal.symbol !== personalSignal.symbol && gap >= 4;
@@ -726,7 +726,7 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Notification Engine</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Notification Automation</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, a separate global discovery read, and a performance engine that turns user feedback into signal intelligence.</p>
         </div>
@@ -833,7 +833,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Notification Engine · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Notification Automation · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
@@ -893,22 +893,23 @@ function RetentionIntelligenceCard({ digest, events, missedClicks, isPro, onDige
 function NotificationDeliveryCard({ preferences, status, isSignedIn, email, onToggle, onSendDaily, onSendWeekly, onEnablePush }: { preferences: NotificationPreferences; status: NotificationStatus; isSignedIn: boolean; email: string; onToggle: <K extends keyof NotificationPreferences>(key: K, value: NotificationPreferences[K]) => void; onSendDaily: () => void; onSendWeekly: () => void; onEnablePush: () => void }) {
   return <section className="mt-4 grid gap-4 lg:grid-cols-[.9fr_1.1fr]">
     <div className="card rounded-3xl border border-signal-green/20 bg-signal-green/5 p-5">
-      <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-signal-green/30 bg-signal-green/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-green"><BellRing size={14} /> Notification Engine</div>
+      <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-signal-green/30 bg-signal-green/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-green"><BellRing size={14} /> Notification Automation</div>
       <h2 className="text-2xl font-black">Deliver the habit loop</h2>
-      <p className="mt-1 text-sm text-slate-300">Daily digests and weekly reports now use retention snapshots as the source of truth, so email and push can ship the same intelligence the dashboard shows.</p>
+      <p className="mt-1 text-sm text-slate-300">Cron-ready digests and reports now enforce preferences, quiet hours, duplicate-send protection, and delivery logging before anything leaves the system.</p>
       <div className="mt-4 grid gap-2"><BriefCard label="Email destination" value={email || 'Not set'} detail={isSignedIn ? 'Linked to signed-in account' : 'Use early access email or sign in'} /><BriefCard label="Push status" value={status.push} detail={status.message} /></div>
       <div className="mt-4 flex flex-wrap gap-2"><button onClick={onSendDaily} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 text-sm font-bold text-signal-blue"><Mail className="mr-2 inline" size={15} /> Send daily preview</button><button onClick={onSendWeekly} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-4 py-3 text-sm font-bold text-signal-green"><BarChart3 className="mr-2 inline" size={15} /> Send weekly preview</button><button onClick={onEnablePush} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><BellRing className="mr-2 inline" size={15} /> Enable browser push</button></div>
     </div>
     <div className="card rounded-3xl p-5">
-      <div className="mb-3 flex items-center gap-2 text-signal-blue"><Settings2 size={18} /><h2 className="text-xl font-black">Notification preferences</h2></div>
+      <div className="mb-3 flex items-center gap-2 text-signal-blue"><Settings2 size={18} /><h2 className="text-xl font-black">Notification preferences + guardrails</h2></div>
       <div className="grid gap-3 sm:grid-cols-2">
         <ToggleRow label="Email daily digest" checked={preferences.emailDailyDigest} onChange={v => onToggle('emailDailyDigest', v)} />
         <ToggleRow label="Email weekly report" checked={preferences.emailWeeklyReport} onChange={v => onToggle('emailWeeklyReport', v)} />
         <ToggleRow label="Push daily digest" checked={preferences.pushDailyDigest} onChange={v => onToggle('pushDailyDigest', v)} />
+        <ToggleRow label="Push weekly report" checked={preferences.pushWeeklyReport} onChange={v => onToggle('pushWeeklyReport', v)} />
         <ToggleRow label="Push missed opportunities" checked={preferences.pushMissedOpportunity} onChange={v => onToggle('pushMissedOpportunity', v)} />
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2"><BriefCard label="Quiet hours" value={preferences.quietHoursStart + ' - ' + preferences.quietHoursEnd} detail="Stored with preferences for future scheduler logic" /><BriefCard label="Delivery status" value={status.email === 'idle' ? 'Ready' : status.email} detail="Email uses Resend when RESEND_API_KEY is configured" /></div>
-      <p className="mt-3 text-xs text-slate-500">Production email requires RESEND_API_KEY and RESEND_FROM_EMAIL. Production push storage is included; VAPID delivery can be added without changing the database shape.</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2"><BriefCard label="Quiet hours" value={preferences.quietHoursStart + ' - ' + preferences.quietHoursEnd} detail="Enforced by the scheduler before automated sends" /><BriefCard label="Delivery status" value={status.email === 'idle' ? 'Ready' : status.email} detail="Logs sent, failed, skipped and duplicate deliveries" /></div>
+      <p className="mt-3 text-xs text-slate-500">Production email requires RESEND_API_KEY and RESEND_FROM_EMAIL. Set CRON_SECRET for Vercel cron protection. Duplicate sends are blocked with notification_delivery_logs.</p>
     </div>
   </section>;
 }

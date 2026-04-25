@@ -1,40 +1,69 @@
-# Midnight Signal v15.8 - Notification Engine
+# Midnight Signal v15.9 - Notification Automation + Preferences Hardening
 
-v15.8 builds on the v15.7 Automated Retention Engine by delivering retention snapshots through notification-ready email and browser-push workflows.
+v15.9 builds on v15.8 by moving notification delivery from manual previews toward production-safe automation.
 
-## Included
+## What's new
 
-- Daily digest email preview endpoint
-- Weekly report email preview endpoint
-- Notification preferences API
-- Push subscription storage API
-- Notification delivery log table
-- Dashboard notification controls
-- Supabase SQL: `supabase/notifications.sql`
+- Cron-ready notification scheduler: `app/api/cron/notifications/route.ts`
+- Daily digest and weekly report automation using retention snapshots
+- Preference enforcement for email, push, daily, weekly, and missed-opportunity notifications
+- Quiet-hours guardrails before automated sends
+- Delivery logs with `sent`, `failed`, `skipped`, `duplicate`, and `test_mode` states
+- Duplicate-send protection using a unique delivery key per user, snapshot/period, type, and channel
+- Admin test mode so you can dry-run sends without blasting users
+- Notification logs API for recent delivery history
+- Updated Supabase SQL in `supabase/notifications.sql`
 
 ## Required SQL
 
-Run the existing v15.7 retention SQL first if you have not already, then run `supabase/notifications.sql`.
+Run:
 
-## Email setup
+1. `supabase/retention_snapshots.sql`
+2. `supabase/notifications.sql`
 
-Set these environment variables to enable Resend delivery:
+## Required environment variables
 
 ```bash
-RESEND_API_KEY=your_resend_key
-RESEND_FROM_EMAIL="Midnight Signal <notifications@yourdomain.com>"
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+CRON_SECRET=
 ```
 
-Without those variables, the app still generates notification payloads, but email delivery returns a safe provider-missing status.
+## Cron usage
 
-## Push setup
+Daily digest:
 
-v15.8 stores browser push preferences and subscription payloads. The database/API shape is ready for production web-push delivery; VAPID delivery can be added next without changing tables.
+```bash
+curl -X POST https://your-domain.com/api/cron/notifications \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"daily_digest"}'
+```
 
-## Run locally
+Weekly report:
+
+```bash
+curl -X POST https://your-domain.com/api/cron/notifications \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"weekly_report"}'
+```
+
+Admin test mode:
+
+```bash
+curl -X POST https://your-domain.com/api/cron/notifications \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"daily_digest","testMode":true,"userId":"USER_UUID"}'
+```
+
+## Local validation
 
 ```bash
 npm install
 npm run build
-npm run dev
 ```
