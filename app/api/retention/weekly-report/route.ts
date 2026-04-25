@@ -1,20 +1,19 @@
 import { NextResponse } from 'next/server';
+import { buildWeeklyReportSnapshot } from '@/lib/retention';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const winRate = Number(searchParams.get('winRate') || 0);
-  const feedback = Number(searchParams.get('feedback') || 0);
-  const conversions = Number(searchParams.get('conversions') || 0);
-  return NextResponse.json({
-    report: {
-      title: 'Weekly Performance Report',
-      winRate,
-      feedbackEvents: feedback,
-      conversionEvents: conversions,
-      summary: feedback
-        ? `You recorded ${feedback} feedback events and ${conversions} discovery actions. Current tracked win rate is ${winRate}%.`
-        : 'Start recording wins, losses, ignored signals, and global discovery actions to unlock a meaningful weekly report.',
-      source: 'generated'
-    }
+  const report = buildWeeklyReportSnapshot({
+    winRate: Number(searchParams.get('winRate') || 0),
+    acted: Number(searchParams.get('acted') || 0),
+    ignored: Number(searchParams.get('ignored') || 0),
+    wins: Number(searchParams.get('wins') || 0),
+    losses: Number(searchParams.get('losses') || 0),
+    neutral: Number(searchParams.get('neutral') || 0),
+    conversions: Number(searchParams.get('conversions') || 0),
+    missedOpportunities: Number(searchParams.get('missedOpportunities') || 0),
+    bestAsset: searchParams.get('bestAsset') || undefined,
   });
+
+  return NextResponse.json({ report, source: 'generated-snapshot' });
 }

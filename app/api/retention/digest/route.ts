@@ -1,20 +1,17 @@
 import { NextResponse } from 'next/server';
+import { buildDailyDigestSnapshot } from '@/lib/retention';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const personal = searchParams.get('personal') || 'your watchlist leader';
-  const global = searchParams.get('global') || 'the global top signal';
-  const gap = Number(searchParams.get('gap') || 0);
-  return NextResponse.json({
-    digest: {
-      title: 'Daily Signal Digest',
-      personalSignal: personal,
-      globalSignal: global,
-      missedOpportunity: gap >= 4 && personal !== global,
-      body: gap >= 4 && personal !== global
-        ? `${global} is outperforming ${personal} by ${gap} confidence points. Review it before your next watchlist decision.`
-        : `${personal} remains your best starting point today. Review receipts before acting.`,
-      source: 'generated'
-    }
+  const personalSymbol = (searchParams.get('personal') || 'BTC').toUpperCase();
+  const globalSymbol = (searchParams.get('global') || 'NVDA').toUpperCase();
+  const personalConfidence = Number(searchParams.get('personalConfidence') || searchParams.get('personalScore') || 68);
+  const globalConfidence = Number(searchParams.get('globalConfidence') || searchParams.get('globalScore') || 76);
+
+  const digest = buildDailyDigestSnapshot({
+    personalSignal: { symbol: personalSymbol, name: searchParams.get('personalName') || 'Your watchlist leader', confidence: personalConfidence },
+    globalSignal: { symbol: globalSymbol, name: searchParams.get('globalName') || 'Global top signal', confidence: globalConfidence },
   });
+
+  return NextResponse.json({ digest, source: 'generated-snapshot' });
 }

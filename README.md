@@ -1,29 +1,36 @@
-# Midnight Signal v15.6 — Retention Intelligence
+# Midnight Signal v15.7 - Automated Retention Engine
 
-A complete Next.js App Router repo built from v15.5, preserving the working dependency/config layer while adding the v15.6 retention system.
+Midnight Signal v15.7 builds on v15.6 and turns the retention foundation into generated, notification-ready content.
 
-## What changed in v15.6
+## What changed in v15.7
 
-- Keeps the v15.5 dual-signal conversion system intact.
-- Adds a Retention Intelligence dashboard section.
-- Adds daily signal digest preview logic.
-- Adds weekly performance report preview logic.
-- Adds missed-opportunity tracking when the global top signal outperforms the user's watchlist leader.
-- Adds `/api/retention/events`, `/api/retention/digest`, and `/api/retention/weekly-report`.
-- Adds `supabase/retention_events.sql` for persistent retention-event tracking.
-- Removes old extra README files so this repo has one main README.
+- Daily Digest Generator: compares the user's top watchlist signal against the global top signal.
+- Weekly Report Generator: summarizes acted, ignored, win/loss/neutral, conversion, and missed-opportunity activity.
+- Snapshot Storage: `retention_snapshots` stores generated digest/report payloads so future emails and push notifications use stable history.
+- Dashboard copy/version updated to Automated Retention Engine.
+- Notification-ready API structure for v15.8 email/push delivery.
 
-## Deploy notes
+## Key routes
 
-1. Run Supabase SQL files as needed, including `supabase/retention_events.sql`.
-2. Set the existing Supabase and Stripe environment variables.
-3. Install and build:
+- `GET /api/retention/digest`
+- `GET /api/retention/weekly-report`
+- `POST /api/retention/snapshots`
+- `POST /api/retention/events`
+
+## Supabase
+
+Run `supabase/retention_events.sql` to create or update retention event and snapshot tables.
+
+## Local development
 
 ```bash
 npm install
-npm run build
+npm run dev
 ```
 
-## Product direction
+## Production build
 
-v15.6 is the habit layer: it turns signal discovery, feedback, and performance receipts into daily and weekly reasons for users to return.
+```bash
+npm run build
+npm start
+```
