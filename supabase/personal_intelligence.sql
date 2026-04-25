@@ -1,4 +1,4 @@
--- Midnight Signal v16.0 Personal Intelligence Layer
+-- Midnight Signal v16.1 Recommendation Quality + Explainability
 -- Run after v15.9 notification SQL.
 
 create extension if not exists "uuid-ossp";
@@ -15,7 +15,7 @@ create table if not exists user_intelligence_profiles (
 create table if not exists personalized_signal_events (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users(id) on delete cascade,
-  event_type text check (event_type in ('recommendation_viewed', 'recommendation_clicked', 'recommendation_added_to_watchlist', 'recommendation_dismissed')) not null,
+  event_type text check (event_type in ('recommendation_viewed', 'recommendation_clicked', 'recommendation_added_to_watchlist', 'recommendation_dismissed', 'recommendation_more_like_this', 'recommendation_less_like_this', 'recommendation_not_interested')) not null,
   symbol text not null,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz default now()
@@ -57,4 +57,33 @@ using (auth.uid() = user_id);
 drop policy if exists "Users can create personalization events" on personalized_signal_events;
 create policy "Users can create personalization events"
 on personalized_signal_events for insert
+with check (auth.uid() = user_id);
+
+
+-- v16.1 explicit recommendation preference controls.
+create table if not exists recommendation_feedback (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users(id) on delete cascade,
+  symbol text not null,
+  action text check (action in ('more', 'less', 'hide')) not null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_recommendation_feedback_user_created
+on recommendation_feedback(user_id, created_at desc);
+
+create index if not exists idx_recommendation_feedback_user_symbol
+on recommendation_feedback(user_id, symbol, created_at desc);
+
+alter table recommendation_feedback enable row level security;
+
+drop policy if exists "Users can view their recommendation feedback" on recommendation_feedback;
+create policy "Users can view their recommendation feedback"
+on recommendation_feedback for select
+using (auth.uid() = user_id);
+
+drop policy if exists "Users can create recommendation feedback" on recommendation_feedback;
+create policy "Users can create recommendation feedback"
+on recommendation_feedback for insert
 with check (auth.uid() = user_id);

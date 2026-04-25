@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase-server';
 
-type PersonalizedEventType = 'recommendation_viewed' | 'recommendation_clicked' | 'recommendation_added_to_watchlist' | 'recommendation_dismissed';
-const allowed: PersonalizedEventType[] = ['recommendation_viewed', 'recommendation_clicked', 'recommendation_added_to_watchlist', 'recommendation_dismissed'];
+type PersonalizedEventType = 'recommendation_viewed' | 'recommendation_clicked' | 'recommendation_added_to_watchlist' | 'recommendation_dismissed' | 'recommendation_more_like_this' | 'recommendation_less_like_this' | 'recommendation_not_interested';
+const allowed: PersonalizedEventType[] = ['recommendation_viewed', 'recommendation_clicked', 'recommendation_added_to_watchlist', 'recommendation_dismissed', 'recommendation_more_like_this', 'recommendation_less_like_this', 'recommendation_not_interested'];
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));

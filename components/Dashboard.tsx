@@ -25,6 +25,8 @@ type ConversionEventType = 'global_added_to_watchlist' | 'global_tracked' | 'glo
 type ConversionEvent = { type: ConversionEventType; symbol: string; gap: number; createdAt: string; source?: 'database' | 'local' };
 type RetentionEventType = 'digest_viewed' | 'weekly_report_viewed' | 'missed_opportunity_clicked' | 'digest_upgrade_clicked';
 type RetentionEvent = { type: RetentionEventType; symbol?: string; createdAt: string; source?: 'database' | 'local'; metadata?: Record<string, unknown> };
+type RecommendationFeedbackAction = 'more' | 'less' | 'hide';
+type RecommendationFeedback = { symbol: string; action: RecommendationFeedbackAction; createdAt: string; source?: 'database' | 'local'; metadata?: Record<string, unknown> };
 type RetentionDigest = { personalSignal: AssetSignal; globalSignal: AssetSignal; gap: number; winRate: number; missedOpportunity: boolean; action: string; weeklyNote: string; events: number };
 type NotificationPreferences = { emailDailyDigest: boolean; emailWeeklyReport: boolean; pushDailyDigest: boolean; pushWeeklyReport: boolean; pushMissedOpportunity: boolean; quietHoursStart: string; quietHoursEnd: string };
 type NotificationStatus = { email: 'idle' | 'sent' | 'queued' | 'error'; push: 'idle' | 'enabled' | 'queued' | 'blocked' | 'error'; message: string };
@@ -157,6 +159,13 @@ function readRetentionEvents(): RetentionEvent[] {
 function writeRetentionEvents(next: RetentionEvent[]) {
   if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-retention-v16', JSON.stringify(next));
 }
+function readRecommendationFeedback(): RecommendationFeedback[] {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem('midnight-signal-recommendation-feedback-v16_1') || '[]'); } catch { return []; }
+}
+function writeRecommendationFeedback(next: RecommendationFeedback[]) {
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-recommendation-feedback-v16_1', JSON.stringify(next));
+}
 function readNotificationPreferences(): NotificationPreferences {
   if (typeof window === 'undefined') return defaultNotificationPreferences;
   try { return { ...defaultNotificationPreferences, ...JSON.parse(localStorage.getItem('midnight-signal-notifications-v16') || '{}') }; } catch { return defaultNotificationPreferences; }
@@ -229,6 +238,8 @@ export default function Dashboard() {
   const [retentionEvents, setRetentionEvents] = useState<RetentionEvent[]>([]);
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(defaultNotificationPreferences);
   const [notificationStatus, setNotificationStatus] = useState<NotificationStatus>({ email: 'idle', push: 'idle', message: 'Notifications are ready to connect to your retention snapshots.' });
+  const [recommendationFeedback, setRecommendationFeedback] = useState<RecommendationFeedback[]>([]);
+  const [recommendationMessage, setRecommendationMessage] = useState('');
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -251,6 +262,7 @@ export default function Dashboard() {
     setConversionEvents(readConversionEvents());
     setRetentionEvents(readRetentionEvents());
     setNotificationPreferences(readNotificationPreferences());
+    setRecommendationFeedback(readRecommendationFeedback());
   }, []);
 
   useEffect(() => {
@@ -473,7 +485,7 @@ export default function Dashboard() {
   const globalConversionCount = conversionEvents.filter(event => event.symbol === globalTop.symbol).length;
   const retentionDigest = useMemo(() => buildRetentionDigest(userTop, globalTop, topSignalGap, performanceSummary, globalFeedbackStats.total, conversionEvents.length), [userTop, globalTop, topSignalGap, performanceSummary, globalFeedbackStats.total, conversionEvents.length]);
   const missedOpportunityCount = retentionEvents.filter(event => event.type === 'missed_opportunity_clicked').length;
-  const personalIntelligence = useMemo(() => buildPersonalIntelligenceProfile({ signals, watchlist, feedback: allFeedback, conversionEvents, retentionEvents, performanceResults, mode }), [signals, watchlist, allFeedback, conversionEvents, retentionEvents, performanceResults, mode]);
+  const personalIntelligence = useMemo(() => buildPersonalIntelligenceProfile({ signals, watchlist, feedback: allFeedback, conversionEvents, retentionEvents, recommendationFeedback, performanceResults, mode }), [signals, watchlist, allFeedback, conversionEvents, retentionEvents, recommendationFeedback, performanceResults, mode]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -555,6 +567,27 @@ export default function Dashboard() {
     recordConversionEvent('global_tracked', globalTop);
     setSelected(globalTop.symbol);
     markRitual('topSignal');
+  }
+
+  function recordRecommendationFeedback(symbol: string, action: RecommendationFeedbackAction, metadata?: Record<string, unknown>) {
+    const normalized = symbol.toUpperCase();
+    const item: RecommendationFeedback = { symbol: normalized, action, metadata, createdAt: new Date().toISOString(), source: authUser?.id ? 'database' : 'local' };
+    const next = [item, ...recommendationFeedback].slice(0, 120);
+    setRecommendationFeedback(next);
+    writeRecommendationFeedback(next);
+    setRecommendationMessage(action === 'more' ? `Showing more signals like ${normalized}.` : action === 'less' ? `Showing fewer signals like ${normalized}.` : `${normalized} suppressed from recommendations.`);
+    if (authUser?.id) {
+      fetch('/api/personalization/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id, action, symbol: normalized, metadata: { mode, ...metadata } })
+      }).catch(() => undefined);
+      fetch('/api/personalization/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id, eventType: action === 'more' ? 'recommendation_more_like_this' : action === 'less' ? 'recommendation_less_like_this' : 'recommendation_not_interested', symbol: normalized, metadata: { mode, ...metadata } })
+      }).catch(() => undefined);
+    }
   }
 
   function addSymbolToWatchlist(symbol: string, message: string) {
@@ -742,9 +775,9 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Notification Automation</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Recommendation Explainability</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
-          <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, a separate global discovery read, and a performance engine that turns user feedback into signal intelligence.</p>
+          <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, global discovery, and recommendations that explain why they were ranked for you.</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access…' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in · ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
       </header>
@@ -770,7 +803,7 @@ export default function Dashboard() {
 
       <SignalDiscoveryHero userTop={userTop} globalTop={globalTop} gap={topSignalGap} shouldExpose={shouldExposeGlobalTop} isPro={plan === 'pro'} currency={currency} userSummary={userTopSummary} globalSummary={globalTopSummary} globalInWatchlist={watchlist.includes(globalTop.symbol)} conversionCount={globalConversionCount} onSelect={selectSignal} onAddGlobal={addGlobalTopToWatchlist} onTrackGlobal={trackGlobalSignal} onUpgrade={() => { recordConversionEvent('global_upgrade_clicked', globalTop); upgradeToPro(); }} />
 
-      <PersonalIntelligenceCard profile={personalIntelligence} isPro={plan === 'pro'} onSelect={selectSignal} onAddToWatchlist={(symbol) => addSymbolToWatchlist(symbol, 'Personal intelligence recommendation')} />
+      <PersonalIntelligenceCard profile={personalIntelligence} isPro={plan === 'pro'} message={recommendationMessage} onSelect={selectSignal} onAddToWatchlist={(symbol) => addSymbolToWatchlist(symbol, 'Personal intelligence recommendation')} onFeedback={recordRecommendationFeedback} />
 
       <RetentionIntelligenceCard digest={retentionDigest} events={retentionEvents.length} missedClicks={missedOpportunityCount} isPro={plan === 'pro'} onDigest={() => queueNotification('daily_digest', ['email'])} onWeekly={() => queueNotification('weekly_report', ['email'])} onMissedOpportunity={reviewMissedOpportunity} onUpgrade={() => { recordRetentionEvent('digest_upgrade_clicked', globalTop.symbol, { gap: topSignalGap }); upgradeToPro(); }} />
 
@@ -851,13 +884,13 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Personal Intelligence · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Recommendation Explainability · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
 
 
-function PersonalIntelligenceCard({ profile, isPro, onSelect, onAddToWatchlist }: { profile: UserIntelligenceProfile; isPro: boolean; onSelect: (symbol: string) => void; onAddToWatchlist: (symbol: string) => void }) {
+function PersonalIntelligenceCard({ profile, isPro, message, onSelect, onAddToWatchlist, onFeedback }: { profile: UserIntelligenceProfile; isPro: boolean; message: string; onSelect: (symbol: string) => void; onAddToWatchlist: (symbol: string) => void; onFeedback: (symbol: string, action: RecommendationFeedbackAction, metadata?: Record<string, unknown>) => void }) {
   const lead = profile.recommendations[0];
   return (
     <section className="rounded-[2rem] border border-signal-blue/20 bg-signal-blue/10 p-5 shadow-soft">
@@ -887,9 +920,23 @@ function PersonalIntelligenceCard({ profile, isPro, onSelect, onAddToWatchlist }
         <div className="mt-4 flex flex-wrap gap-2">
           <button onClick={() => onSelect(lead.symbol)} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 text-sm font-bold text-signal-blue"><Target className="mr-2 inline" size={15} /> Review signal</button>
           {lead.action === 'add_to_watchlist' && <button onClick={() => onAddToWatchlist(lead.symbol)} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-4 py-3 text-sm font-bold text-signal-green"><PlusCircle className="mr-2 inline" size={15} /> Add to watchlist</button>}
+          <button onClick={() => onFeedback(lead.symbol, 'more', { source: lead.source, score: lead.personalScore })} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-4 py-3 text-sm font-bold text-signal-green"><ThumbsUp className="mr-2 inline" size={15} /> More like this</button>
+          <button onClick={() => onFeedback(lead.symbol, 'less', { source: lead.source, score: lead.personalScore })} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><ThumbsDown className="mr-2 inline" size={15} /> Less like this</button>
+          <button onClick={() => onFeedback(lead.symbol, 'hide', { source: lead.source, score: lead.personalScore })} className="rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3 text-sm font-bold text-slate-300">Not interested</button>
           {!isPro && <span className="rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3 text-sm font-bold text-slate-300"><Lock className="mr-2 inline" size={15} /> Pro unlocks deeper adaptive rules</span>}
         </div>
+        <div className="mt-4 grid gap-2 md:grid-cols-4">
+          <BriefCard label="Personal match" value={lead.scoreBreakdown.personalMatch + '%'} detail="Watchlist + preference feedback" />
+          <BriefCard label="History" value={lead.scoreBreakdown.historicalPerformance + '%'} detail="Wins, losses, and receipts" />
+          <BriefCard label="Global strength" value={lead.scoreBreakdown.globalStrength + '%'} detail="Current signal confidence" />
+          <BriefCard label="Freshness" value={lead.scoreBreakdown.freshness + '%'} detail="Recent movement context" />
+        </div>
+        <div className="mt-4 rounded-3xl border border-white/10 bg-white/[.04] p-4">
+          <p className="mb-2 flex items-center gap-2 text-sm font-black text-white"><Info size={15} /> Why this?</p>
+          <div className="grid gap-2 md:grid-cols-3">{lead.explanation.map(item => <div key={item} className="rounded-2xl border border-white/10 bg-black/10 p-3 text-xs text-slate-400">{item}</div>)}</div>
+        </div>
       </div>}
+      {message && <p className="mt-3 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3 text-sm font-bold text-signal-blue">{message}</p>}
       <div className="mt-4 grid gap-2 md:grid-cols-3">
         {profile.explainers.map(item => <div key={item} className="rounded-2xl border border-white/10 bg-black/10 p-3 text-xs text-slate-400">{item}</div>)}
       </div>

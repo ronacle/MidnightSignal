@@ -1,26 +1,25 @@
-# Midnight Signal v16.0 — Personal Intelligence Layer
+# Midnight Signal v16.1 — Recommendation Quality + Explainability
 
-v16 builds on v15.9 and adds adaptive personalization on top of signals, feedback, global discovery, conversion events, retention snapshots, and notification automation.
+This build upgrades v16 Personal Intelligence with a trust layer for recommendations.
 
-## What changed
+## Added in v16.1
 
-- Personalized signal ranking via `lib/personalization.ts`
-- `Recommended for You` dashboard panel
-- User intelligence profile API
-- Personalized signal event API
-- Supabase SQL for `user_intelligence_profiles` and `personalized_signal_events`
-- Version/build metadata updated to `16.0.0`
-- Excess README files removed
+- **Why this?** explanations for the top recommended signal
+- recommendation score breakdown: personal match, history, global strength, freshness
+- user controls: **More like this**, **Less like this**, and **Not interested**
+- recommendation feedback loop that adjusts future personalized ranking
+- Supabase support for explicit recommendation feedback
+- updated personalization API support for v16.1 events
 
-## SQL to run
+## SQL
 
-Run:
+Run or re-run:
 
 ```sql
-supabase/personal_intelligence.sql
+-- supabase/personal_intelligence.sql
 ```
 
-Run this after the previous v15.9 notification SQL.
+It is idempotent and adds the v16.1 `recommendation_feedback` table plus expanded personalization event types.
 
 ## Local build
 
@@ -29,6 +28,4 @@ npm install
 npm run build
 ```
 
-## Environment notes
-
-Keep the same environment variables from v15.9. Personalization uses existing Supabase service-role access on server routes.
+Educational use only. Not financial advice.

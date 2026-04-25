@@ -4,12 +4,15 @@ import type { SignalResult } from '@/lib/performance';
 type FeedbackLike = { signalId?: string; symbol: string; action?: string; outcome?: string | null };
 type ConversionLike = { type?: string; symbol: string };
 type RetentionLike = { type?: string; symbol?: string };
+type RecommendationFeedbackLike = { symbol: string; action: 'more' | 'less' | 'hide'; metadata?: Record<string, unknown> };
 
 export type PersonalizedSignalRecommendation = AssetSignal & {
   personalScore: number;
   reason: string;
   source: 'watchlist' | 'global' | 'blend';
   action: 'review' | 'track' | 'add_to_watchlist' | 'ignore_less';
+  explanation: string[];
+  scoreBreakdown: { personalMatch: number; historicalPerformance: number; globalStrength: number; freshness: number };
 };
 
 export type UserIntelligenceProfile = {
@@ -46,12 +49,14 @@ export function buildPersonalIntelligenceProfile(input: {
   feedback: FeedbackLike[];
   conversionEvents?: ConversionLike[];
   retentionEvents?: RetentionLike[];
+  recommendationFeedback?: RecommendationFeedbackLike[];
   performanceResults?: SignalResult[];
   mode: TraderMode;
 }): UserIntelligenceProfile {
   const feedback = input.feedback || [];
   const conversions = input.conversionEvents || [];
   const results = input.performanceResults || [];
+  const recommendationFeedback = input.recommendationFeedback || [];
   const acted = feedback.filter(item => item.action === 'acted').length;
   const ignored = feedback.filter(item => item.action === 'ignored').length;
   const wins = feedback.filter(item => item.outcome === 'win').length + results.filter(item => item.outcome === 'win').length;
@@ -79,6 +84,13 @@ export function buildPersonalIntelligenceProfile(input: {
     if (symbol) assetCounts[symbol] = (assetCounts[symbol] || 0) + 1;
   }
   for (const symbol of input.watchlist) assetCounts[symbol] = (assetCounts[symbol] || 0) + 1;
+  for (const item of recommendationFeedback) {
+    const symbol = item.symbol?.toUpperCase();
+    if (!symbol) continue;
+    if (item.action === 'more') assetCounts[symbol] = (assetCounts[symbol] || 0) + 4;
+    if (item.action === 'less') assetCounts[symbol] = (assetCounts[symbol] || 0) - 3;
+    if (item.action === 'hide') ignoredCounts[symbol] = (ignoredCounts[symbol] || 0) + 3;
+  }
 
   const preferredAssets = topKeys(assetCounts, 4);
   const preferredSignalTypes = topKeys(typeCounts, 3);
@@ -94,18 +106,35 @@ export function buildPersonalIntelligenceProfile(input: {
     const ignoredPenalty = (ignoredCounts[symbol] || 0) * 8;
     const globalDiscoveryBoost = inWatchlist ? 0 : 8;
     const confidenceScore = Math.round(signal.confidence * 0.72);
-    const score = Math.max(0, Math.min(100, confidenceScore + preferenceBoost + globalDiscoveryBoost - ignoredPenalty + (winRate ? Math.round(winRate * 0.12) : 0)));
+    const recentFeedback = recommendationFeedback.find(item => item.symbol?.toUpperCase() === symbol);
+    const directPreferenceBoost = recentFeedback?.action === 'more' ? 10 : recentFeedback?.action === 'less' ? -10 : recentFeedback?.action === 'hide' ? -35 : 0;
+    const symbolResults = results.filter(item => item.symbol === symbol);
+    const resultWins = symbolResults.filter(item => item.outcome === 'win').length;
+    const resultLosses = symbolResults.filter(item => item.outcome === 'loss').length;
+    const symbolWinRate = pct(resultWins, resultWins + resultLosses);
+    const personalMatch = Math.max(0, Math.min(100, 45 + preferenceBoost + (inWatchlist ? 18 : 0) + directPreferenceBoost - ignoredPenalty));
+    const historicalPerformance = symbolWinRate || winRate || 50;
+    const globalStrength = signal.confidence;
+    const freshness = Math.max(35, Math.min(100, 70 + Math.round(signal.change24h * 1.5)));
+    const score = Math.max(0, Math.min(100, Math.round(personalMatch * 0.35 + historicalPerformance * 0.25 + globalStrength * 0.3 + freshness * 0.1)));
     const reason = inWatchlist
       ? `${signal.symbol} is in your watchlist and matches your current ${input.mode} review pattern.`
       : score >= 70
         ? `${signal.symbol} is outside your watchlist but strong enough to deserve discovery attention.`
         : `${signal.symbol} is a lower-priority global candidate until your behavior points toward it.`;
+    const explanation = [
+      inWatchlist ? 'You already follow this asset, so it gets a personal relevance boost.' : 'This is a discovery candidate outside your watchlist.',
+      symbolWinRate ? `${signal.symbol} has a ${symbolWinRate}% win rate in recent receipts.` : winRate ? `Your recent decisive outcomes show a ${winRate}% win tendency.` : 'Not enough history yet, so current signal strength carries more weight.',
+      recentFeedback?.action === 'more' ? 'You asked to see more recommendations like this.' : recentFeedback?.action === 'less' ? 'You asked to see fewer recommendations like this, so it is down-ranked.' : recentFeedback?.action === 'hide' ? 'You marked this as not interested, so it will be suppressed.' : 'No explicit preference override yet.'
+    ];
     return {
       ...signal,
       personalScore: score,
       reason,
       source: inWatchlist ? 'watchlist' : score >= 70 ? 'blend' : 'global',
-      action: inWatchlist ? 'review' : score >= 70 ? 'add_to_watchlist' : 'track'
+      action: inWatchlist ? 'review' : score >= 70 ? 'add_to_watchlist' : 'track',
+      explanation,
+      scoreBreakdown: { personalMatch, historicalPerformance, globalStrength, freshness }
     } satisfies PersonalizedSignalRecommendation;
   }).sort((a, b) => b.personalScore - a.personalScore || b.confidence - a.confidence).slice(0, 5);
 
@@ -114,7 +143,7 @@ export function buildPersonalIntelligenceProfile(input: {
     : 'Not enough behavior yet; using blended watchlist plus global signal strength.';
 
   return {
-    profileVersion: '16.0.0',
+    profileVersion: '16.1.0',
     mode: input.mode,
     preferredAssets,
     preferredSignalTypes,
