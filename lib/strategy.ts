@@ -130,7 +130,7 @@ export function scoreSignalForStrategy(signal: AssetSignal, strategy: StrategyId
 }
 
 export function rankSignalsByStrategy(signals: AssetSignal[], strategy: StrategyId, profile?: UserIntelligenceProfile, mode?: TraderMode) {
-  const preferredSymbols = new Set(profile?.preferredSymbols || []);
+  const preferredSymbols = new Set(profile?.preferredAssets || []);
   const preferredLabels = new Set(profile?.preferredSignalTypes || []);
   return [...signals].sort((a, b) => {
     const aFit = scoreSignalForStrategy(a, strategy, mode).score + (preferredSymbols.has(a.symbol) ? 5 : 0) + (preferredLabels.has(a.label) ? 4 : 0);
