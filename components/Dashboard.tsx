@@ -25,6 +25,9 @@ type ConversionEvent = { type: ConversionEventType; symbol: string; gap: number;
 type RetentionEventType = 'digest_viewed' | 'weekly_report_viewed' | 'missed_opportunity_clicked' | 'digest_upgrade_clicked';
 type RetentionEvent = { type: RetentionEventType; symbol?: string; createdAt: string; source?: 'database' | 'local'; metadata?: Record<string, unknown> };
 type RetentionDigest = { personalSignal: AssetSignal; globalSignal: AssetSignal; gap: number; winRate: number; missedOpportunity: boolean; action: string; weeklyNote: string; events: number };
+type NotificationPreferences = { emailDailyDigest: boolean; emailWeeklyReport: boolean; pushDailyDigest: boolean; pushMissedOpportunity: boolean; quietHoursStart: string; quietHoursEnd: string };
+type NotificationStatus = { email: 'idle' | 'sent' | 'queued' | 'error'; push: 'idle' | 'enabled' | 'queued' | 'blocked' | 'error'; message: string };
+const defaultNotificationPreferences: NotificationPreferences = { emailDailyDigest: true, emailWeeklyReport: true, pushDailyDigest: false, pushMissedOpportunity: true, quietHoursStart: '22:00', quietHoursEnd: '08:00' };
 type SignalHistoryItem = AssetSignal & { outcome: SignalOutcome; note: string; age: string };
 type AlertPreferenceKey = 'highConfidenceAlerts' | 'dailyRecap' | 'settlementAlerts' | 'proOnlyAlerts';
 type AlertPreferences = Record<AlertPreferenceKey, boolean>;
@@ -51,7 +54,7 @@ type Stored = {
 
 type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean; market: boolean };
 
-const storageKey = 'midnight-signal-v15-7';
+const storageKey = 'midnight-signal-v15-8';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
 const defaultAlertPreferences: AlertPreferences = { highConfidenceAlerts: true, dailyRecap: true, settlementAlerts: true, proOnlyAlerts: true };
@@ -134,24 +137,31 @@ function buildPerformanceEngine(map: FeedbackMap, currentSignal: AssetSignal, mo
 }
 function readFeedback(): FeedbackMap {
   if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v15-7') || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-feedback-v15-8') || '{}'); } catch { return {}; }
 }
 function writeFeedback(next: FeedbackMap) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v15-7', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-feedback-v15-8', JSON.stringify(next));
 }
 function readConversionEvents(): ConversionEvent[] {
   if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem('midnight-signal-conversion-v15-7') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-conversion-v15-8') || '[]'); } catch { return []; }
 }
 function writeConversionEvents(next: ConversionEvent[]) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-conversion-v15-7', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-conversion-v15-8', JSON.stringify(next));
 }
 function readRetentionEvents(): RetentionEvent[] {
   if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem('midnight-signal-retention-v15-7') || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem('midnight-signal-retention-v15-8') || '[]'); } catch { return []; }
 }
 function writeRetentionEvents(next: RetentionEvent[]) {
-  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-retention-v15-7', JSON.stringify(next));
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-retention-v15-8', JSON.stringify(next));
+}
+function readNotificationPreferences(): NotificationPreferences {
+  if (typeof window === 'undefined') return defaultNotificationPreferences;
+  try { return { ...defaultNotificationPreferences, ...JSON.parse(localStorage.getItem('midnight-signal-notifications-v15-8') || '{}') }; } catch { return defaultNotificationPreferences; }
+}
+function writeNotificationPreferences(next: NotificationPreferences) {
+  if (typeof window !== 'undefined') localStorage.setItem('midnight-signal-notifications-v15-8', JSON.stringify(next));
 }
 function buildRetentionDigest(personalSignal: AssetSignal, globalSignal: AssetSignal, gap: number, summary: ReturnType<typeof summarizePerformance>, feedbackCount: number, conversionCount: number): RetentionDigest {
   const missedOpportunity = globalSignal.symbol !== personalSignal.symbol && gap >= 4;
@@ -216,6 +226,8 @@ export default function Dashboard() {
   const [apiPerformance, setApiPerformance] = useState<ApiPerformanceEngine | null>(null);
   const [conversionEvents, setConversionEvents] = useState<ConversionEvent[]>([]);
   const [retentionEvents, setRetentionEvents] = useState<RetentionEvent[]>([]);
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(defaultNotificationPreferences);
+  const [notificationStatus, setNotificationStatus] = useState<NotificationStatus>({ email: 'idle', push: 'idle', message: 'Notifications are ready to connect to your retention snapshots.' });
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -237,6 +249,7 @@ export default function Dashboard() {
     setFeedback(readFeedback());
     setConversionEvents(readConversionEvents());
     setRetentionEvents(readRetentionEvents());
+    setNotificationPreferences(readNotificationPreferences());
   }, []);
 
   useEffect(() => {
@@ -558,7 +571,53 @@ export default function Dashboard() {
 
   function reviewMissedOpportunity() {
     recordRetentionEvent('missed_opportunity_clicked', globalTop.symbol, { gap: topSignalGap, userTop: userTop.symbol });
+    if (notificationPreferences.pushMissedOpportunity) queueNotification('missed_opportunity', ['push']);
     trackGlobalSignal();
+  }
+
+  function updateNotificationPreference<K extends keyof NotificationPreferences>(key: K, value: NotificationPreferences[K]) {
+    const next = { ...notificationPreferences, [key]: value };
+    setNotificationPreferences(next);
+    writeNotificationPreferences(next);
+    if (authUser?.id) {
+      fetch('/api/notifications/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser.id, preferences: next })
+      }).catch(() => undefined);
+    }
+  }
+
+  async function queueNotification(type: 'daily_digest' | 'weekly_report' | 'missed_opportunity', channels: ('email' | 'push')[]) {
+    const report = { winRate: performanceSummary.winRate, acted: performanceEngine.acted, ignored: performanceEngine.ignored, wins: performanceEngine.wins, losses: performanceEngine.losses, neutral: performanceEngine.neutrals, conversions: conversionEvents.length, missedOpportunities: missedOpportunityCount, bestAsset: userTop.symbol };
+    setNotificationStatus(status => ({ ...status, message: 'Preparing notification from latest retention snapshot...' }));
+    try {
+      const response = await fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: authUser?.id || null, email: authEmail || earlyEmail || authUser?.email || null, type, channels, personalSignal: userTop, globalSignal: globalTop, report })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || 'Notification failed');
+      setNotificationStatus(status => ({ email: channels.includes('email') ? 'queued' : status.email, push: channels.includes('push') ? 'queued' : status.push, message: channels.join(' + ') + ' notification prepared.' }));
+      recordRetentionEvent(type === 'weekly_report' ? 'weekly_report_viewed' : type === 'missed_opportunity' ? 'missed_opportunity_clicked' : 'digest_viewed', type === 'missed_opportunity' ? globalTop.symbol : userTop.symbol, { channels });
+    } catch {
+      setNotificationStatus(status => ({ ...status, email: channels.includes('email') ? 'error' : status.email, push: channels.includes('push') ? 'error' : status.push, message: 'Notification could not be delivered yet. Check Supabase and email provider settings.' }));
+    }
+  }
+
+  async function enableBrowserPush() {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      setNotificationStatus(status => ({ ...status, push: 'blocked', message: 'This browser does not support notifications.' }));
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      setNotificationStatus(status => ({ ...status, push: 'blocked', message: 'Push permission was not granted.' }));
+      return;
+    }
+    updateNotificationPreference('pushDailyDigest', true);
+    setNotificationStatus(status => ({ ...status, push: 'enabled', message: 'Browser push is enabled locally. Add VAPID/web-push delivery when ready for production pushes.' }));
   }
 
   function markRitual(key: keyof RitualState) { setRitual(r => ({ ...r, [key]: true })); }
@@ -667,7 +726,7 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Automated Retention Engine</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Notification Engine</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, a separate global discovery read, and a performance engine that turns user feedback into signal intelligence.</p>
         </div>
@@ -695,7 +754,9 @@ export default function Dashboard() {
 
       <SignalDiscoveryHero userTop={userTop} globalTop={globalTop} gap={topSignalGap} shouldExpose={shouldExposeGlobalTop} isPro={plan === 'pro'} currency={currency} userSummary={userTopSummary} globalSummary={globalTopSummary} globalInWatchlist={watchlist.includes(globalTop.symbol)} conversionCount={globalConversionCount} onSelect={selectSignal} onAddGlobal={addGlobalTopToWatchlist} onTrackGlobal={trackGlobalSignal} onUpgrade={() => { recordConversionEvent('global_upgrade_clicked', globalTop); upgradeToPro(); }} />
 
-      <RetentionIntelligenceCard digest={retentionDigest} events={retentionEvents.length} missedClicks={missedOpportunityCount} isPro={plan === 'pro'} onDigest={() => recordRetentionEvent('digest_viewed', userTop.symbol, { globalTop: globalTop.symbol, gap: topSignalGap })} onWeekly={() => recordRetentionEvent('weekly_report_viewed', userTop.symbol, { winRate: performanceSummary.winRate })} onMissedOpportunity={reviewMissedOpportunity} onUpgrade={() => { recordRetentionEvent('digest_upgrade_clicked', globalTop.symbol, { gap: topSignalGap }); upgradeToPro(); }} />
+      <RetentionIntelligenceCard digest={retentionDigest} events={retentionEvents.length} missedClicks={missedOpportunityCount} isPro={plan === 'pro'} onDigest={() => queueNotification('daily_digest', ['email'])} onWeekly={() => queueNotification('weekly_report', ['email'])} onMissedOpportunity={reviewMissedOpportunity} onUpgrade={() => { recordRetentionEvent('digest_upgrade_clicked', globalTop.symbol, { gap: topSignalGap }); upgradeToPro(); }} />
+
+      <NotificationDeliveryCard preferences={notificationPreferences} status={notificationStatus} isSignedIn={Boolean(authUser?.id)} email={authEmail || earlyEmail || authUser?.email || ''} onToggle={updateNotificationPreference} onSendDaily={() => queueNotification('daily_digest', notificationPreferences.pushDailyDigest ? ['email', 'push'] : ['email'])} onSendWeekly={() => queueNotification('weekly_report', ['email'])} onEnablePush={enableBrowserPush} />
 
       <section className="grid gap-4 lg:grid-cols-[1.35fr_.85fr]">
         <div className="card rounded-3xl p-5">
@@ -772,7 +833,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Automated Retention Engine · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Notification Engine · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
@@ -826,6 +887,33 @@ function RetentionIntelligenceCard({ digest, events, missedClicks, isPro, onDige
       {!isPro && <button onClick={onUpgrade} className="mt-4 w-full rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={15} /> Unlock automated reports</button>}
     </div>
   </section>;
+}
+
+
+function NotificationDeliveryCard({ preferences, status, isSignedIn, email, onToggle, onSendDaily, onSendWeekly, onEnablePush }: { preferences: NotificationPreferences; status: NotificationStatus; isSignedIn: boolean; email: string; onToggle: <K extends keyof NotificationPreferences>(key: K, value: NotificationPreferences[K]) => void; onSendDaily: () => void; onSendWeekly: () => void; onEnablePush: () => void }) {
+  return <section className="mt-4 grid gap-4 lg:grid-cols-[.9fr_1.1fr]">
+    <div className="card rounded-3xl border border-signal-green/20 bg-signal-green/5 p-5">
+      <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-signal-green/30 bg-signal-green/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-green"><BellRing size={14} /> Notification Engine</div>
+      <h2 className="text-2xl font-black">Deliver the habit loop</h2>
+      <p className="mt-1 text-sm text-slate-300">Daily digests and weekly reports now use retention snapshots as the source of truth, so email and push can ship the same intelligence the dashboard shows.</p>
+      <div className="mt-4 grid gap-2"><BriefCard label="Email destination" value={email || 'Not set'} detail={isSignedIn ? 'Linked to signed-in account' : 'Use early access email or sign in'} /><BriefCard label="Push status" value={status.push} detail={status.message} /></div>
+      <div className="mt-4 flex flex-wrap gap-2"><button onClick={onSendDaily} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 text-sm font-bold text-signal-blue"><Mail className="mr-2 inline" size={15} /> Send daily preview</button><button onClick={onSendWeekly} className="rounded-2xl border border-signal-green/30 bg-signal-green/10 px-4 py-3 text-sm font-bold text-signal-green"><BarChart3 className="mr-2 inline" size={15} /> Send weekly preview</button><button onClick={onEnablePush} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><BellRing className="mr-2 inline" size={15} /> Enable browser push</button></div>
+    </div>
+    <div className="card rounded-3xl p-5">
+      <div className="mb-3 flex items-center gap-2 text-signal-blue"><Settings2 size={18} /><h2 className="text-xl font-black">Notification preferences</h2></div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ToggleRow label="Email daily digest" checked={preferences.emailDailyDigest} onChange={v => onToggle('emailDailyDigest', v)} />
+        <ToggleRow label="Email weekly report" checked={preferences.emailWeeklyReport} onChange={v => onToggle('emailWeeklyReport', v)} />
+        <ToggleRow label="Push daily digest" checked={preferences.pushDailyDigest} onChange={v => onToggle('pushDailyDigest', v)} />
+        <ToggleRow label="Push missed opportunities" checked={preferences.pushMissedOpportunity} onChange={v => onToggle('pushMissedOpportunity', v)} />
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2"><BriefCard label="Quiet hours" value={preferences.quietHoursStart + ' - ' + preferences.quietHoursEnd} detail="Stored with preferences for future scheduler logic" /><BriefCard label="Delivery status" value={status.email === 'idle' ? 'Ready' : status.email} detail="Email uses Resend when RESEND_API_KEY is configured" /></div>
+      <p className="mt-3 text-xs text-slate-500">Production email requires RESEND_API_KEY and RESEND_FROM_EMAIL. Production push storage is included; VAPID delivery can be added without changing the database shape.</p>
+    </div>
+  </section>;
+}
+function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+  return <label className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3 text-sm font-bold text-slate-200"><span>{label}</span><input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} /></label>;
 }
 
 function ConversionLayer({ summary, analytics, isPro, upgrading, onUpgrade }: { summary: ReturnType<typeof summarizePerformance>; analytics: ReturnType<typeof buildProPerformanceAnalytics>; isPro: boolean; upgrading: boolean; onUpgrade: () => void }) {

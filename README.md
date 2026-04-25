@@ -1,36 +1,40 @@
-# Midnight Signal v15.7 - Automated Retention Engine
+# Midnight Signal v15.8 - Notification Engine
 
-Midnight Signal v15.7 builds on v15.6 and turns the retention foundation into generated, notification-ready content.
+v15.8 builds on the v15.7 Automated Retention Engine by delivering retention snapshots through notification-ready email and browser-push workflows.
 
-## What changed in v15.7
+## Included
 
-- Daily Digest Generator: compares the user's top watchlist signal against the global top signal.
-- Weekly Report Generator: summarizes acted, ignored, win/loss/neutral, conversion, and missed-opportunity activity.
-- Snapshot Storage: `retention_snapshots` stores generated digest/report payloads so future emails and push notifications use stable history.
-- Dashboard copy/version updated to Automated Retention Engine.
-- Notification-ready API structure for v15.8 email/push delivery.
+- Daily digest email preview endpoint
+- Weekly report email preview endpoint
+- Notification preferences API
+- Push subscription storage API
+- Notification delivery log table
+- Dashboard notification controls
+- Supabase SQL: `supabase/notifications.sql`
 
-## Key routes
+## Required SQL
 
-- `GET /api/retention/digest`
-- `GET /api/retention/weekly-report`
-- `POST /api/retention/snapshots`
-- `POST /api/retention/events`
+Run the existing v15.7 retention SQL first if you have not already, then run `supabase/notifications.sql`.
 
-## Supabase
+## Email setup
 
-Run `supabase/retention_events.sql` to create or update retention event and snapshot tables.
+Set these environment variables to enable Resend delivery:
 
-## Local development
+```bash
+RESEND_API_KEY=your_resend_key
+RESEND_FROM_EMAIL="Midnight Signal <notifications@yourdomain.com>"
+```
+
+Without those variables, the app still generates notification payloads, but email delivery returns a safe provider-missing status.
+
+## Push setup
+
+v15.8 stores browser push preferences and subscription payloads. The database/API shape is ready for production web-push delivery; VAPID delivery can be added next without changing tables.
+
+## Run locally
 
 ```bash
 npm install
-npm run dev
-```
-
-## Production build
-
-```bash
 npm run build
-npm start
+npm run dev
 ```

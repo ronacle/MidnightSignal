@@ -1,1 +1,1 @@
-export const BUILD = { version: '15.7.0', name: 'Automated Retention Engine', deployedAt: '2026-04-25' };
+export const BUILD = { version: '15.8.0', name: 'Notification Engine', deployedAt: '2026-04-25' };
