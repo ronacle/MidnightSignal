@@ -7,12 +7,16 @@ import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '
 import { BUILD } from '@/lib/build';
 import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market';
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
-import { PerformanceOutcome, SignalResult, buildSignalResults, outcomeLabel, summarizePerformance } from '@/lib/performance';
+import { PerformanceOutcome, SignalResult, buildProPerformanceAnalytics, buildSignalReceiptText, buildSignalResults, formatHoldTime, outcomeLabel, summarizePerformance } from '@/lib/performance';
 
 type AccessMode = 'unset' | 'guest' | 'early';
 type Plan = 'free' | 'pro';
 type SignalOutcome = 'Worked' | 'Failed' | 'Neutral';
 type SignalHistoryItem = AssetSignal & { outcome: SignalOutcome; note: string; age: string };
+type AlertPreferenceKey = 'highConfidenceAlerts' | 'dailyRecap' | 'settlementAlerts' | 'proOnlyAlerts';
+type AlertPreferences = Record<AlertPreferenceKey, boolean>;
+type AlertEventPreview = { id: string; title: string; body: string; type: string; createdAt: string };
+type DailyRecapPreview = { body: string; totalClosed: number; wins: number; losses: number; winRate: number; avgReturn: number; best: string | null } | null;
 type AuthUser = { id: string; email: string } | null;
 type Stored = {
   agreed?: boolean;
@@ -34,6 +38,7 @@ type RitualState = { topSignal: boolean; confidence: boolean; watchlist: boolean
 const storageKey = 'midnight-signal-v13-4';
 const currencies = ['USD', 'CAD', 'EUR'];
 const defaultRitual: RitualState = { topSignal: false, confidence: false, watchlist: false, market: false };
+const defaultAlertPreferences: AlertPreferences = { highConfidenceAlerts: true, dailyRecap: true, settlementAlerts: true, proOnlyAlerts: true };
 
 function readStored(): Stored {
   if (typeof window === 'undefined') return {};
@@ -112,6 +117,9 @@ export default function Dashboard() {
   const [loadingLive, setLoadingLive] = useState(false);
   const [persistentResults, setPersistentResults] = useState<SignalResult[]>([]);
   const [performanceSource, setPerformanceSource] = useState<'database' | 'simulated'>('simulated');
+  const [alertPreferences, setAlertPreferences] = useState<AlertPreferences>(defaultAlertPreferences);
+  const [alertEvents, setAlertEvents] = useState<AlertEventPreview[]>([]);
+  const [dailyRecap, setDailyRecap] = useState<DailyRecapPreview>(null);
   const [lastTop, setLastTop] = useState<AssetSignal | undefined>();
 
   useEffect(() => { setMounted(true); }, []);
@@ -198,6 +206,29 @@ export default function Dashboard() {
   useEffect(() => { refreshPlan(); }, [authUser, earlyEmail, authEmail]);
 
   useEffect(() => {
+    const params = new URLSearchParams();
+    if (authUser?.id) params.set('userId', authUser.id);
+    fetch('/api/alerts/preferences?' + params.toString())
+      .then(response => response.ok ? response.json() : Promise.reject(new Error('preferences unavailable')))
+      .then(data => setAlertPreferences({ ...defaultAlertPreferences, ...(data.preferences || {}) }))
+      .catch(() => setAlertPreferences(defaultAlertPreferences));
+
+    const eventParams = new URLSearchParams(params);
+    eventParams.set('limit', '8');
+    fetch('/api/alerts/events?' + eventParams.toString())
+      .then(response => response.ok ? response.json() : Promise.reject(new Error('alerts unavailable')))
+      .then(data => setAlertEvents(Array.isArray(data.events) ? data.events : []))
+      .catch(() => setAlertEvents([]));
+
+    const recapParams = new URLSearchParams(params);
+    recapParams.set('dryRun', 'true');
+    fetch('/api/cron/daily-recap?' + recapParams.toString())
+      .then(response => response.ok ? response.json() : Promise.reject(new Error('recap unavailable')))
+      .then(data => setDailyRecap(data.recap || null))
+      .catch(() => setDailyRecap(null));
+  }, [authUser?.id, performanceSource, snapshot.updatedAt]);
+
+  useEffect(() => {
     if (typeof window === 'undefined' || checkoutReturnHandled.current) return;
     const params = new URLSearchParams(window.location.search);
 
@@ -247,6 +278,7 @@ export default function Dashboard() {
   const simulatedPerformanceResults = useMemo(() => buildSignalResults(signals, mode), [signals, mode]);
   const performanceResults = persistentResults.length ? persistentResults : simulatedPerformanceResults;
   const performanceSummary = useMemo(() => summarizePerformance(performanceResults), [performanceResults]);
+  const proAnalytics = useMemo(() => buildProPerformanceAnalytics(performanceResults), [performanceResults]);
   const topOutcome = outcomeForSignal(top);
 
   useEffect(() => {
@@ -298,6 +330,16 @@ export default function Dashboard() {
     setAuthUser(null);
     setPlan('free');
   }
+  function updateAlertPreference(key: AlertPreferenceKey, value: boolean) {
+    const next = { ...alertPreferences, [key]: value };
+    setAlertPreferences(next);
+    fetch('/api/alerts/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: authUser?.id || null, preferences: next })
+    }).catch(() => undefined);
+  }
+
   async function upgradeToPro() {
     setUpgrading(true);
     setAuthMessage('');
@@ -385,7 +427,7 @@ export default function Dashboard() {
         <TrustCard icon={<Zap size={18} />} label="Market condition" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} onClick={() => markRitual('market')} />
       </section>
 
-      <PerformanceHero summary={performanceSummary} results={performanceResults} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
+      <PerformanceHero summary={performanceSummary} results={performanceResults} analytics={proAnalytics} source={performanceSource} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
 
       <section className="mt-4 grid gap-4 lg:grid-cols-[.85fr_1.15fr]">
         <div className="space-y-4">
@@ -396,7 +438,7 @@ export default function Dashboard() {
           <AuthPanel authUser={authUser} plan={plan} authEmail={authEmail} setAuthEmail={setAuthEmail} authMessage={authMessage} onMagicLink={sendMagicLink} onSignOut={signOut} onUpgrade={upgradeToPro} upgrading={upgrading} checkoutSyncing={checkoutSyncing} />
           <JourneyCard visits={visits} journey={journey} completed={completedRitual} />
           <RitualCard ritual={ritual} mark={markRitual} />
-          <NotificationsCard top={top} outcome={topOutcome} condition={snapshot.marketCondition} />
+          <NotificationsCard top={top} outcome={topOutcome} condition={snapshot.marketCondition} preferences={alertPreferences} events={alertEvents} dailyRecap={dailyRecap} isPro={plan === 'pro'} onToggle={updateAlertPreference} onUpgrade={upgradeToPro} />
         </div>
 
         <div className={`card rounded-3xl p-5 ${signalChanged ? 'animate-pulseSignal' : ''}`}>
@@ -406,6 +448,7 @@ export default function Dashboard() {
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <SignalPerformanceCard signal={top} outcome={topOutcome} />
             <SignalHistoryPanel results={performanceResults} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
+            <ProAnalyticsPanel analytics={proAnalytics} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <ProLock isPro={plan === 'pro'} onUpgrade={upgradeToPro} title="Advanced MTF Weighting" body="Compare short, swing, and position posture in one combined Pro view. Used by early access members who want deeper context." />
@@ -425,7 +468,7 @@ export default function Dashboard() {
       </section>
 
       {glossaryOpen && <Glossary onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Alerts + Daily Recap · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
@@ -449,19 +492,19 @@ function performanceOutcomeClass(outcome: PerformanceOutcome) {
   return 'text-signal-amber bg-signal-amber/10 border-signal-amber/30';
 }
 
-function PerformanceHero({ summary, results, isPro, onUpgrade }: { summary: ReturnType<typeof summarizePerformance>; results: SignalResult[]; isPro: boolean; onUpgrade: () => void }) {
-  const recent = results.slice(0, 6);
+function PerformanceHero({ summary, results, analytics, source, isPro, onUpgrade }: { summary: ReturnType<typeof summarizePerformance>; results: SignalResult[]; analytics: ReturnType<typeof buildProPerformanceAnalytics>; source: 'database' | 'simulated'; isPro: boolean; onUpgrade: () => void }) {
+  const recent = results.slice(0, isPro ? 9 : 3);
   return <section className="mt-4 card rounded-3xl p-5">
-    <div className="mb-5 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-green/20 bg-signal-green/10 px-3 py-1 text-xs font-bold text-signal-green"><BarChart3 size={14} /> Signal Performance System</div><h2 className="text-3xl font-black">Proof that the signals are being scored.</h2><p className="mt-2 max-w-3xl text-sm text-slate-300">Every generated signal now gets a simulated entry, close, return, and win/loss/neutral outcome. This makes trust measurable instead of implied.</p></div>{!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlock full history</button>}</div>
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-green/20 bg-signal-green/10 px-3 py-1 text-xs font-bold text-signal-green"><BarChart3 size={14} /> Signal Receipts + Pro Analytics</div><h2 className="text-3xl font-black">Every signal now leaves a receipt.</h2><p className="mt-2 max-w-3xl text-sm text-slate-300">Closed signals show entry, exit, return, hold time, and outcome. Pro turns those receipts into symbol, confidence, and time-window analytics.</p><p className="mt-2 text-xs text-slate-500">{source === 'database' ? 'Using settled database receipts.' : 'Using deterministic simulated receipts until your cron settles live rows.'} Simulated historical results are not financial advice and do not guarantee future returns.</p></div>{!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlock Pro analytics</button>}</div>
     <div className="grid gap-3 md:grid-cols-4">
-      <MetricTile icon={<Target size={18} />} label="Win rate" value={`${summary.winRate}%`} detail={`${summary.wins}/${summary.wins + summary.losses} decisive`} />
-      <MetricTile icon={<TrendingUp size={18} />} label="Avg return" value={`${summary.avgReturn >= 0 ? '+' : ''}${summary.avgReturn}%`} detail={`${summary.totalReturn >= 0 ? '+' : ''}${summary.totalReturn}% total simulated`} />
+      <MetricTile icon={<Target size={18} />} label="Win rate" value={`${summary.winRate}%`} detail={`${summary.wins}/${summary.wins + summary.losses} decisive receipts`} />
+      <MetricTile icon={<TrendingUp size={18} />} label="Avg return" value={`${summary.avgReturn >= 0 ? '+' : ''}${summary.avgReturn}%`} detail={`${summary.totalReturn >= 0 ? '+' : ''}${summary.totalReturn}% total tracked`} />
       <MetricTile icon={<Flame size={18} />} label="Streak" value={`${summary.currentStreak} ${outcomeLabel(summary.currentStreakType)}`} detail="Most recent closed run" />
-      <MetricTile icon={<Activity size={18} />} label="Confidence accuracy" value={`${summary.confidenceAccuracy}%`} detail={summary.proEdge} />
+      <MetricTile icon={<Clock3 size={18} />} label="Avg hold" value={`${analytics.averageHoldHours}h`} detail="Average receipt settlement time" />
     </div>
     <div className="mt-4 grid gap-3 lg:grid-cols-[.8fr_1.2fr]">
-      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">Best / Worst Read</p><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-1"><ResultMini result={summary.best} title="Best" /><ResultMini result={summary.worst} title="Needs review" /></div></div>
-      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">Latest closes</p><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{recent.map(result => <ResultMini key={result.id} result={result} />)}</div></div>
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">Receipt extremes</p><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-1"><ResultMini result={analytics.bestReceipt} title="Best receipt" /><ResultMini result={analytics.worstReceipt} title="Needs review" /></div></div>
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-bold uppercase tracking-[.16em] text-slate-400">Latest signal receipts</p><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{recent.map(result => <SignalReceiptCard key={result.id} result={result} compact={!isPro} />)}</div>{!isPro && <p className="mt-3 text-xs text-slate-400">Free preview shows the receipt headline. Pro unlocks full receipt notes and analytics breakdowns.</p>}</div>
     </div>
   </section>;
 }
@@ -471,23 +514,42 @@ function MetricTile({ icon, label, value, detail }: { icon: React.ReactNode; lab
 }
 
 function ResultMini({ result, title }: { result: SignalResult; title?: string }) {
-  return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-2"><p className="font-black">{title ? title + ': ' : ''}{result.symbol}</p><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(result.outcome)}>{outcomeLabel(result.outcome)}</span></div><p className={result.returnPct >= 0 ? 'mt-2 text-lg font-black text-signal-green' : 'mt-2 text-lg font-black text-signal-red'}>{result.returnPct >= 0 ? '+' : ''}{result.returnPct}%</p><p className="text-xs text-slate-400">{result.direction.toUpperCase()} · {result.confidence}% confidence</p></div>;
+  return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-2"><p className="font-black">{title ? title + ': ' : ''}{result.symbol}</p><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(result.outcome)}>{outcomeLabel(result.outcome)}</span></div><p className={result.returnPct >= 0 ? 'mt-2 text-lg font-black text-signal-green' : 'mt-2 text-lg font-black text-signal-red'}>{result.returnPct >= 0 ? '+' : ''}{result.returnPct}%</p><p className="text-xs text-slate-400">{result.direction.toUpperCase()} · {result.confidence}% confidence · {formatHoldTime(result.openedAt, result.closedAt)}</p></div>;
+}
+
+function SignalReceiptCard({ result, compact = false }: { result: SignalResult; compact?: boolean }) {
+  return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-black">{result.symbol} <span className="text-xs font-normal text-slate-400">{result.direction.toUpperCase()}</span></p><p className="text-xs text-slate-400">{new Date(result.closedAt).toLocaleDateString()} · {formatHoldTime(result.openedAt, result.closedAt)}</p></div><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(result.outcome)}>{outcomeLabel(result.outcome)}</span></div><div className="mt-3 rounded-xl border border-white/10 bg-black/10 p-3"><p className="text-xs text-slate-400">Entry → Exit</p><p className="font-bold">{result.entryPrice} → {result.exitPrice}</p><p className={result.returnPct >= 0 ? 'text-sm font-black text-signal-green' : 'text-sm font-black text-signal-red'}>{result.returnPct >= 0 ? '+' : ''}{result.returnPct}%</p></div>{!compact && <><p className="mt-2 text-xs text-slate-300">{buildSignalReceiptText(result)}</p><p className="mt-1 text-xs text-slate-500">{result.note}</p></>}</div>;
 }
 
 function SignalPerformanceCard({ signal, outcome }: { signal: AssetSignal; outcome: SignalOutcome }) {
   return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center gap-2 text-signal-blue"><Activity size={18} /><h3 className="font-bold">Previous Signal Result</h3></div><span className={'inline-flex rounded-full border px-3 py-1 text-xs font-black ' + outcomeClass(outcome)}>{outcome}</span><p className="mt-3 text-sm text-slate-300">{signal.symbol} is reviewed through a simple 24h outcome lens: Worked / Failed / Neutral. This keeps the product honest without pretending to be a guaranteed trading system.</p><p className="mt-3 text-xs text-slate-500">Educational heuristic only · not financial advice</p></div>;
 }
 function SignalHistoryPanel({ results, isPro, onUpgrade }: { results: SignalResult[]; isPro: boolean; onUpgrade: () => void }) {
-  const visible = results.slice(0, isPro ? 8 : 3);
-  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-signal-blue"><History size={18} /><h3 className="font-bold">Recent Signal Results</h3></div>{!isPro && <Lock className="text-signal-amber" size={18} />}</div><div className={!isPro ? 'premium-lock space-y-2 opacity-75' : 'space-y-2'}>{visible.map(item => <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><div className="flex items-center justify-between gap-3"><div><p className="font-bold">{item.symbol} <span className="text-xs font-normal text-slate-400">{item.direction.toUpperCase()} · {item.mode}</span></p><p className="text-xs text-slate-400">{item.confidence}% confidence · {new Date(item.closedAt).toLocaleDateString()}</p></div><span className={'rounded-full border px-2 py-1 text-[11px] font-black ' + performanceOutcomeClass(item.outcome)}>{outcomeLabel(item.outcome)} · {item.returnPct >= 0 ? '+' : ''}{item.returnPct}%</span></div>{isPro && <p className="mt-2 text-xs text-slate-400">{item.note}</p>}</div>)}</div>{!isPro && <div><p className="mt-3 text-sm text-slate-300">Free preview shows three recent outcomes. Pro unlocks full result notes, confidence review, and history depth.</p><button onClick={onUpgrade} className="mt-3 w-full rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber">Unlock performance history</button></div>}</div>;
+  const visible = results.slice(0, isPro ? 10 : 3);
+  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-signal-blue"><History size={18} /><h3 className="font-bold">Signal Receipt Ledger</h3></div>{!isPro && <Lock className="text-signal-amber" size={18} />}</div><div className={!isPro ? 'premium-lock space-y-2 opacity-75' : 'space-y-2'}>{visible.map(item => <SignalReceiptCard key={item.id} result={item} compact={!isPro} />)}</div>{!isPro && <div><p className="mt-3 text-sm text-slate-300">Free preview shows three receipts. Pro unlocks the full receipt ledger, notes, and analytics depth.</p><button onClick={onUpgrade} className="mt-3 w-full rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber">Unlock receipt ledger</button></div>}</div>;
 }
-function NotificationsCard({ top, outcome, condition }: { top: AssetSignal; outcome: SignalOutcome; condition: MarketCondition }) {
-  const alerts = [
+
+function AnalyticsBreakdownTable({ title, rows }: { title: string; rows: ReturnType<typeof buildProPerformanceAnalytics>['bySymbol'] }) {
+  return <div className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><p className="mb-2 text-xs font-bold uppercase tracking-[.16em] text-slate-400">{title}</p><div className="space-y-2">{rows.map(row => <div key={row.key} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-xs"><span className="font-bold text-slate-200">{row.label}</span><span className="text-slate-400">{row.total}x</span><span className={row.avgReturn >= 0 ? 'font-black text-signal-green' : 'font-black text-signal-red'}>{row.winRate}% · {row.avgReturn >= 0 ? '+' : ''}{row.avgReturn}%</span></div>)}</div></div>;
+}
+
+function ProAnalyticsPanel({ analytics, isPro, onUpgrade }: { analytics: ReturnType<typeof buildProPerformanceAnalytics>; isPro: boolean; onUpgrade: () => void }) {
+  return <div className="rounded-3xl border border-white/10 bg-white/[.04] p-4"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-signal-blue"><BarChart3 size={18} /><h3 className="font-bold">Pro Analytics</h3></div>{!isPro && <Lock className="text-signal-amber" size={18} />}</div><div className={!isPro ? 'premium-lock opacity-70' : ''}><div className="grid gap-2 sm:grid-cols-3">{analytics.windows.map(item => <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[.03] p-3"><p className="text-xs font-bold text-slate-400">{item.label}</p><p className="text-2xl font-black">{item.summary.winRate}%</p><p className={item.summary.avgReturn >= 0 ? 'text-xs text-signal-green' : 'text-xs text-signal-red'}>{item.summary.avgReturn >= 0 ? '+' : ''}{item.summary.avgReturn}% avg</p></div>)}</div><div className="mt-3 grid gap-3"><AnalyticsBreakdownTable title="By symbol" rows={analytics.bySymbol} /><AnalyticsBreakdownTable title="By confidence" rows={analytics.byConfidenceTier} /><AnalyticsBreakdownTable title="By trader mode" rows={analytics.byMode} /></div></div>{!isPro && <div><p className="mt-3 text-sm text-slate-300">Pro analytics compares win rate and average return by symbol, confidence tier, trader mode, and 7/30/90 day windows.</p><button onClick={onUpgrade} className="mt-3 w-full rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber">Unlock Pro analytics</button></div>}</div>;
+}
+
+function NotificationsCard({ top, outcome, condition, preferences, events, dailyRecap, isPro, onToggle, onUpgrade }: { top: AssetSignal; outcome: SignalOutcome; condition: MarketCondition; preferences: AlertPreferences; events: AlertEventPreview[]; dailyRecap: DailyRecapPreview; isPro: boolean; onToggle: (key: AlertPreferenceKey, value: boolean) => void; onUpgrade: () => void }) {
+  const alerts = events.length ? events.slice(0, 3).map(event => event.title + ': ' + event.body) : [
     top.symbol + " remains tonight's strongest signal at " + top.confidence + '% confidence.',
     'Previous signal result: ' + outcome + '.',
     condition === 'volatile' ? 'Volatile tape: widen your learning lens before reacting.' : condition === 'active' ? 'Active market: good conditions for reviewing signal quality.' : 'Calm market: fewer confirmations, more patience.'
   ];
-  return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><BellRing size={18} /><h2 className="text-xl font-bold">Signal Alerts</h2></div><div className="space-y-2">{alerts.map(alert => <div key={alert} className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-300">{alert}</div>)}</div></div>;
+  const toggles: [AlertPreferenceKey, string, string, boolean][] = [
+    ['highConfidenceAlerts', 'High-confidence alerts', 'Instant ping when a 72%+ signal opens.', true],
+    ['dailyRecap', 'Daily recap', 'One daily summary of wins, losses, and best receipt.', true],
+    ['settlementAlerts', 'Settlement alerts', 'Notify when a tracked signal closes.', true],
+    ['proOnlyAlerts', 'Pro-only alerts', 'Immediate Pro alert stream for premium signals.', isPro]
+  ];
+  return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center justify-between gap-3"><div className="flex items-center gap-2 text-signal-blue"><BellRing size={18} /><h2 className="text-xl font-bold">Alerts + Daily Recap</h2></div><Mail size={18} className="text-slate-500" /></div>{dailyRecap && <div className="mb-3 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3"><p className="text-xs font-bold uppercase tracking-[.16em] text-signal-blue">Today’s recap</p><p className="mt-1 text-sm text-slate-200">{dailyRecap.body}</p><p className="mt-1 text-xs text-slate-400">Best: {dailyRecap.best || 'No closed signal yet'}</p></div>}<div className="space-y-2">{alerts.map(alert => <div key={alert} className="rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-300">{alert}</div>)}</div><div className="mt-4 space-y-2">{toggles.map(([key, label, detail, enabled]) => <div key={key} className={!enabled ? 'opacity-60' : ''}><button disabled={!enabled} onClick={() => enabled ? onToggle(key, !preferences[key]) : onUpgrade()} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[.03] p-3 text-left"><span><span className="block text-sm font-bold text-slate-100">{label}</span><span className="block text-xs text-slate-400">{enabled ? detail : 'Pro unlock required.'}</span></span><span className={preferences[key] && enabled ? 'rounded-full bg-signal-green/20 px-3 py-1 text-xs font-black text-signal-green' : 'rounded-full bg-white/10 px-3 py-1 text-xs font-black text-slate-400'}>{preferences[key] && enabled ? 'ON' : 'OFF'}</span></button></div>)}</div></div>;
 }
 
 function AuthPanel({ authUser, plan, authEmail, setAuthEmail, authMessage, onMagicLink, onSignOut, onUpgrade, upgrading, checkoutSyncing }: { authUser: AuthUser; plan: Plan; authEmail: string; setAuthEmail: (v: string) => void; authMessage: string; onMagicLink: () => void; onSignOut: () => void; onUpgrade: () => void; upgrading: boolean; checkoutSyncing: boolean }) { return <div className="card rounded-3xl p-5"><div className="mb-3 flex items-center gap-2 text-signal-blue"><UserRound size={18} /><h2 className="text-xl font-bold">Account + Pro</h2></div>{authUser ? <><p className="text-sm text-slate-300">Signed in as <strong className="text-white">{authUser.email}</strong></p><p className="mt-2 text-2xl font-black">Plan: <span className={plan === 'pro' ? 'text-signal-green' : ''}>{checkoutSyncing ? 'SYNCING' : plan.toUpperCase()}</span></p><div className="mt-4 grid gap-2 sm:grid-cols-2"><button onClick={onUpgrade} disabled={plan === 'pro' || checkoutSyncing} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950 disabled:opacity-40">{checkoutSyncing ? 'Finalizing...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button><button onClick={onSignOut} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-bold">Sign out</button></div></> : <><p className="text-sm text-slate-300">Enter the same email you use at checkout. Magic link is optional; Pro can sync by email.</p><input value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="email@example.com" className="mt-3 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:ring-4 focus:ring-signal-blue/20" /><div className="mt-3 grid gap-2 sm:grid-cols-2"><button onClick={onMagicLink} className="rounded-2xl bg-signal-blue px-4 py-3 font-bold text-midnight-950">Send Magic Link</button><button onClick={onUpgrade} disabled={checkoutSyncing} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 font-bold text-signal-amber disabled:opacity-50">{checkoutSyncing ? 'Finalizing...' : upgrading ? 'Opening...' : 'Upgrade $9/mo'}</button></div></>}{authMessage && <p className="mt-3 text-xs text-slate-400">{authMessage}</p>}</div>; }

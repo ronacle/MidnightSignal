@@ -2,6 +2,7 @@ import type { AssetSignal, TraderMode } from './signals';
 import type { PerformanceOutcome, SignalDirection, SignalResult } from './performance';
 import { getSupabaseAdminClient } from './supabase-server';
 import { getMarketPrice } from './market';
+import { createHighConfidenceAlertEvents, createSettlementAlertEvent } from './alerts';
 
 const SETTLE_AFTER_HOURS = Number(process.env.SIGNAL_SETTLE_AFTER_HOURS || 24);
 const MAX_OPEN_PER_MODE = Number(process.env.SIGNAL_MAX_OPEN_PER_MODE || 20);
@@ -119,7 +120,8 @@ export async function saveOpenSignals(signals: AssetSignal[], mode: TraderMode, 
   if (!rows.length) return { inserted: 0, skipped: false };
   const { error } = await supabase.from('signal_results').insert(rows);
   if (error) return { inserted: 0, skipped: true, reason: error.message };
-  return { inserted: rows.length, skipped: false };
+  const alertResult = await createHighConfidenceAlertEvents(rows);
+  return { inserted: rows.length, skipped: false, alertResult };
 }
 
 export async function settleOpenSignals() {
@@ -162,7 +164,11 @@ export async function settleOpenSignals() {
         .eq('id', signal.id);
 
       if (update.error) errors.push(`${signal.symbol}: ${update.error.message}`);
-      else settled += 1;
+      else {
+        settled += 1;
+        const closedAt = new Date().toISOString();
+        await createSettlementAlertEvent(normalize({ ...signal, exit_price: exitPrice, return_pct: returnPct, outcome, closed_at: closedAt, note }), signal.user_id ?? null);
+      }
     } catch (error) {
       errors.push(`${signal.symbol}: ${error instanceof Error ? error.message : 'Unknown settlement error'}`);
     }
