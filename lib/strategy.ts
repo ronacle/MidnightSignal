@@ -139,6 +139,60 @@ export function rankSignalsByStrategy(signals: AssetSignal[], strategy: Strategy
   });
 }
 
+export type GuidedAction = {
+  action: 'Act' | 'Wait' | 'Avoid';
+  conviction: number;
+  title: string;
+  reason: string;
+  riskNote: string;
+  checklist: string[];
+  glossaryTerms: string[];
+};
+
+export function buildGuidedAction(signal: AssetSignal, strategy: StrategyId, mode?: TraderMode): GuidedAction {
+  const fit = scoreSignalForStrategy(signal, strategy, mode);
+  const strategyDef = getStrategy(strategy);
+  const change = Number(signal.change24h || 0);
+  const volatility = Number(signal.volatility || 0);
+  const momentum = Number(signal.momentum || 0);
+  const conviction = clampScore(Math.round(fit.score * 0.55 + signal.confidence * 0.3 + Math.max(0, momentum - 50) * 0.15));
+  const stretched = Math.abs(change) >= 4 || volatility >= 70;
+  const weakening = signal.label === 'Bearish' || signal.confidence < 55;
+  const action: GuidedAction['action'] = fit.action;
+
+  const title = action === 'Act'
+    ? 'Act: ' + signal.symbol + ' fits your ' + strategyDef.name + ' strategy'
+    : action === 'Wait'
+      ? 'Wait: ' + signal.symbol + ' needs confirmation'
+      : 'Avoid: ' + signal.symbol + ' conflicts with your ' + strategyDef.name + ' strategy';
+
+  const reason = action === 'Act'
+    ? signal.symbol + ' has enough strategy fit, confidence, and current movement to justify attention under your ' + strategyDef.name + ' lens.'
+    : action === 'Wait'
+      ? signal.symbol + ' is not weak enough to dismiss, but the setup needs a cleaner confirmation before it becomes a stronger action candidate.'
+      : signal.symbol + ' is a poor fit right now because the signal quality, movement profile, or risk posture does not line up with your active strategy.';
+
+  const riskNote = action === 'Act'
+    ? (stretched ? 'Risk note: conviction is positive, but the move may be stretched. Size decisions carefully and watch for reversal pressure.' : 'Risk note: action guidance is educational, not a trade instruction. Confirm with your own risk plan before acting.')
+    : action === 'Wait'
+      ? 'Risk note: waiting protects you from acting on incomplete confirmation. Re-check if confidence or network strength improves.'
+      : (weakening ? 'Risk note: avoid guidance is triggered because signal quality is weak or bearish relative to your strategy.' : 'Risk note: this setup may work for another strategy, but it is not aligned with the current one.');
+
+  return {
+    action,
+    conviction,
+    title,
+    reason,
+    riskNote,
+    checklist: [
+      fit.score + '% strategy fit',
+      signal.confidence + '% confidence',
+      (change >= 0 ? '+' : '') + change + '% 24h move'
+    ],
+    glossaryTerms: Array.from(new Set([...strategyDef.glossaryTerms, 'Confidence', 'Risk profile']))
+  };
+}
+
 export function buildStrategyPerformance(results: SignalResult[], strategy: StrategyId): StrategyPerformance {
   const weighted = results.map(result => ({ result, fit: scoreSignalForStrategy({ symbol: result.symbol, name: result.symbol, price: 0, change24h: result.returnPct, label: result.direction === 'long' ? 'Bullish' : 'Bearish', confidence: result.confidence, why: '' } as AssetSignal, strategy).score }));
   const relevant = weighted.filter(item => item.fit >= 55).map(item => item.result);

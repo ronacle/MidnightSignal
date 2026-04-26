@@ -11,7 +11,7 @@ import { MarketCondition, TrustSnapshot, getMarketSnapshot } from '@/lib/market'
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PerformanceOutcome, SignalResult, buildProPerformanceAnalytics, buildSignalReceiptText, buildSignalResults, formatHoldTime, outcomeLabel, summarizePerformance } from '@/lib/performance';
 import { buildPersonalIntelligenceProfile, type UserIntelligenceProfile } from '@/lib/personalization';
-import { STRATEGIES, buildStrategyPerformance, getStrategy, rankSignalsByStrategy, scoreSignalForStrategy, type StrategyId } from '@/lib/strategy';
+import { STRATEGIES, buildGuidedAction, buildStrategyPerformance, getStrategy, rankSignalsByStrategy, scoreSignalForStrategy, type StrategyId } from '@/lib/strategy';
 
 type AccessMode = 'unset' | 'guest' | 'early';
 type Plan = 'free' | 'pro';
@@ -540,6 +540,7 @@ export default function Dashboard() {
   const activeStrategyFit = useMemo(() => scoreSignalForStrategy(active, activeStrategy, mode), [active, activeStrategy, mode]);
   const topStrategyFit = useMemo(() => scoreSignalForStrategy(top, activeStrategy, mode), [top, activeStrategy, mode]);
   const strategyPerformance = useMemo(() => buildStrategyPerformance(performanceResults, activeStrategy), [performanceResults, activeStrategy]);
+  const guidedAction = useMemo(() => buildGuidedAction(strategyTop, activeStrategy, mode), [strategyTop, activeStrategy, mode]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -829,7 +830,7 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Strategy Layer</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Guided Action Layer</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, Midnight Network context, global discovery, and recommendations that explain why they were ranked for you.</p>
         </div>
@@ -895,6 +896,7 @@ export default function Dashboard() {
       </section>
 
       <StrategyLayerCard strategy={strategyDefinition} activeStrategy={activeStrategy} strategies={STRATEGIES} message={strategyMessage} top={strategyTop} fit={topStrategyFit} activeFit={activeStrategyFit} performance={strategyPerformance} onStrategy={updateActiveStrategy} onSelect={selectSignal} onGlossary={openGlossaryTerm} />
+      <GuidedActionLayer action={guidedAction} signal={strategyTop} strategyName={strategyDefinition.name} onSelect={selectSignal} onGlossary={openGlossaryTerm} />
 
       <PerformanceHero summary={performanceSummary} results={performanceResults} analytics={proAnalytics} source={performanceSource} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
 
@@ -950,19 +952,56 @@ export default function Dashboard() {
         <BookOpen size={18} /> Learn
       </button>
       {glossaryOpen && <Glossary activeTerm={activeGlossaryTerm} onJump={setActiveGlossaryTerm} onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Strategy Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Guided Action Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
 
 
 
+function GuidedActionLayer({ action, signal, strategyName, onSelect, onGlossary }: { action: ReturnType<typeof buildGuidedAction>; signal: AssetSignal; strategyName: string; onSelect: (symbol: string) => void; onGlossary: (term: string) => void }) {
+  const tone = action.action === 'Act'
+    ? 'border-signal-green/30 bg-signal-green/10 text-signal-green'
+    : action.action === 'Avoid'
+      ? 'border-signal-red/30 bg-signal-red/10 text-signal-red'
+      : 'border-signal-amber/30 bg-signal-amber/10 text-signal-amber';
+  return <section className="mt-4 rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[.07] via-white/[.03] to-signal-green/10 p-5 shadow-soft">
+    <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-green/30 bg-signal-green/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-green"><Zap size={14} /> Guided Action Layer</div>
+        <h2 className="text-2xl font-black">{action.title}</h2>
+        <p className="mt-1 max-w-3xl text-sm text-slate-300">Strategy fit is now translated into a clear educational decision path: <GlossaryTerm term="Signal" onClick={onGlossary}>signal</GlossaryTerm>, <GlossaryTerm term="Confidence" onClick={onGlossary}>confidence</GlossaryTerm>, and <GlossaryTerm term="Risk profile" onClick={onGlossary}>risk profile</GlossaryTerm> become Act, Wait, or Avoid guidance.</p>
+      </div>
+      <div className="rounded-3xl border border-white/10 bg-black/20 px-5 py-4 text-right">
+        <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Conviction</p>
+        <p className="text-3xl font-black text-white">{action.conviction}%</p>
+        <span className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-black ${tone}`}>{action.action}</span>
+      </div>
+    </div>
+    <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+      <button onClick={() => onSelect(signal.symbol)} className="rounded-3xl border border-white/10 bg-black/20 p-5 text-left transition hover:border-signal-blue/40">
+        <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Guided decision</p>
+        <div className="mt-2 flex flex-wrap items-center gap-3"><h3 className="text-3xl font-black">{signal.symbol}</h3><span className={`rounded-full border px-3 py-1 text-xs font-black ${tone}`}>{action.action}</span><span className="rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300">{strategyName}</span></div>
+        <p className="mt-3 text-sm text-slate-300">{action.reason}</p>
+        <p className="mt-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-300">{action.riskNote}</p>
+      </button>
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-5">
+        <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Action checklist</p>
+        <div className="mt-3 grid gap-2">
+          {action.checklist.map(item => <div key={item} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm font-bold text-slate-200"><CheckCircle2 size={16} className="text-signal-green" />{item}</div>)}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">{action.glossaryTerms.slice(0, 5).map(term => <button key={term} onClick={() => onGlossary(term)} className="rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-bold text-signal-blue"><BookOpen className="mr-1 inline" size={12} />{term}</button>)}</div>
+      </div>
+    </div>
+  </section>;
+}
+
 function StrategyLayerCard({ strategy, activeStrategy, strategies, message, top, fit, activeFit, performance, onStrategy, onSelect, onGlossary }: { strategy: ReturnType<typeof getStrategy>; activeStrategy: StrategyId; strategies: typeof STRATEGIES; message: string; top: AssetSignal; fit: ReturnType<typeof scoreSignalForStrategy>; activeFit: ReturnType<typeof scoreSignalForStrategy>; performance: ReturnType<typeof buildStrategyPerformance>; onStrategy: (strategy: StrategyId) => void; onSelect: (symbol: string) => void; onGlossary: (term: string) => void }) {
   const actionClass = fit.action === 'Act' ? 'border-signal-green/30 bg-signal-green/10 text-signal-green' : fit.action === 'Avoid' ? 'border-signal-red/30 bg-signal-red/10 text-signal-red' : 'border-signal-amber/30 bg-signal-amber/10 text-signal-amber';
   return <section className="mt-4 rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[.07] via-white/[.03] to-signal-blue/10 p-5 shadow-soft">
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Target size={14} /> Strategy Layer</div>
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><Target size={14} /> Guided Action Layer</div>
         <h2 className="text-2xl font-black">Single active strategy: {strategy.name}</h2>
         <p className="mt-1 max-w-3xl text-sm text-slate-300">{strategy.description}</p>
       </div>
