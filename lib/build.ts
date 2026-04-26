@@ -1,1 +1,1 @@
-export const BUILD = { version: '17.1.0', name: 'Guided Action Layer', deployedAt: '2026-04-25' };
+export const BUILD = { version: '17.2.0', name: 'Learning UX Polish', deployedAt: '2026-04-25' };
