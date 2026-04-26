@@ -1456,7 +1456,7 @@ function Glossary({ activeTerm, onJump, onClose }: { activeTerm: string; onJump:
     'Midnight Network context': 'Midnight Network Strength',
     'Personal behavior': 'Personalization Match'
   };
-  const termSet = new Set(terms.map(([term]) => term));
+  const termSet: Set<string> = new Set(terms.map(([term]) => term));
   const requested = activeTerm || 'Signal';
   const active = termSet.has(requested) ? requested : (termAliases[requested] || 'Signal');
   const activeId = 'glossary-' + active.toLowerCase().replace(/[^a-z0-9]+/g, '-');
