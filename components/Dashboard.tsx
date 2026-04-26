@@ -12,6 +12,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PerformanceOutcome, SignalResult, buildProPerformanceAnalytics, buildSignalReceiptText, buildSignalResults, formatHoldTime, outcomeLabel, summarizePerformance } from '@/lib/performance';
 import { buildPersonalIntelligenceProfile, type UserIntelligenceProfile } from '@/lib/personalization';
 import { STRATEGIES, buildGuidedAction, buildStrategyPerformance, getStrategy, rankSignalsByStrategy, scoreSignalForStrategy, type StrategyId } from '@/lib/strategy';
+import { buildConvictionLayer, type ConvictionBreakdown } from '@/lib/conviction';
 
 type AccessMode = 'unset' | 'guest' | 'early';
 type Plan = 'free' | 'pro';
@@ -541,6 +542,7 @@ export default function Dashboard() {
   const topStrategyFit = useMemo(() => scoreSignalForStrategy(top, activeStrategy, mode), [top, activeStrategy, mode]);
   const strategyPerformance = useMemo(() => buildStrategyPerformance(performanceResults, activeStrategy), [performanceResults, activeStrategy]);
   const guidedAction = useMemo(() => buildGuidedAction(strategyTop, activeStrategy, mode), [strategyTop, activeStrategy, mode]);
+  const convictionLayer = useMemo(() => buildConvictionLayer({ signal: strategyTop, strategyFit: topStrategyFit, network: midnightNetwork, profile: personalIntelligence, historicalWinRate: performanceEngine.winRate }), [strategyTop, topStrategyFit, midnightNetwork, personalIntelligence, performanceEngine.winRate]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -830,7 +832,7 @@ export default function Dashboard() {
 
       <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Guided Action Layer</div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version} · Confidence Layer</div>
           <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What’s the signal tonight? <span className="text-signal-blue">🌙</span></h1>
           <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, Midnight Network context, global discovery, and recommendations that explain why they were ranked for you.</p>
         </div>
@@ -897,6 +899,7 @@ export default function Dashboard() {
 
       <StrategyLayerCard strategy={strategyDefinition} activeStrategy={activeStrategy} strategies={STRATEGIES} message={strategyMessage} top={strategyTop} fit={topStrategyFit} activeFit={activeStrategyFit} performance={strategyPerformance} onStrategy={updateActiveStrategy} onSelect={selectSignal} onGlossary={openGlossaryTerm} />
       <GuidedActionLayer action={guidedAction} signal={strategyTop} strategyName={strategyDefinition.name} onSelect={selectSignal} onGlossary={openGlossaryTerm} />
+      <ConfidenceLayerCard conviction={convictionLayer} signal={strategyTop} strategyName={strategyDefinition.name} onGlossary={openGlossaryTerm} />
 
       <PerformanceHero summary={performanceSummary} results={performanceResults} analytics={proAnalytics} source={performanceSource} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
 
@@ -952,12 +955,66 @@ export default function Dashboard() {
         <BookOpen size={18} /> Learn
       </button>
       {glossaryOpen && <Glossary activeTerm={activeGlossaryTerm} onJump={setActiveGlossaryTerm} onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Guided Action Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version} · Confidence Layer · {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'} · {snapshot.source} · Educational use only · Not financial advice</footer>
     </main>
   );
 }
 
 
+
+function ConfidenceLayerCard({ conviction, signal, strategyName, onGlossary }: { conviction: ConvictionBreakdown; signal: AssetSignal; strategyName: string; onGlossary: (term: string) => void }) {
+  const toneClass = conviction.actionTone === 'positive'
+    ? 'border-signal-green/30 bg-signal-green/10 text-signal-green'
+    : conviction.actionTone === 'defensive'
+      ? 'border-signal-red/30 bg-signal-red/10 text-signal-red'
+      : 'border-signal-amber/30 bg-signal-amber/10 text-signal-amber';
+  const barClass = conviction.actionTone === 'positive'
+    ? 'bg-signal-green'
+    : conviction.actionTone === 'defensive'
+      ? 'bg-signal-red'
+      : 'bg-signal-amber';
+  const rows = [
+    ['Strategy fit', conviction.strategyFit, 'How well the signal matches your active strategy.'],
+    ['Signal confidence', conviction.signalConfidence, 'The raw signal strength from the current setup.'],
+    ['Network strength', conviction.networkStrength, 'Midnight Network basket context where available.'],
+    ['Personal match', conviction.personalizationMatch, 'How closely this matches your behavior and preferences.'],
+    ['Historical win rate', conviction.historicalWinRate, 'Recorded feedback and signal result context.']
+  ] as const;
+
+  return <section className="mt-4 rounded-[2rem] border border-white/10 bg-gradient-to-br from-signal-blue/10 via-white/[.04] to-black/20 p-5 shadow-soft">
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/30 bg-signal-blue/10 px-3 py-1 text-xs font-black uppercase tracking-[.16em] text-signal-blue"><ShieldCheck size={14} /> v18 Confidence Layer</div>
+        <h2 className="text-2xl font-black">How strong is this signal?</h2>
+        <p className="mt-1 max-w-3xl text-sm text-slate-300">Conviction blends <GlossaryTerm term="Strategy fit" onClick={onGlossary}>strategy fit</GlossaryTerm>, <GlossaryTerm term="Confidence" onClick={onGlossary}>confidence</GlossaryTerm>, Midnight Network context, and personal behavior into one clear strength read.</p>
+      </div>
+      <div className="min-w-[220px] rounded-3xl border border-white/10 bg-black/20 p-4 text-right">
+        <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Conviction</p>
+        <div className="mt-1 flex items-end justify-end gap-2"><span className="text-4xl font-black text-white">{conviction.score}</span><span className="pb-1 text-sm font-bold text-slate-400">/100</span></div>
+        <span className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-black ${toneClass}`}>{conviction.level}</span>
+      </div>
+    </div>
+    <div className="grid gap-4 lg:grid-cols-[.9fr_1.1fr]">
+      <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Signal</p><h3 className="text-3xl font-black">{signal.symbol}</h3></div><span className="rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300">{strategyName}</span></div>
+        <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10"><div className={`h-full rounded-full ${barClass}`} style={{ width: conviction.score + '%' }} /></div>
+        <p className="mt-4 text-sm text-slate-300">{conviction.summary}</p>
+        <p className="mt-3 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-3 text-sm text-slate-200"><BookOpen className="mr-2 inline text-signal-blue" size={16} /><strong>Works best when:</strong> {conviction.worksBestWhen}</p>
+        <p className="mt-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-300">{conviction.riskWarning}</p>
+      </div>
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-5">
+        <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Confidence breakdown</p>
+        <div className="mt-4 grid gap-3">
+          {rows.map(([label, value, detail]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/20 p-3">
+            <div className="flex items-center justify-between gap-3"><p className="font-bold text-slate-100">{label}</p><p className="font-black text-white">{value}%</p></div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-signal-blue" style={{ width: value + '%' }} /></div>
+            <p className="mt-2 text-xs text-slate-400">{detail}</p>
+          </div>)}
+        </div>
+      </div>
+    </div>
+  </section>;
+}
 
 function GuidedActionLayer({ action, signal, strategyName, onSelect, onGlossary }: { action: ReturnType<typeof buildGuidedAction>; signal: AssetSignal; strategyName: string; onSelect: (symbol: string) => void; onGlossary: (term: string) => void }) {
   const tone = action.action === 'Act'

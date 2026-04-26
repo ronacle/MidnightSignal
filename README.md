@@ -1,15 +1,22 @@
-# Midnight Signal v17.2 - Learning UX Polish
+# Midnight Signal v18 - Confidence Layer
 
-Adds Act / Wait / Avoid guidance, conviction scoring, action explanations, risk notes, and glossary-linked learning terms on top of the v17 single active strategy system.
+Full repo build based on the latest v17.2 learning UX build.
+
+## What changed
+
+- Adds a v18 Confidence Layer card.
+- Blends strategy fit, signal confidence, Midnight Network strength, personalization match, and historical win rate into a conviction score.
+- Shows Low / Medium / High / Extreme conviction.
+- Adds a confidence breakdown and "works best when" education note.
+- Keeps sticky Learn button, dotted glossary term links, outside-click glossary close, strategy layer, guided actions, and Midnight Network intelligence.
+
+## Run locally
 
 ```bash
 npm install
 npm run build
 ```
 
+## Notes
+
 Educational use only. Not financial advice.
-
-## v17.2 Learning UX Polish
-
-- Glossary-linked terms now use always-visible dotted underlines on desktop and mobile.
-- Keeps the sticky Learn button and outside-click close behavior from v16.5/v17.1.
