@@ -1414,25 +1414,51 @@ function Glossary({ activeTerm, onJump, onClose }: { activeTerm: string; onJump:
   const terms = [
     ['Signal', 'A simplified read of current market posture. It is educational context, not a trading instruction.', 'Signals'],
     ['Confidence', 'How strongly the heuristic agrees with itself across trend, momentum, volatility, and multi-timeframe posture.', 'Signals'],
+    ['Conviction Score', 'A single 0-100 strength read that blends signal confidence, strategy fit, historical results, personalization, and Midnight Network context.', 'Signals'],
+    ['Confidence Breakdown', 'The plain-English explanation of what contributed to a confidence or conviction score.', 'Signals'],
+    ['Guided Action', 'The educational Act, Wait, or Avoid suggestion produced from strategy fit, conviction, and risk context.', 'Signals'],
+    ['Act / Wait / Avoid', 'A simple decision-language label: Act means review with stronger intent, Wait means monitor for confirmation, and Avoid means the setup is not aligned enough right now.', 'Signals'],
     ['Momentum', 'How much energy price action appears to have. Strong momentum means the move has force behind it.', 'Signals'],
     ['Trend', 'The general direction of price action over the current reading window.', 'Signals'],
     ['Volatility', 'How wide or unstable recent movement is. Higher volatility can increase opportunity and risk.', 'Signals'],
     ['MTF', 'Multi-timeframe weighting across short and longer views.', 'Signals'],
     ['Breakout', 'A move that pushes beyond a recent range or level with enough strength to matter.', 'Signals'],
     ['Divergence', 'When assets or indicators that usually move together start disagreeing.', 'Signals'],
+    ['Volume', 'How much activity is happening around an asset. Higher volume can make a move more credible, but does not guarantee direction.', 'Signals'],
     ['Win Rate', 'The share of decisive tracked outcomes marked as wins.', 'Metrics'],
     ['Action Rate', 'How often signals were acted on compared with ignored.', 'Metrics'],
+    ['Historical Win Rate', 'Past tracked win rate for a signal, asset, or strategy. It helps with context but does not predict future results.', 'Metrics'],
+    ['Strategy Fit', 'How closely a signal matches the user's selected strategy style, such as Momentum, Breakout, Conservative, or Aggressive.', 'Strategy'],
+    ['Risk Profile', 'The amount of volatility, uncertainty, or downside pressure a user is comfortable reviewing.', 'Strategy'],
+    ['Momentum Strategy', 'A strategy mode that prefers assets already showing strength and continuation behavior.', 'Strategy'],
+    ['Breakout Strategy', 'A strategy mode that looks for assets pushing beyond recent ranges with enough confirmation.', 'Strategy'],
+    ['Conservative Strategy', 'A strategy mode that favors cleaner confirmation, calmer movement, and fewer high-risk setups.', 'Strategy'],
+    ['Aggressive Strategy', 'A strategy mode that favors faster, stronger, higher-opportunity setups with more risk.', 'Strategy'],
     ['Watchlist', 'The assets a user chooses to follow closely. Guest mode defaults to BTC, ADA, and NIGHT.', 'Personalization'],
+    ['Personalization Match', 'How closely a signal matches the user's own watchlist, feedback history, preferred assets, and repeated behavior patterns.', 'Personalization'],
+    ['Recommended for You', 'A personalized blend of watchlist signals, global outperformers, and learned user behavior.', 'Personalization'],
+    ['Global Signal', 'A signal found outside the user's personal watchlist, ranked across the broader signal universe.', 'Personalization'],
     ['Global Top Signal', 'The best-ranked signal across the full available signal universe, even outside the user watchlist.', 'Personalization'],
     ['Your Top Signal', 'The best-ranked signal inside the user watchlist.', 'Personalization'],
     ['Midnight Network', 'The app focus bundle of BTC, ADA, and NIGHT: macro liquidity, Cardano ecosystem, and Midnight ecosystem context.', 'Midnight Network'],
+    ['Midnight Network Strength', 'A basket-level read of BTC, ADA, and NIGHT together, showing whether the Midnight ecosystem context is supportive or weak.', 'Midnight Network'],
     ['NIGHT', 'The Midnight ecosystem asset ticker used by this app. Legacy MID aliases resolve to NIGHT.', 'Midnight Network'],
     ['Market condition', 'A plain-English read of whether the current tape is calm, active, or volatile.', 'Basics'],
     ['Data source', 'Shows whether live market prices loaded or the fallback dataset is protecting the app.', 'Basics'],
     ['Daily Ritual', 'A repeatable checklist that teaches users what to review before reacting.', 'Learning'],
     ['Journey', 'A lightweight progression system that rewards repeated learning behavior.', 'Learning']
   ] as const;
-  const active = activeTerm || 'Signal';
+  const termAliases: Record<string, string> = {
+    'Aggressive': 'Aggressive Strategy',
+    'Conservative': 'Conservative Strategy',
+    'Risk profile': 'Risk Profile',
+    'Strategy fit': 'Strategy Fit',
+    'Midnight Network context': 'Midnight Network Strength',
+    'Personal behavior': 'Personalization Match'
+  };
+  const termSet = new Set(terms.map(([term]) => term));
+  const requested = activeTerm || 'Signal';
+  const active = termSet.has(requested) ? requested : (termAliases[requested] || 'Signal');
   const activeId = 'glossary-' + active.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1441,7 +1467,7 @@ function Glossary({ activeTerm, onJump, onClose }: { activeTerm: string; onJump:
   return <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm" onClick={onClose}>
     <aside className="h-full w-full max-w-md overflow-auto border-l border-white/10 bg-midnight-950 p-6 shadow-soft" onClick={(event) => event.stopPropagation()}>
       <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-5 border-b border-white/10 bg-midnight-950/95 p-6 backdrop-blur">
-        <div className="flex items-center justify-between gap-3"><div><h2 className="text-2xl font-black">Learning Glossary</h2><p className="mt-1 text-sm text-slate-400">Click linked terms anywhere in the app to jump here.</p></div><button onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2">Close</button></div>
+        <div className="flex items-center justify-between gap-3"><div><h2 className="text-2xl font-black">Learning Glossary</h2><p className="mt-1 text-sm text-slate-400">Click linked terms anywhere in the app to jump here. v18.1 adds coverage so glossary links always land on a real term.</p></div><button onClick={onClose} className="rounded-xl border border-white/10 px-3 py-2">Close</button></div>
         <div className="mt-4 flex flex-wrap gap-2">{terms.slice(0, 8).map(([term]) => <button key={term} onClick={() => onJump(term)} className={active === term ? 'rounded-full border border-signal-blue/50 bg-signal-blue/20 px-3 py-1 text-xs font-bold text-signal-blue' : 'rounded-full border border-white/10 bg-white/[.04] px-3 py-1 text-xs font-bold text-slate-300'}>{term}</button>)}</div>
       </div>
       <div className="space-y-3">{terms.map(([term, definition, group]) => <div id={'glossary-' + term.toLowerCase().replace(/[^a-z0-9]+/g, '-')} key={term} className={active === term ? 'rounded-2xl border border-signal-blue/50 bg-signal-blue/15 p-4 shadow-soft' : 'rounded-2xl border border-white/10 bg-white/[.04] p-4'}>
