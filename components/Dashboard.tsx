@@ -107,7 +107,7 @@ export default function Dashboard() {
   const [experience, setExperience] = useState<Experience>('beginner');
   const [currency, setCurrency] = useState('USD');
   const [sound, setSound] = useState(false);
-  const [watchlist, setWatchlist] = useState<string[]>(['ADA', 'MID', 'BTC']);
+  const [watchlist, setWatchlist] = useState<string[]>(['ADA', 'NIGHT', 'BTC']);
   const [watchlistPreferences, setWatchlistPreferences] = useState<WatchlistPreference[]>([]);
   const [watchlistInput, setWatchlistInput] = useState('');
   const [watchlistMessage, setWatchlistMessage] = useState('');
@@ -140,9 +140,9 @@ export default function Dashboard() {
     setExperience(stored.experience || 'beginner');
     setCurrency(stored.currency || 'USD');
     setSound(Boolean(stored.sound));
-    setWatchlist(stored.watchlist?.length ? stored.watchlist : ['ADA', 'MID', 'BTC']);
+    setWatchlist(stored.watchlist?.length ? stored.watchlist.map(symbol => symbol === 'MID' ? 'NIGHT' : symbol) : ['ADA', 'NIGHT', 'BTC']);
     setWatchlistPreferences(stored.watchlistPreferences || []);
-    setSelected(stored.selected || 'ADA');
+    setSelected(stored.selected === 'MID' ? 'NIGHT' : (stored.selected || 'ADA'));
     setLastTop(stored.lastTop);
     setVisits((stored.visits || 0) + 1);
     setRitual(stored.ritual || defaultRitual);
@@ -357,7 +357,12 @@ export default function Dashboard() {
   const signals = snapshot.signals;
   const pinned = useMemo(() => signals.filter(s => watchlist.includes(s.symbol)), [signals, watchlist]);
   const personalizedSignals = pinned.length ? pinned : signals.slice(0, 3);
-  const top = personalizedSignals[0] || signals[0];
+
+  // Keep the hero/global top signal independent from the user's watchlist.
+  // The watchlist still powers personalized cards below, but it should not replace
+  // the market-wide top signal.
+  const globalTop = signals[0];
+  const top = globalTop;
   const active = signals.find(s => s.symbol === selected) || top;
   const watchlistLocked = plan !== 'pro' && watchlist.length >= watchlistLimit;
   const completedRitual = Object.values(ritual).filter(Boolean).length;

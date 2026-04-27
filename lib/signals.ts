@@ -26,7 +26,7 @@ export type LiveSignalInput = {
 
 const assets = [
   ['ADA', 'Cardano', 0.62, 4.3], ['BTC', 'Bitcoin', 68420, 1.4], ['ETH', 'Ethereum', 3420, 2.6],
-  ['MID', 'Midnight', 0.18, 7.1], ['SOL', 'Solana', 151, -1.8], ['XRP', 'XRP', 0.58, 0.9],
+  ['NIGHT', 'Midnight', 0.18, 7.1], ['SOL', 'Solana', 151, -1.8], ['XRP', 'XRP', 0.58, 0.9],
   ['LINK', 'Chainlink', 17.9, 3.2], ['AVAX', 'Avalanche', 38.2, -2.7], ['DOT', 'Polkadot', 7.3, 1.9],
   ['MATIC', 'Polygon', 0.91, -0.6], ['SUI', 'Sui', 1.72, 5.8], ['ARB', 'Arbitrum', 1.08, -1.2],
   ['RNDR', 'Render', 9.6, 6.3], ['NEAR', 'Near', 6.4, 2.2], ['ATOM', 'Cosmos', 8.2, -3.1],

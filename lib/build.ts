@@ -1,1 +1,1 @@
-export const BUILD = { version: '15.2.0', name: 'Live Signals', deployedAt: '2026-04-27' };
+export const BUILD = { version: '15.2.1', name: 'Live Signals Hotfix', deployedAt: '2026-04-27' };
