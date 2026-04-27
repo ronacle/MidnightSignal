@@ -1,1 +1,1 @@
-export const BUILD = { version: '15.2.2', name: 'Global Plus Watchlist Signal Hotfix', deployedAt: '2026-04-27' };
+export const BUILD = { version: '18.1-live.1', name: 'Live Signal Layer', deployedAt: '2026-04-27' };
