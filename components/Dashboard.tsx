@@ -357,6 +357,7 @@ export default function Dashboard() {
   const signals = snapshot.signals;
   const pinned = useMemo(() => signals.filter(s => watchlist.includes(s.symbol)), [signals, watchlist]);
   const personalizedSignals = pinned.length ? pinned : signals.slice(0, 3);
+  const watchlistTop = personalizedSignals[0] || signals[0];
 
   // Keep the hero/global top signal independent from the user's watchlist.
   // The watchlist still powers personalized cards below, but it should not replace
@@ -522,25 +523,44 @@ export default function Dashboard() {
         </section>
       )}
 
-      <section className={`mb-4 card rounded-[2rem] border-signal-blue/20 p-5 sm:p-6 ${signalChanged ? 'animate-pulseSignal' : ''}`}>
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Tonight’s signal</p>
-            <div className="mt-2 flex flex-wrap items-end gap-3">
-              <h2 className="text-5xl font-black sm:text-6xl">{top.symbol}</h2>
-              <p className="pb-2 text-lg text-slate-400">{top.name}</p>
-              <span className={`mb-2 rounded-full border px-4 py-2 text-sm font-bold ${labelClass(top.label)}`}>{top.label}</span>
+      <section className={`mb-4 grid gap-4 lg:grid-cols-[1.15fr_.85fr] ${signalChanged ? 'animate-pulseSignal' : ''}`}>
+        <div className="card rounded-[2rem] border-signal-blue/20 p-5 sm:p-6">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Global top signal</p>
+              <div className="mt-2 flex flex-wrap items-end gap-3">
+                <h2 className="text-5xl font-black sm:text-6xl">{globalTop.symbol}</h2>
+                <p className="pb-2 text-lg text-slate-400">{globalTop.name}</p>
+                <span className={`mb-2 rounded-full border px-4 py-2 text-sm font-bold ${labelClass(globalTop.label)}`}>{globalTop.label}</span>
+              </div>
+              <p className="mt-4 rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-4 text-base text-slate-100">{globalTop.why}</p>
             </div>
-            <p className="mt-4 rounded-3xl border border-signal-blue/20 bg-signal-blue/10 p-4 text-base text-slate-100">{top.why}</p>
-          </div>
-          <div className="grid min-w-[240px] gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            <BriefCard label="Confidence" value={`${top.confidence}%`} detail="Combined signal posture" />
-            <BriefCard label="Price" value={formatPrice(top.price, currency)} detail={`${top.change24h >= 0 ? '+' : ''}${top.change24h}% over 24h`} />
-            <BriefCard label="Market" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} />
+            <div className="grid min-w-[210px] gap-3 sm:grid-cols-3 xl:grid-cols-1">
+              <BriefCard label="Confidence" value={`${globalTop.confidence}%`} detail="Market-wide leader" />
+              <BriefCard label="Price" value={formatPrice(globalTop.price, currency)} detail={`${globalTop.change24h >= 0 ? '+' : ''}${globalTop.change24h}% over 24h`} />
+              <BriefCard label="Market" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} />
+            </div>
           </div>
         </div>
-      </section>
 
+        <div className="card rounded-[2rem] border-signal-blue/10 p-5 sm:p-6">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Top signal in your watchlist</p>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-slate-300">{watchlist.length ? 'Personalized' : 'Suggested'}</span>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <h3 className="text-4xl font-black sm:text-5xl">{watchlistTop.symbol}</h3>
+            <p className="pb-2 text-base text-slate-400">{watchlistTop.name}</p>
+            <span className={`mb-2 rounded-full border px-3 py-1 text-xs font-bold ${labelClass(watchlistTop.label)}`}>{watchlistTop.label}</span>
+          </div>
+          <p className="mt-4 rounded-3xl border border-white/10 bg-white/[.04] p-4 text-sm text-slate-200">{watchlistTop.why}</p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <BriefCard label="Confidence" value={`${watchlistTop.confidence}%`} detail="Your list leader" />
+            <BriefCard label="24h move" value={`${watchlistTop.change24h >= 0 ? '+' : ''}${watchlistTop.change24h}%`} detail={formatPrice(watchlistTop.price, currency)} />
+          </div>
+          <button onClick={() => selectSignal(watchlistTop.symbol)} className="mt-4 w-full rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 text-sm font-black text-signal-blue hover:bg-signal-blue/15">View watchlist signal</button>
+        </div>
+      </section>
       <section className="grid gap-4 lg:grid-cols-[1.35fr_.85fr]">
         <div className="card rounded-3xl p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Performance proof</p><h2 className="text-2xl font-bold">At-a-glance receipts</h2></div><button onClick={() => setSound(!sound)} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-slate-200 hover:bg-white/10" aria-label="Toggle sound">{sound ? <Volume2 /> : <VolumeX />}</button></div>
@@ -642,7 +662,7 @@ function PersonalizedWatchlistHero({ signals, personalizedSignals, watchlist, pr
   const primary = personalizedSignals[0];
   return <section className="mt-4 rounded-3xl border border-signal-blue/20 bg-signal-blue/5 p-5">
     <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
-      <div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-bold text-signal-blue"><Target size={14} /> Personalized Watchlists</div><h2 className="text-3xl font-black">Your top signal is now picked from your watchlist.</h2><p className="mt-2 max-w-3xl text-sm text-slate-300">Free users can personalize up to 3 symbols. Pro unlocks expanded watchlists, per-symbol alerts, and deeper personalized analytics.</p><p className="mt-2 text-xs text-slate-500">Watchlist source: {source === 'database' ? 'Supabase profile sync' : 'local session fallback'} · Educational use only · Not financial advice.</p></div>
+      <div><div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-bold text-signal-blue"><Target size={14} /> Personalized Watchlists</div><h2 className="text-3xl font-black">Your watchlist signal now sits beside the global leader.</h2><p className="mt-2 max-w-3xl text-sm text-slate-300">Free users can personalize up to 3 symbols. Pro unlocks expanded watchlists, per-symbol alerts, and deeper personalized analytics — while the global top signal stays visible.</p><p className="mt-2 text-xs text-slate-500">Watchlist source: {source === 'database' ? 'Supabase profile sync' : 'local session fallback'} · Educational use only · Not financial advice.</p></div>
       {!isPro && <button onClick={onUpgrade} className="rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={16} /> Unlimited watchlist</button>}
     </div>
     <div className="grid gap-4 lg:grid-cols-[.9fr_1.1fr]">
