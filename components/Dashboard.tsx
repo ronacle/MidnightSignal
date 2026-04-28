@@ -853,6 +853,8 @@ export default function Dashboard() {
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access...' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in  /  ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
       </header>
 
+      <BrandWisdomHero />
+
       {checkoutSyncing && (
         <section className="mb-4 rounded-3xl border border-signal-blue/30 bg-signal-blue/10 p-4 text-sm text-slate-100">
           <strong className="text-signal-blue">Finalizing your Pro access...</strong> Stripe confirmed your checkout. Midnight Signal is waiting for the webhook to finish syncing your Supabase plan.
@@ -1141,6 +1143,62 @@ function MidnightNetworkSpotlight({ insight, currency, onSelect, onGlossary }: {
     </div>
   </section>;
 }
+
+
+function BrandWisdomHero() {
+  const ladder = ['Market Data', 'Information', 'Knowledge', 'Understanding', 'Market Wisdom'];
+
+  return (
+    <section className="mb-5 overflow-hidden rounded-[2rem] border border-signal-blue/20 bg-gradient-to-br from-signal-blue/15 via-white/[.045] to-signal-green/10 p-5 shadow-glow">
+      <div className="grid gap-5 lg:grid-cols-[.82fr_1.18fr] lg:items-center">
+        <div className="flex items-center gap-4">
+          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.6rem] border border-signal-blue/30 bg-midnight-950/80 shadow-glow">
+            <div className="absolute inset-2 rounded-[1.25rem] border border-signal-blue/20 animate-pulseSignal" />
+            <div className="absolute h-12 w-12 rounded-full border border-signal-blue/30" />
+            <div className="absolute h-1 w-14 rounded-full bg-signal-blue/70 animate-pulseSignal" />
+            <div className="absolute h-14 w-1 rounded-full bg-signal-green/60 animate-pulseSignal" />
+            <Moon className="relative z-10 text-signal-blue" size={30} />
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[.28em] text-signal-blue">Midnight Signal</p>
+            <h2 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">We read the charts for you.</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">Midnight turns noisy live candles, trend shifts, and momentum changes into one clear signal you can understand before you act.</p>
+          </div>
+        </div>
+
+        <div className="rounded-[1.5rem] border border-white/10 bg-midnight-950/45 p-4">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[.22em] text-slate-400">Transforming</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {ladder.map((item, index) => (
+              <div key={item} className="flex items-center gap-2">
+                <span className={`rounded-full border px-3 py-2 text-xs font-black ${index === ladder.length - 1 ? 'border-signal-green/40 bg-signal-green/15 text-signal-green' : 'border-signal-blue/25 bg-signal-blue/10 text-signal-blue'}`}>{item}</span>
+                {index < ladder.length - 1 && <span className="text-slate-500">→</span>}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-white/[.04] p-3">
+              <Activity className="mb-2 text-signal-blue" size={18} />
+              <p className="text-sm font-bold">Live movement</p>
+              <p className="text-xs leading-5 text-slate-400">Tracks short and longer timeframe shifts.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[.04] p-3">
+              <BarChart3 className="mb-2 text-signal-blue" size={18} />
+              <p className="text-sm font-bold">Signal translation</p>
+              <p className="text-xs leading-5 text-slate-400">Converts chart behavior into a ranked read.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[.04] p-3">
+              <BookOpen className="mb-2 text-signal-green" size={18} />
+              <p className="text-sm font-bold">Plain English</p>
+              <p className="text-xs leading-5 text-slate-400">Explains what matters without chart overload.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 
 function PersonalIntelligenceCard({ profile, isPro, message, onSelect, onAddToWatchlist, onFeedback, onGlossary }: { profile: UserIntelligenceProfile; isPro: boolean; message: string; onSelect: (symbol: string) => void; onAddToWatchlist: (symbol: string) => void; onFeedback: (symbol: string, action: RecommendationFeedbackAction, metadata?: Record<string, unknown>) => void; onGlossary: (term: string) => void }) {
   const lead = profile.recommendations[0];

@@ -1,1 +1,1 @@
-export const BUILD = { version: '18.1.3', name: 'Live Data Diagnostics', deployedAt: '2026-04-28' };
+export const BUILD = { version: '18.1.4', name: 'Brand Wisdom Restore', deployedAt: '2026-04-28' };
