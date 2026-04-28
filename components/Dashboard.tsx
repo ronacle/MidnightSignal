@@ -1150,15 +1150,15 @@ function MidnightNetworkSpotlight({ insight, currency, onSelect, onGlossary }: {
 
 function OrbitBrandLogo() {
   const orbits = [
-    { name: 'Market Data', size: 208, duration: 24, direction: 'normal' as const, dot: 'bg-signal-blue shadow-[0_0_26px_rgba(92,200,255,.95)]', ring: 'border-signal-blue/45', angle: 12, dotSize: 13 },
-    { name: 'Information', size: 158, duration: 19, direction: 'reverse' as const, dot: 'bg-cyan-300 shadow-[0_0_24px_rgba(103,232,249,.9)]', ring: 'border-cyan-300/40', angle: 86, dotSize: 12 },
-    { name: 'Knowledge', size: 112, duration: 15, direction: 'normal' as const, dot: 'bg-signal-green shadow-[0_0_24px_rgba(61,255,139,.85)]', ring: 'border-signal-green/40', angle: 168, dotSize: 11 },
-    { name: 'Understanding', size: 70, duration: 11, direction: 'reverse' as const, dot: 'bg-signal-amber shadow-[0_0_22px_rgba(255,214,74,.9)]', ring: 'border-signal-amber/45', angle: 250, dotSize: 10 }
+    { name: 'Market Data', size: 220, duration: 27, direction: 'normal' as const, dot: 'bg-signal-blue shadow-[0_0_18px_rgba(92,200,255,.9)]', ring: 'border-signal-blue/38', angle: 318, dotSize: 10 },
+    { name: 'Information', size: 170, duration: 22, direction: 'reverse' as const, dot: 'bg-cyan-300 shadow-[0_0_17px_rgba(103,232,249,.86)]', ring: 'border-cyan-300/36', angle: 38, dotSize: 9 },
+    { name: 'Knowledge', size: 122, duration: 17, direction: 'normal' as const, dot: 'bg-signal-green shadow-[0_0_16px_rgba(61,255,139,.82)]', ring: 'border-signal-green/36', angle: 148, dotSize: 8 },
+    { name: 'Understanding', size: 78, duration: 13, direction: 'reverse' as const, dot: 'bg-signal-amber shadow-[0_0_15px_rgba(255,214,74,.86)]', ring: 'border-signal-amber/40', angle: 236, dotSize: 7 }
   ];
 
   return (
-    <div className="relative mx-auto h-60 w-60 shrink-0 md:h-64 md:w-64" aria-label="Midnight Signal animated beacon logo">
-      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,.22),rgba(92,200,255,.12)_34%,transparent_70%)] blur-xl" />
+    <div className="relative mx-auto h-64 w-64 shrink-0 lg:mx-0" aria-label="Midnight Signal animated beacon logo">
+      <div className="absolute inset-2 rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,.18),rgba(92,200,255,.10)_34%,transparent_70%)] blur-xl" />
       {orbits.map((orbit) => (
         <div
           key={orbit.name}
@@ -1179,9 +1179,9 @@ function OrbitBrandLogo() {
           />
         </div>
       ))}
-      <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-2xl" />
-      <div className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border border-purple-300/45 bg-purple-500/12 shadow-[0_0_42px_rgba(168,85,247,.58)]" />
-      <div className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-purple-200/75 bg-purple-400/20 shadow-[0_0_26px_rgba(216,180,254,.75)]" />
+      <div className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-2xl" />
+      <div className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border border-purple-300/45 bg-purple-500/12 shadow-[0_0_38px_rgba(168,85,247,.55)]" />
+      <div className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-purple-200/75 bg-purple-400/20 shadow-[0_0_24px_rgba(216,180,254,.72)]" />
       <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-300 shadow-[0_0_18px_rgba(216,180,254,.95)]" />
     </div>
   );
@@ -1189,24 +1189,24 @@ function OrbitBrandLogo() {
 
 function TransformationCard({ title, detail, icon, tone, index }: { title: string; detail: string; icon: React.ReactNode; tone: 'blue' | 'cyan' | 'green' | 'amber' | 'purple'; index: number }) {
   const toneClass = tone === 'cyan'
-    ? 'border-cyan-300/45 text-cyan-300 shadow-[0_0_32px_rgba(103,232,249,.10)]'
+    ? 'border-cyan-300/45 text-cyan-300 shadow-[0_0_24px_rgba(103,232,249,.10)]'
     : tone === 'green'
-      ? 'border-signal-green/45 text-signal-green shadow-[0_0_32px_rgba(61,255,139,.11)]'
+      ? 'border-signal-green/45 text-signal-green shadow-[0_0_24px_rgba(61,255,139,.11)]'
       : tone === 'amber'
-        ? 'border-signal-amber/45 text-signal-amber shadow-[0_0_32px_rgba(255,214,74,.11)]'
+        ? 'border-signal-amber/45 text-signal-amber shadow-[0_0_24px_rgba(255,214,74,.11)]'
         : tone === 'purple'
-          ? 'border-purple-400/50 text-purple-300 shadow-[0_0_34px_rgba(168,85,247,.15)]'
-          : 'border-signal-blue/45 text-signal-blue shadow-[0_0_32px_rgba(92,200,255,.11)]';
+          ? 'border-purple-400/50 text-purple-300 shadow-[0_0_28px_rgba(168,85,247,.15)]'
+          : 'border-signal-blue/45 text-signal-blue shadow-[0_0_24px_rgba(92,200,255,.11)]';
 
   return (
-    <div className={`relative overflow-hidden rounded-[1.7rem] border bg-midnight-950/68 px-4 py-3 backdrop-blur ${toneClass}`}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_50%,currentColor,transparent_30%)] opacity-[.07]" />
-      <div className="relative flex items-center gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-current/70 bg-black/25 text-current shadow-[0_0_20px_currentColor]">{icon}</div>
+    <div className={`relative overflow-hidden rounded-[1.35rem] border bg-midnight-950/68 px-3 py-2.5 backdrop-blur ${toneClass}`}>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_50%,currentColor,transparent_30%)] opacity-[.065]" />
+      <div className="relative flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-current/70 bg-black/25 text-current shadow-[0_0_16px_currentColor]">{icon}</div>
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[.26em] text-current">{index === 4 ? 'Destination' : `Transformation ${index + 1}`}</p>
-          <p className="mt-1 text-xl font-black leading-tight text-white">{title}</p>
-          <p className="mt-1 max-w-xl text-sm leading-6 text-slate-300">{detail}</p>
+          <p className="text-[9px] font-black uppercase tracking-[.22em] text-current">{index === 4 ? 'Destination' : `Transformation ${index + 1}`}</p>
+          <p className="mt-0.5 text-lg font-black leading-tight text-white">{title}</p>
+          <p className="mt-0.5 text-xs leading-5 text-slate-300">{detail}</p>
         </div>
       </div>
     </div>
@@ -1215,46 +1215,45 @@ function TransformationCard({ title, detail, icon, tone, index }: { title: strin
 
 function FlowArrow({ tone }: { tone: 'blue' | 'cyan' | 'green' | 'amber' | 'purple' }) {
   const color = tone === 'cyan' ? 'text-cyan-300' : tone === 'green' ? 'text-signal-green' : tone === 'amber' ? 'text-signal-amber' : tone === 'purple' ? 'text-purple-300' : 'text-signal-blue';
-  return <div className={`flex h-7 items-center justify-center ${color}`} aria-hidden="true"><ChevronDown size={26} className="drop-shadow-[0_0_10px_currentColor]" /></div>;
+  return <div className={`flex h-4 items-center justify-center ${color}`} aria-hidden="true"><ChevronDown size={18} className="drop-shadow-[0_0_8px_currentColor]" /></div>;
 }
 
 function BrandWisdomHero() {
   const ladder = [
-    { title: 'Market Data', detail: 'Live candles, price movement, trend shifts, and volume behavior enter the engine.', icon: <BarChart3 size={21} />, tone: 'blue' as const },
-    { title: 'Information', detail: 'The app separates useful movement from random market static.', icon: <DatabaseZap size={21} />, tone: 'cyan' as const },
-    { title: 'Knowledge', detail: 'Momentum, confidence, risk, and asset context become a structured market read.', icon: <TrendingUp size={21} />, tone: 'green' as const },
-    { title: 'Understanding', detail: 'The technical read is translated into plain English so the chart is not left to guesswork.', icon: <BookOpen size={21} />, tone: 'amber' as const },
-    { title: 'Market Wisdom', detail: 'A clear decision-ready signal, backed by live data and the reason it matters now.', icon: <Target size={21} />, tone: 'purple' as const }
+    { title: 'Market Data', detail: 'Live candles, price movement, trend shifts, and volume behavior enter the engine.', icon: <BarChart3 size={18} />, tone: 'blue' as const },
+    { title: 'Information', detail: 'The app separates useful movement from random market static.', icon: <DatabaseZap size={18} />, tone: 'cyan' as const },
+    { title: 'Knowledge', detail: 'Momentum, confidence, risk, and asset context become a structured market read.', icon: <TrendingUp size={18} />, tone: 'green' as const },
+    { title: 'Understanding', detail: 'The technical read is translated into plain English so the chart is not left to guesswork.', icon: <BookOpen size={18} />, tone: 'amber' as const },
+    { title: 'Market Wisdom', detail: 'A decision-ready signal, backed by live data and the reason it matters now.', icon: <Target size={18} />, tone: 'purple' as const }
   ];
 
   return (
-    <section className="mb-6 overflow-hidden rounded-[2rem] border border-signal-blue/20 bg-[radial-gradient(circle_at_50%_4%,rgba(92,200,255,.22),transparent_30%),radial-gradient(circle_at_82%_15%,rgba(168,85,247,.15),transparent_28%),linear-gradient(180deg,rgba(2,6,23,.98),rgba(4,9,24,.95)_52%,rgba(2,6,23,.99))] px-4 py-6 shadow-[0_28px_100px_rgba(0,0,0,.5)] sm:px-6">
-      <div className="mx-auto max-w-4xl">
-        <div className="text-center">
+    <section className="mb-6 overflow-hidden rounded-[2rem] border border-signal-blue/20 bg-[radial-gradient(circle_at_18%_18%,rgba(92,200,255,.18),transparent_32%),radial-gradient(circle_at_80%_18%,rgba(168,85,247,.13),transparent_28%),linear-gradient(180deg,rgba(2,6,23,.98),rgba(4,9,24,.95)_52%,rgba(2,6,23,.99))] px-4 py-5 shadow-[0_28px_100px_rgba(0,0,0,.5)] sm:px-6">
+      <div className="mx-auto grid max-w-6xl items-center gap-7 lg:grid-cols-[.9fr_1.1fr]">
+        <div className="text-center lg:text-left">
           <OrbitBrandLogo />
           <p className="mt-4 text-xs font-black uppercase tracking-[.34em] text-signal-blue">Midnight Signal</p>
-          <h2 className="mt-2 text-4xl font-black leading-[.98] tracking-tight text-white sm:text-5xl">We read the charts for <span className="bg-gradient-to-r from-signal-blue to-purple-300 bg-clip-text text-transparent">you.</span></h2>
-          <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-300">Midnight turns noisy live candles, trend shifts, and momentum changes into one clear signal you can understand before you act.</p>
+          <h2 className="mt-2 text-4xl font-black leading-[.98] tracking-tight text-white sm:text-5xl lg:max-w-md">We read the charts for <span className="bg-gradient-to-r from-signal-blue to-purple-300 bg-clip-text text-transparent">you.</span></h2>
+          <p className="mx-auto mt-3 max-w-lg text-base leading-7 text-slate-300 lg:mx-0">Midnight turns noisy live candles, trend shifts, and momentum changes into one clear signal you can understand before you act.</p>
+          <div className="mt-5 text-[11px] font-black uppercase tracking-[.28em] text-slate-500">
+            Live Data <span className="mx-2 text-slate-700">•</span> Context <span className="mx-2 text-slate-700">•</span> Clarity <span className="mx-2 text-slate-700">•</span> Confidence
+          </div>
         </div>
 
-        <div className="mx-auto mt-7 max-w-3xl">
-          <div className="mb-3 flex items-center gap-4">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-signal-blue/50 to-white/10" />
-            <p className="text-xs font-black uppercase tracking-[.34em] text-slate-300">Transforming</p>
-            <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-purple-400/40 to-transparent" />
+        <div className="rounded-[1.8rem] border border-white/10 bg-black/18 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] sm:p-4">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-signal-blue/45 to-white/10" />
+            <p className="text-[10px] font-black uppercase tracking-[.32em] text-slate-300">Transforming</p>
+            <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-purple-400/35 to-transparent" />
           </div>
 
-          <div className="space-y-0">
+          <div>
             {ladder.map((item, index) => (
               <div key={item.title}>
                 <TransformationCard title={item.title} detail={item.detail} icon={item.icon} tone={item.tone} index={index} />
                 {index < ladder.length - 1 && <FlowArrow tone={ladder[index + 1].tone} />}
               </div>
             ))}
-          </div>
-
-          <div className="mt-5 text-center text-[11px] font-black uppercase tracking-[.34em] text-slate-500">
-            Live Data <span className="mx-2 text-slate-700">•</span> Context <span className="mx-2 text-slate-700">•</span> Clarity <span className="mx-2 text-slate-700">•</span> Confidence
           </div>
         </div>
       </div>
