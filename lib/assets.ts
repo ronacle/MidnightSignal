@@ -13,7 +13,7 @@ export const MIDNIGHT_NETWORK_DEFAULT_WATCHLIST = ['BTC', 'ADA', 'NIGHT'] as con
 export const CANONICAL_ASSETS: CanonicalAsset[] = [
   { symbol: 'ADA', name: 'Cardano', network: 'Cardano', coingeckoId: 'cardano', defaultPrice: 0.62, defaultChange24h: 4.3, aliases: ['CARDANO'] },
   { symbol: 'BTC', name: 'Bitcoin', network: 'Bitcoin', coingeckoId: 'bitcoin', defaultPrice: 68420, defaultChange24h: 1.4, aliases: ['BITCOIN', 'XBT'] },
-  { symbol: 'NIGHT', name: 'Midnight', network: 'Cardano', defaultPrice: 0.18, defaultChange24h: 7.1, aliases: ['MIDNIGHT', 'MIDNIGHT NETWORK', 'MID'] },
+  { symbol: 'NIGHT', name: 'Midnight', network: 'Cardano', coingeckoId: 'midnight-3', defaultPrice: 0.036, defaultChange24h: 1.2, aliases: ['MIDNIGHT', 'MIDNIGHT NETWORK', 'MID'] },
   { symbol: 'ETH', name: 'Ethereum', coingeckoId: 'ethereum', defaultPrice: 3420, defaultChange24h: 2.6, aliases: ['ETHEREUM'] },
   { symbol: 'SOL', name: 'Solana', coingeckoId: 'solana', defaultPrice: 151, defaultChange24h: -1.8, aliases: ['SOLANA'] },
   { symbol: 'XRP', name: 'XRP', coingeckoId: 'ripple', defaultPrice: 0.58, defaultChange24h: 0.9, aliases: ['RIPPLE'] },

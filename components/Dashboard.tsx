@@ -907,7 +907,7 @@ export default function Dashboard() {
 
       <section className="mt-4 grid gap-4 lg:grid-cols-3">
         <TrustCard icon={<DatabaseZap size={18} />} label="Data source" value={snapshot.source} detail={snapshot.source === 'CoinGecko live' ? 'Live prices loaded successfully' : 'Safe fallback is active'} />
-        <TrustCard icon={<Clock3 size={18} />} label="Data last updated" value={new Date(snapshot.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} detail="Refreshes when mode or currency changes" onClick={() => { refreshMarket(); markRitual('market'); }} action={loadingLive ? 'Refreshing...' : 'Refresh'} />
+        <TrustCard icon={<Clock3 size={18} />} label="Data last updated" value={new Date(snapshot.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} detail={snapshot.source + ' · refreshes every 5 min'} onClick={() => { refreshMarket(); markRitual('market'); }} action={loadingLive ? 'Refreshing...' : 'Refresh'} />
         <TrustCard icon={<Zap size={18} />} label="Market condition" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} onClick={() => markRitual('market')} />
       </section>
 

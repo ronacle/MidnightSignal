@@ -15,20 +15,30 @@ function modeFrom(value: unknown): TraderMode {
   return value === 'scalp' || value === 'position' || value === 'swing' ? value : 'swing';
 }
 
+function withNoStore(response: NextResponse) {
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+  response.headers.set('Surrogate-Control', 'no-store');
+  return response;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const mode = modeFrom(searchParams.get('mode'));
   const currency = (searchParams.get('currency') || 'USD').toUpperCase();
   const snapshot = await getMarketSnapshot(mode, currency);
-  return NextResponse.json({ ok: true, snapshot }, { headers: { 'Cache-Control': 'no-store, max-age=0' } });
+  return withNoStore(NextResponse.json({ ok: true, snapshot, diagnostics: { mode, currency, source: snapshot.source, updatedAt: snapshot.updatedAt, globalTop: snapshot.signals[0]?.symbol } }));
 }
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as LivePayload;
-    const snapshot = await getMarketSnapshot(modeFrom(body.mode), (body.currency || 'USD').toUpperCase(), body.previousTop);
-    return NextResponse.json({ ok: true, snapshot }, { headers: { 'Cache-Control': 'no-store, max-age=0' } });
+    const mode = modeFrom(body.mode);
+    const currency = (body.currency || 'USD').toUpperCase();
+    const snapshot = await getMarketSnapshot(mode, currency, body.previousTop);
+    return withNoStore(NextResponse.json({ ok: true, snapshot, diagnostics: { mode, currency, source: snapshot.source, updatedAt: snapshot.updatedAt, globalTop: snapshot.signals[0]?.symbol } }));
   } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unable to load live signals.' }, { status: 500, headers: { 'Cache-Control': 'no-store, max-age=0' } });
+    return withNoStore(NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unable to load live signals.' }, { status: 500 }));
   }
 }
