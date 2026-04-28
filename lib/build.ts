@@ -1,1 +1,1 @@
-export const BUILD = { version: '18.1.5', name: 'Premium Orbit Brand UI', deployedAt: '2026-04-28' };
+export const BUILD = { version: '18.1.9', name: 'Three Second Product Proof', deployedAt: '2026-04-28' };

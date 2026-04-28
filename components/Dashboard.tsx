@@ -855,7 +855,7 @@ export default function Dashboard() {
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access...' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in  /  ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong></div>
       </header>
 
-      <BrandWisdomHero />
+      <BrandWisdomHero topSignal={globalTop} snapshot={snapshot} currency={currency} />
 
       {checkoutSyncing && (
         <section className="mb-4 rounded-3xl border border-signal-blue/30 bg-signal-blue/10 p-4 text-sm text-slate-100">
@@ -1218,32 +1218,83 @@ function FlowArrow({ tone }: { tone: 'blue' | 'cyan' | 'green' | 'amber' | 'purp
   return <div className={`flex h-4 items-center justify-center ${color}`} aria-hidden="true"><ChevronDown size={18} className="drop-shadow-[0_0_8px_currentColor]" /></div>;
 }
 
-function BrandWisdomHero() {
+function SignalProofCard({ signal, snapshot, currency }: { signal: AssetSignal; snapshot: TrustSnapshot; currency: string }) {
+  const direction = signal.label === 'Bullish' ? 'Upside pressure' : signal.label === 'Bearish' ? 'Downside pressure' : 'Mixed setup';
+  const change = (signal.change24h >= 0 ? '+' : '') + signal.change24h.toFixed(2) + '%';
+  const updated = snapshot.source?.toLowerCase().includes('fallback') ? 'Demo-ready preview' : 'Live market refresh';
+  const confidenceReason = snapshot.confidenceReason || `${signal.symbol} leads because confidence, trend, and momentum are aligned.`;
+
+  return (
+    <div className="mt-5 overflow-hidden rounded-[1.45rem] border border-signal-blue/28 bg-black/28 p-3.5 text-left shadow-[0_18px_55px_rgba(0,0,0,.32)]">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-signal-green opacity-60" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-signal-green" />
+          </span>
+          <p className="text-[10px] font-black uppercase tracking-[.22em] text-signal-green">Product proof</p>
+        </div>
+        <span className="rounded-full border border-white/10 bg-white/[.05] px-2.5 py-1 text-[10px] font-bold text-slate-300">{updated}</span>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-[.82fr_1.18fr]">
+        <div className="rounded-2xl border border-white/10 bg-white/[.045] p-3">
+          <p className="text-[10px] font-black uppercase tracking-[.18em] text-slate-500">Right now</p>
+          <div className="mt-1 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-3xl font-black text-white">{signal.symbol}</p>
+              <p className="text-xs text-slate-400">{signal.name}</p>
+            </div>
+            <span className={'rounded-full border px-2.5 py-1 text-xs font-black ' + labelClass(signal.label)}>{signal.label}</span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-xl bg-black/25 p-2"><p className="text-slate-500">Confidence</p><p className="text-lg font-black text-white">{signal.confidence}%</p></div>
+            <div className="rounded-xl bg-black/25 p-2"><p className="text-slate-500">24h move</p><p className="text-lg font-black text-white">{change}</p></div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-purple-400/18 bg-purple-500/[.055] p-3">
+          <p className="text-[10px] font-black uppercase tracking-[.18em] text-purple-300">3-second read</p>
+          <p className="mt-1 text-lg font-black leading-tight text-white">{direction}: watch {formatPrice(signal.price, currency)} with {signal.confidence}% confidence.</p>
+          <p className="mt-2 text-xs leading-5 text-slate-300">{confidenceReason}</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[.15em] text-slate-400">
+            <span className="rounded-full border border-white/10 px-2.5 py-1">Filters noise</span>
+            <span className="rounded-full border border-white/10 px-2.5 py-1">Ranks risk</span>
+            <span className="rounded-full border border-white/10 px-2.5 py-1">Explains why</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BrandWisdomHero({ topSignal, snapshot, currency }: { topSignal: AssetSignal; snapshot: TrustSnapshot; currency: string }) {
   const ladder = [
-    { title: 'Market Data', detail: 'Live candles, price movement, trend shifts, and volume behavior enter the engine.', icon: <BarChart3 size={18} />, tone: 'blue' as const },
-    { title: 'Information', detail: 'The app separates useful movement from random market static.', icon: <DatabaseZap size={18} />, tone: 'cyan' as const },
-    { title: 'Knowledge', detail: 'Momentum, confidence, risk, and asset context become a structured market read.', icon: <TrendingUp size={18} />, tone: 'green' as const },
-    { title: 'Understanding', detail: 'The technical read is translated into plain English so the chart is not left to guesswork.', icon: <BookOpen size={18} />, tone: 'amber' as const },
-    { title: 'Market Wisdom', detail: 'A decision-ready signal, backed by live data and the reason it matters now.', icon: <Target size={18} />, tone: 'purple' as const }
+    { title: 'Market Data', detail: 'Live candles and movement enter the engine.', icon: <BarChart3 size={17} />, tone: 'blue' as const },
+    { title: 'Information', detail: 'Noise is separated from useful movement.', icon: <DatabaseZap size={17} />, tone: 'cyan' as const },
+    { title: 'Knowledge', detail: 'Momentum, risk, and context are ranked.', icon: <TrendingUp size={17} />, tone: 'green' as const },
+    { title: 'Understanding', detail: 'The chart is translated into plain English.', icon: <BookOpen size={17} />, tone: 'amber' as const },
+    { title: 'Market Wisdom', detail: 'You get the signal, the reason, and the action lens.', icon: <Target size={17} />, tone: 'purple' as const }
   ];
 
   return (
     <section className="mb-6 overflow-hidden rounded-[2rem] border border-signal-blue/20 bg-[radial-gradient(circle_at_18%_18%,rgba(92,200,255,.18),transparent_32%),radial-gradient(circle_at_80%_18%,rgba(168,85,247,.13),transparent_28%),linear-gradient(180deg,rgba(2,6,23,.98),rgba(4,9,24,.95)_52%,rgba(2,6,23,.99))] px-4 py-5 shadow-[0_28px_100px_rgba(0,0,0,.5)] sm:px-6">
-      <div className="mx-auto grid max-w-6xl items-center gap-7 lg:grid-cols-[.9fr_1.1fr]">
+      <div className="mx-auto grid max-w-6xl items-center gap-6 lg:grid-cols-[1fr_.92fr]">
         <div className="text-center lg:text-left">
           <OrbitBrandLogo />
           <p className="mt-4 text-xs font-black uppercase tracking-[.34em] text-signal-blue">Midnight Signal</p>
-          <h2 className="mt-2 text-4xl font-black leading-[.98] tracking-tight text-white sm:text-5xl lg:max-w-md">We read the charts for <span className="bg-gradient-to-r from-signal-blue to-purple-300 bg-clip-text text-transparent">you.</span></h2>
-          <p className="mx-auto mt-3 max-w-lg text-base leading-7 text-slate-300 lg:mx-0">Midnight turns noisy live candles, trend shifts, and momentum changes into one clear signal you can understand before you act.</p>
+          <h2 className="mt-2 text-4xl font-black leading-[.98] tracking-tight text-white sm:text-5xl lg:max-w-md">See the signal in <span className="bg-gradient-to-r from-signal-blue to-purple-300 bg-clip-text text-transparent">3 seconds.</span></h2>
+          <p className="mx-auto mt-3 max-w-lg text-base leading-7 text-slate-300 lg:mx-0">Midnight reads live charts for you: what is moving, why it matters, and whether the setup deserves attention now.</p>
+          <SignalProofCard signal={topSignal} snapshot={snapshot} currency={currency} />
           <div className="mt-5 text-[11px] font-black uppercase tracking-[.28em] text-slate-500">
             Live Data <span className="mx-2 text-slate-700">•</span> Context <span className="mx-2 text-slate-700">•</span> Clarity <span className="mx-2 text-slate-700">•</span> Confidence
           </div>
         </div>
 
-        <div className="rounded-[1.8rem] border border-white/10 bg-black/18 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] sm:p-4">
-          <div className="mb-3 flex items-center gap-3">
+        <div className="rounded-[1.8rem] border border-white/10 bg-black/18 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] sm:p-3.5">
+          <div className="mb-2.5 flex items-center gap-3">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-signal-blue/45 to-white/10" />
-            <p className="text-[10px] font-black uppercase tracking-[.32em] text-slate-300">Transforming</p>
+            <p className="text-[10px] font-black uppercase tracking-[.32em] text-slate-300">How it works</p>
             <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-purple-400/35 to-transparent" />
           </div>
 
