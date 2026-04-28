@@ -1149,114 +1149,122 @@ function MidnightNetworkSpotlight({ insight, currency, onSelect, onGlossary }: {
 
 
 function OrbitBrandLogo() {
-  const orbits = [
-    { size: 78, duration: 7.5, direction: 'normal' as const, dot: 'bg-signal-blue shadow-[0_0_24px_rgba(92,200,255,.95)]', angle: 0 },
-    { size: 104, duration: 10.5, direction: 'reverse' as const, dot: 'bg-signal-green shadow-[0_0_24px_rgba(61,255,139,.85)]', angle: 75 },
-    { size: 132, duration: 13.5, direction: 'normal' as const, dot: 'bg-purple-400 shadow-[0_0_24px_rgba(168,85,247,.9)]', angle: 155 },
-    { size: 160, duration: 17, direction: 'reverse' as const, dot: 'bg-signal-amber shadow-[0_0_24px_rgba(255,190,80,.9)]', angle: 245 }
+  const satellites = [
+    { radius: 31, duration: 6.6, delay: -0.6, size: 13, dot: 'bg-signal-blue shadow-[0_0_22px_rgba(92,200,255,.95)]', ring: 'border-signal-blue/30' },
+    { radius: 45, duration: 9.4, delay: -2.1, size: 12, dot: 'bg-signal-green shadow-[0_0_22px_rgba(61,255,139,.9)]', ring: 'border-signal-green/20' },
+    { radius: 61, duration: 12.8, delay: -4.4, size: 11, dot: 'bg-purple-300 shadow-[0_0_22px_rgba(196,181,253,.9)]', ring: 'border-purple-300/20' },
+    { radius: 76, duration: 16.2, delay: -7.5, size: 10, dot: 'bg-signal-amber shadow-[0_0_22px_rgba(255,190,80,.9)]', ring: 'border-signal-amber/20' }
   ];
 
   return (
-    <div className="relative h-44 w-44 shrink-0 md:h-52 md:w-52" aria-label="Midnight Signal animated orbit logo">
-      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(92,200,255,.18),transparent_58%)] blur-sm" />
-      <div className="absolute inset-8 rounded-full border border-signal-blue/20" />
-      <div className="absolute inset-12 rounded-full border border-white/10" />
-
-      {orbits.map((orbit, index) => (
-        <div
-          key={`${orbit.size}-${orbit.duration}`}
-          className="absolute left-1/2 top-1/2 rounded-full border border-white/10"
-          style={{
-            width: orbit.size,
-            height: orbit.size,
-            marginLeft: -(orbit.size / 2),
-            marginTop: -(orbit.size / 2),
-            animation: `midnight-orbit ${orbit.duration}s linear infinite`,
-            animationDirection: orbit.direction,
-            transform: `rotate(${orbit.angle}deg)`
-          }}
-        >
-          <span
-            className={`absolute left-1/2 top-0 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ${orbit.dot}`}
-            style={{ width: index === 0 ? 16 : index === 3 ? 11 : 13, height: index === 0 ? 16 : index === 3 ? 11 : 13 }}
-          />
-        </div>
-      ))}
-
-      <div className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border border-signal-blue/25 bg-signal-blue/10 blur-[1px]" />
-      <div className="absolute left-1/2 top-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_38px_rgba(92,200,255,.95)] ring-4 ring-signal-blue/20" />
-      <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-signal-blue shadow-[0_0_18px_rgba(92,200,255,.95)]" />
+    <div className="relative h-44 w-44 shrink-0 md:h-52 md:w-52" aria-label="Midnight Signal animated beacon logo">
+      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(92,200,255,.23),rgba(92,200,255,.06)_31%,transparent_67%)] blur-md" />
+      <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-signal-blue/10 bg-[radial-gradient(circle_at_center,rgba(255,255,255,.08),transparent_58%)]" />
+      <div className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
+      <div className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-signal-blue/20" />
+      {satellites.map((satellite, index) => {
+        const diameter = satellite.radius * 2;
+        return (
+          <div
+            key={satellite.radius}
+            className={`absolute left-1/2 top-1/2 rounded-full border ${satellite.ring}`}
+            style={{
+              width: diameter,
+              height: diameter,
+              marginLeft: -satellite.radius,
+              marginTop: -satellite.radius,
+              animation: `midnight-beacon-orbit ${satellite.duration}s linear infinite`,
+              animationDelay: `${satellite.delay}s`
+            }}
+          >
+            <span className={`absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full ${satellite.dot}`} style={{ width: satellite.size, height: satellite.size }} />
+            <span className="absolute left-1/2 top-0 h-7 w-px -translate-x-1/2 bg-gradient-to-b from-white/45 to-transparent opacity-50" />
+            {index === 0 && <span className="absolute left-1/2 top-0 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-signal-blue/10 blur-xl" />}
+          </div>
+        );
+      })}
+      <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-signal-blue/5 shadow-[0_0_80px_rgba(92,200,255,.28)]" />
+      <div className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-slate-950/70 shadow-[inset_0_0_24px_rgba(92,200,255,.18)]" />
+      <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_42px_rgba(92,200,255,1),0_0_90px_rgba(168,85,247,.45)]" />
+      <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-signal-blue shadow-[0_0_24px_rgba(92,200,255,1)]" />
+      <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-signal-blue/40 animate-midnight-beacon-ping" />
     </div>
   );
 }
 
-function TransformationCard({ title, detail, icon, tone, index }: { title: string; detail: string; icon: React.ReactNode; tone: 'blue' | 'green' | 'amber' | 'purple'; index: number }) {
+function TransformationBubble({ title, detail, icon, tone, index, final }: { title: string; detail: string; icon: React.ReactNode; tone: 'blue' | 'green' | 'amber' | 'purple'; index: number; final?: boolean }) {
   const toneClass = tone === 'green'
-    ? 'border-signal-green/35 text-signal-green shadow-[0_0_32px_rgba(61,255,139,.11)]'
+    ? 'border-signal-green/35 bg-signal-green/10 text-signal-green shadow-[0_0_34px_rgba(61,255,139,.10)]'
     : tone === 'amber'
-      ? 'border-signal-amber/35 text-signal-amber shadow-[0_0_32px_rgba(255,190,80,.11)]'
+      ? 'border-signal-amber/35 bg-signal-amber/10 text-signal-amber shadow-[0_0_34px_rgba(255,190,80,.10)]'
       : tone === 'purple'
-        ? 'border-purple-400/35 text-purple-300 shadow-[0_0_32px_rgba(168,85,247,.12)]'
-        : 'border-signal-blue/35 text-signal-blue shadow-[0_0_32px_rgba(92,200,255,.11)]';
+        ? 'border-purple-300/40 bg-purple-500/10 text-purple-200 shadow-[0_0_42px_rgba(168,85,247,.18)]'
+        : 'border-signal-blue/35 bg-signal-blue/10 text-signal-blue shadow-[0_0_34px_rgba(92,200,255,.10)]';
 
   return (
-    <div className={`group relative overflow-hidden rounded-2xl border bg-midnight-950/72 p-4 backdrop-blur ${toneClass}`}>
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-current/60 to-transparent opacity-70" />
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-current/25 bg-current/10">{icon}</div>
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[.28em] text-slate-500">Step {index + 1}</p>
-          <p className="mt-1 text-sm font-black text-white">{title}</p>
-          <p className="mt-2 text-xs leading-5 text-slate-300">{detail}</p>
+    <div className={`relative mx-auto w-full max-w-[34rem] rounded-[1.65rem] border px-5 py-4 ${toneClass} ${final ? 'scale-[1.02]' : ''}`}>
+      <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-current/65 to-transparent" />
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-current/25 bg-black/20">{icon}</div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-[.26em] text-slate-500">{final ? 'Destination' : `Transformation ${index + 1}`}</p>
+          <p className={`mt-1 font-black text-white ${final ? 'text-2xl' : 'text-lg'}`}>{title}</p>
+          <p className="mt-1 text-sm leading-6 text-slate-300">{detail}</p>
         </div>
       </div>
     </div>
   );
 }
 
+function TransformationArrow({ label }: { label: string }) {
+  return (
+    <div className="mx-auto flex w-full max-w-[34rem] items-center gap-3 px-5 py-1 text-xs font-black uppercase tracking-[.22em] text-slate-500">
+      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-signal-blue/30 to-white/10" />
+      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[.04] text-signal-blue shadow-[0_0_24px_rgba(92,200,255,.12)]">↓</div>
+      <span className="hidden sm:inline">{label}</span>
+      <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-purple-300/25 to-transparent" />
+    </div>
+  );
+}
+
 function BrandWisdomHero() {
   const ladder = [
-    { title: 'Market Data', detail: 'Live candles, price movement, trend shifts, and volume behavior stream in first.', icon: <BarChart3 size={18} />, tone: 'blue' as const },
-    { title: 'Information', detail: 'Noise is filtered into the few changes that actually matter right now.', icon: <DatabaseZap size={18} />, tone: 'blue' as const },
-    { title: 'Knowledge', detail: 'Momentum, confidence, and risk context are ranked across the market.', icon: <TrendingUp size={18} />, tone: 'green' as const },
-    { title: 'Understanding', detail: 'The chart read becomes plain English: what is moving and why it matters.', icon: <BookOpen size={18} />, tone: 'amber' as const },
-    { title: 'Market Wisdom', detail: 'One clear signal, supported by live data, ready for your next decision.', icon: <Target size={18} />, tone: 'purple' as const }
+    { title: 'Market Data', detail: 'Live candles, price movement, trend shifts, and volume behavior enter the engine.', icon: <BarChart3 size={19} />, tone: 'blue' as const, bridge: 'filter the noise' },
+    { title: 'Information', detail: 'The app separates useful movement from random market static.', icon: <DatabaseZap size={19} />, tone: 'blue' as const, bridge: 'rank what matters' },
+    { title: 'Knowledge', detail: 'Momentum, confidence, risk, and asset context become a structured market read.', icon: <TrendingUp size={19} />, tone: 'green' as const, bridge: 'explain the chart' },
+    { title: 'Understanding', detail: 'The technical read is translated into plain English so the chart is not left to guesswork.', icon: <BookOpen size={19} />, tone: 'amber' as const, bridge: 'surface the signal' },
+    { title: 'Market Wisdom', detail: 'A clear decision-ready signal, backed by live data and the reason it matters now.', icon: <Target size={20} />, tone: 'purple' as const }
   ];
 
   return (
-    <section className="mb-6 overflow-hidden rounded-[2rem] border border-signal-blue/20 bg-[radial-gradient(circle_at_9%_22%,rgba(92,200,255,.28),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,.18),transparent_24%),linear-gradient(135deg,rgba(2,6,23,.97),rgba(4,11,28,.92)_48%,rgba(2,6,23,.99))] p-5 shadow-[0_28px_100px_rgba(0,0,0,.48)]">
-      <div className="grid gap-8 xl:grid-cols-[.78fr_1.22fr] xl:items-center">
+    <section className="mb-6 overflow-hidden rounded-[2rem] border border-signal-blue/20 bg-[radial-gradient(circle_at_12%_19%,rgba(92,200,255,.26),transparent_30%),radial-gradient(circle_at_86%_11%,rgba(168,85,247,.18),transparent_24%),linear-gradient(135deg,rgba(2,6,23,.98),rgba(4,11,28,.93)_48%,rgba(2,6,23,.99))] p-5 shadow-[0_28px_100px_rgba(0,0,0,.48)]">
+      <div className="grid gap-8 xl:grid-cols-[.72fr_1.28fr] xl:items-center">
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center xl:flex-col xl:items-start">
           <OrbitBrandLogo />
           <div className="max-w-md">
             <div className="mb-4 h-px w-56 bg-gradient-to-r from-signal-blue via-white/50 to-transparent" />
             <p className="text-xs font-black uppercase tracking-[.34em] text-signal-blue">Midnight Signal</p>
             <h2 className="mt-3 text-4xl font-black leading-[.98] tracking-tight text-white sm:text-5xl">We read the charts for <span className="bg-gradient-to-r from-signal-blue to-purple-300 bg-clip-text text-transparent">you.</span></h2>
-            <p className="mt-4 max-w-sm text-base leading-7 text-slate-300">Midnight turns noisy live candles, trend shifts, and momentum changes into one clear signal you can understand before you act.</p>
+            <p className="mt-4 max-w-sm text-base leading-7 text-slate-300">Midnight turns live market noise into signal intelligence: chart movement, context, confidence, and plain-English meaning.</p>
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-black/24 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur">
-          <div className="absolute left-8 top-20 hidden h-[calc(100%-8.5rem)] w-px bg-gradient-to-b from-signal-blue via-signal-green to-purple-400/70 md:block" />
-          <div className="mb-5 flex items-center gap-4">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-signal-blue/40 to-white/10" />
+        <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-black/25 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(92,200,255,.12),transparent_38%)]" />
+          <div className="relative mb-5 text-center">
             <p className="text-xs font-black uppercase tracking-[.34em] text-slate-300">Transforming</p>
-            <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-purple-400/35 to-transparent" />
+            <h3 className="mt-2 text-2xl font-black text-white">Data becomes wisdom</h3>
+            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-400">A cleaner read of what the market is doing, why it matters, and what signal deserves your attention.</p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="relative space-y-1">
+            <div className="absolute left-1/2 top-6 hidden h-[calc(100%-3rem)] w-px -translate-x-1/2 bg-gradient-to-b from-signal-blue via-signal-green to-purple-300/80 md:block" />
             {ladder.map((item, index) => (
-              <div key={item.title} className={index === ladder.length - 1 ? 'md:col-span-2' : ''}>
-                <div className="flex items-center gap-3">
-                  <div className="hidden h-3 w-3 shrink-0 rounded-full bg-white shadow-[0_0_16px_rgba(92,200,255,.9)] md:block" />
-                  <TransformationCard title={item.title} detail={item.detail} icon={item.icon} tone={item.tone} index={index} />
-                </div>
+              <div key={item.title} className="relative">
+                <TransformationBubble title={item.title} detail={item.detail} icon={item.icon} tone={item.tone} index={index} final={index === ladder.length - 1} />
+                {item.bridge && <TransformationArrow label={item.bridge} />}
               </div>
             ))}
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-purple-400/20 bg-purple-500/8 px-4 py-3 text-center text-base font-black text-slate-100 shadow-[0_0_30px_rgba(168,85,247,.12)]">
-            <Sparkles className="mr-2 inline text-purple-300" size={18} /> From live market noise to usable signal intelligence.
           </div>
         </div>
       </div>

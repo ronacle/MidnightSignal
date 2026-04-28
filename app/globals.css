@@ -26,6 +26,17 @@ button, input, select { font: inherit; }
   mask-image: linear-gradient(to bottom, black 48%, transparent 100%);
 }
 
+
+@keyframes midnight-beacon-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes midnight-beacon-ping {
+  0% { transform: translate(-50%, -50%) scale(.72); opacity: .8; }
+  72%, 100% { transform: translate(-50%, -50%) scale(2.1); opacity: 0; }
+}
+.animate-midnight-beacon-ping { animation: midnight-beacon-ping 2.8s ease-out infinite; }
+
 @keyframes midnight-orbit {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
