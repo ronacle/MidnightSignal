@@ -863,108 +863,143 @@ export default function Dashboard() {
         </section>
       )}
 
-      <section className="mb-4 grid gap-4 lg:grid-cols-[.9fr_1.1fr]">
-        <div className="card rounded-3xl p-5">
-          <div className="mb-3 flex items-center gap-2 text-signal-blue"><ShieldCheck size={18} /><p className="text-sm font-semibold uppercase tracking-[.2em]">Retention score</p></div>
-          <div className="flex items-end justify-between gap-3"><p className="text-5xl font-black">{retentionScore}</p><span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-slate-300">{riskPosture} posture</span></div>
-          <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-signal-blue" style={{ width: retentionScore + '%' }} /></div>
-          <p className="mt-3 text-sm text-slate-300">Blends journey progress, receipt quality, plan depth, and recorded signal feedback.</p>
-        </div>
-        <div className="card rounded-3xl p-5">
-          <div className="mb-3 flex items-center gap-2 text-signal-blue"><CheckCircle2 size={18} /><p className="text-sm font-semibold uppercase tracking-[.2em]">Tonight's review plan</p></div>
-          <div className="grid gap-2">{tonightPlan.map((item, index) => <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-3 text-sm text-slate-200"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-signal-blue/15 text-xs font-black text-signal-blue">{index + 1}</span><span>{item}</span></div>)}</div>
-        </div>
-      </section>
-
-      <SignalDiscoveryHero userTop={userTop} globalTop={globalTop} gap={topSignalGap} shouldExpose={shouldExposeGlobalTop} isPro={plan === 'pro'} currency={currency} userSummary={userTopSummary} globalSummary={globalTopSummary} globalInWatchlist={watchlist.includes(globalTop.symbol)} conversionCount={globalConversionCount} onSelect={selectSignal} onAddGlobal={addGlobalTopToWatchlist} onTrackGlobal={trackGlobalSignal} onUpgrade={() => { recordConversionEvent('global_upgrade_clicked', globalTop); upgradeToPro(); }} />
-
-      <MidnightNetworkSpotlight insight={midnightNetwork} currency={currency} onSelect={selectSignal} onGlossary={openGlossaryTerm} />
-
-      <PersonalIntelligenceCard profile={personalIntelligence} isPro={plan === 'pro'} message={recommendationMessage} onSelect={selectSignal} onAddToWatchlist={(symbol) => addSymbolToWatchlist(symbol, 'Personal intelligence recommendation')} onFeedback={recordRecommendationFeedback} onGlossary={openGlossaryTerm} />
-
-      <RetentionIntelligenceCard digest={retentionDigest} events={retentionEvents.length} missedClicks={missedOpportunityCount} isPro={plan === 'pro'} onDigest={() => queueNotification('daily_digest', ['email'])} onWeekly={() => queueNotification('weekly_report', ['email'])} onMissedOpportunity={reviewMissedOpportunity} onUpgrade={() => { recordRetentionEvent('digest_upgrade_clicked', globalTop.symbol, { gap: topSignalGap }); upgradeToPro(); }} />
-
-      <NotificationDeliveryCard preferences={notificationPreferences} status={notificationStatus} isSignedIn={Boolean(authUser?.id)} email={authEmail || earlyEmail || authUser?.email || ''} onToggle={updateNotificationPreference} onSendDaily={() => queueNotification('daily_digest', notificationPreferences.pushDailyDigest ? ['email', 'push'] : ['email'])} onSendWeekly={() => queueNotification('weekly_report', ['email'])} onEnablePush={enableBrowserPush} />
-
-      <section className="grid gap-4 lg:grid-cols-[1.35fr_.85fr]">
-        <div className="card rounded-3xl p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Performance proof</p><h2 className="text-2xl font-bold">At-a-glance receipts</h2></div><button onClick={() => setSound(!sound)} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-slate-200 hover:bg-white/10" aria-label="Toggle sound">{sound ? <Volume2 /> : <VolumeX />}</button></div>
-          <div className="grid gap-4 md:grid-cols-4">
-            <BriefCard label="Win rate" value={`${performanceSummary.winRate}%`} detail={`${performanceSummary.wins} wins  /  ${performanceSummary.losses} losses from decisive outcomes`} />
-            <BriefCard label="Avg return" value={`${performanceSummary.avgReturn >= 0 ? '+' : ''}${performanceSummary.avgReturn}%`} detail={`${performanceSummary.totalSignals} ${performanceSource === 'database' ? 'settled database' : 'simulated'} outcomes`} />
-            <BriefCard label="Current streak" value={`${performanceSummary.currentStreak} ${outcomeLabel(performanceSummary.currentStreakType)}`} detail="Latest closed signal sequence" />
-            <BriefCard label="Global best receipt" value={`${performanceSummary.best.symbol} ${performanceSummary.best.returnPct >= 0 ? '+' : ''}${performanceSummary.best.returnPct}%`} detail={performanceSummary.best.note} />
+      <section className="mb-4 rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[.06] via-white/[.025] to-black/30 p-4 shadow-soft lg:p-5">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[.24em] text-signal-blue">v19 dashboard flow</p>
+            <h1 className="mt-1 text-2xl font-black text-white sm:text-3xl">Signal → Decision → Outcome</h1>
+            <p className="mt-1 max-w-3xl text-sm text-slate-300">One guided path: find the strongest read, understand why it matters, then log what happened so the system gets smarter.</p>
+          </div>
+          <div className="grid grid-cols-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20 text-center text-xs font-black uppercase tracking-[.12em] text-slate-300">
+            <span className="px-3 py-2 text-signal-blue">Input</span>
+            <span className="border-x border-white/10 px-3 py-2 text-signal-green">Decision</span>
+            <span className="px-3 py-2 text-signal-amber">Learn</span>
           </div>
         </div>
 
-        <div className="card rounded-3xl p-5">
-          <div className="mb-4 flex items-center gap-2"><Settings2 className="text-signal-blue" /><h2 className="text-xl font-bold">Session Settings</h2></div>
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            <Select label="Trader type" value={mode} onChange={v => setMode(v as TraderMode)} options={['scalp', 'swing', 'position']} />
-            <Select label="Experience" value={experience} onChange={v => setExperience(v as Experience)} options={['beginner', 'pro']} />
-            <Select label="Currency" value={currency} onChange={setCurrency} options={currencies} />
+        <div className="grid gap-4 xl:grid-cols-[.92fr_1.36fr_.92fr]">
+          <div className="space-y-3">
+            <div className="rounded-3xl border border-signal-blue/30 bg-signal-blue/10 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-signal-blue"><Target size={17} /><p className="text-xs font-black uppercase tracking-[.18em]">1 · Look here first</p></div>
+                <span className={`rounded-full border px-3 py-1 text-xs font-black ${labelClass(top.label)}`}>{top.label}</span>
+              </div>
+              <button onClick={() => selectSignal(top.symbol)} className="w-full rounded-2xl border border-white/10 bg-black/20 p-4 text-left transition hover:border-signal-blue/50">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-4xl font-black leading-none text-white">{top.symbol}</p>
+                    <p className="mt-1 text-sm text-slate-400">{top.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Confidence</p>
+                    <p className="text-3xl font-black text-signal-blue">{top.confidence}%</p>
+                  </div>
+                </div>
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-signal-blue" style={{ width: top.confidence + '%' }} /></div>
+                <p className="mt-3 text-sm font-semibold text-slate-100">{top.why}</p>
+              </button>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[.035] p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-signal-blue"><Search size={17} /><p className="text-xs font-black uppercase tracking-[.18em]">Watchlist scan</p></div>
+                <span className="text-xs text-slate-500">{watchlist.length}/{watchlistLimit}</span>
+              </div>
+              <div className="space-y-2">
+                {personalizedSignals.slice(0, 3).map(item => <SignalRow key={item.symbol} signal={item} active={item.symbol === active.symbol} currency={currency} onSelect={() => selectSignal(item.symbol)} onStar={() => toggleWatch(item.symbol)} starred={watchlist.includes(item.symbol)} />)}
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <TrustCard icon={<Clock3 size={18} />} label="Freshness" value={new Date(snapshot.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} detail={`${snapshot.source} · ${snapshot.diagnostics.currency}`} onClick={() => { refreshMarket(); markRitual('market'); }} action={loadingLive ? 'Refreshing...' : 'Refresh'} />
+              <TrustCard icon={<Zap size={18} />} label="Market condition" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} onClick={() => markRitual('market')} />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className={`rounded-3xl border border-white/10 bg-gradient-to-br from-white/[.075] to-white/[.025] p-4 shadow-soft ${signalChanged ? 'animate-pulseSignal' : ''}`}>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-signal-green"><Sparkles size={18} /><p className="text-xs font-black uppercase tracking-[.18em]">2 · What it means</p></div>
+                <button onClick={() => openGlossaryTerm('Signal')} className="rounded-xl border border-signal-blue/25 bg-signal-blue/10 px-3 py-2 text-xs font-black text-signal-blue">Glossary</button>
+              </div>
+              <div className="rounded-2xl border border-signal-green/20 bg-signal-green/10 p-4">
+                <p className="text-xs font-black uppercase tracking-[.16em] text-signal-green">Plain-English read</p>
+                <p className="mt-2 text-lg font-black text-white">{guidedAction.title}</p>
+                <p className="mt-2 text-sm text-slate-200">{guidedAction.reason}</p>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[.9fr_1.1fr]">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs font-black uppercase tracking-[.16em] text-slate-500">Decision posture</p>
+                  <div className="mt-2 flex items-end gap-3"><span className="text-4xl font-black text-white">{guidedAction.conviction}%</span><span className="pb-1 text-sm font-bold text-slate-400">conviction</span></div>
+                  <p className="mt-2 text-sm text-slate-300">{strategyDefinition.name} lens · {activeStrategyFit.reason}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <Breakdown signal={top} compact onGlossary={openGlossaryTerm} />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <BriefCard label="Retention score" value={String(retentionScore)} detail={`${riskPosture} posture`} />
+              <BriefCard label="Win rate" value={`${performanceSummary.winRate}%`} detail={`${performanceSummary.wins} wins / ${performanceSummary.losses} losses`} />
+              <BriefCard label="Avg return" value={`${performanceSummary.avgReturn >= 0 ? '+' : ''}${performanceSummary.avgReturn}%`} detail={`${performanceSummary.totalSignals} tracked outcomes`} />
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[.035] p-4">
+              <div className="mb-3 flex items-center gap-2 text-signal-blue"><CheckCircle2 size={18} /><p className="text-xs font-black uppercase tracking-[.18em]">Review rhythm</p></div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {tonightPlan.map((item, index) => <button key={item} onClick={() => markRitual(index === 0 ? 'topSignal' : index === 1 ? 'confidence' : index === 2 ? 'watchlist' : 'market')} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[.035] p-3 text-left text-sm text-slate-200 transition hover:border-signal-blue/35"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-signal-blue/15 text-xs font-black text-signal-blue">{index + 1}</span>{item}</button>)}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-3xl border border-signal-amber/20 bg-signal-amber/10 p-4">
+              <div className="mb-3 flex items-center gap-2 text-signal-amber"><ThumbsUp size={17} /><p className="text-xs font-black uppercase tracking-[.18em]">3 · Tap the outcome</p></div>
+              <FeedbackLoopCard signal={top} stats={topFeedbackStats} globalStats={globalFeedbackStats} message={feedbackMessage} onFeedback={(action, outcome) => recordSignalFeedback(top, action, outcome)} />
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[.035] p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-signal-green"><BarChart3 size={17} /><p className="text-xs font-black uppercase tracking-[.18em]">Learning engine</p></div>
+                {!plan.includes('pro') && <Lock size={16} className="text-signal-amber" />}
+              </div>
+              <PerformanceEngineCard engine={performanceEngine} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[.035] p-4">
+              <div className="mb-3 flex items-center gap-2 text-signal-blue"><History size={17} /><p className="text-xs font-black uppercase tracking-[.18em]">Recent receipts</p></div>
+              <div className="space-y-2">
+                {performanceResults.slice(0, 3).map(result => <SignalReceiptCard key={result.id} result={result} compact />)}
+              </div>
+              {plan !== 'pro' && <button onClick={upgradeToPro} className="mt-3 w-full rounded-2xl border border-signal-amber/30 bg-signal-amber/10 px-4 py-3 text-sm font-bold text-signal-amber"><Lock className="mr-2 inline" size={15} /> Unlock full receipt ledger</button>}
+            </div>
           </div>
         </div>
       </section>
 
-      <ConversionLayer summary={performanceSummary} analytics={proAnalytics} isPro={plan === 'pro'} upgrading={upgrading || checkoutSyncing} onUpgrade={upgradeToPro} />
+      <section className="mb-4 grid gap-4 lg:grid-cols-[1fr_.8fr]">
+        <div className="card rounded-3xl p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">Top Signal Grid</h2><p className="text-sm text-slate-400">Secondary scan after the main read.</p></div><button onClick={() => openGlossaryTerm('Signal')} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-2 text-sm font-bold text-signal-blue"><BookOpen className="mr-2 inline" size={16} /> Glossary</button></div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{signals.slice(0, 6).map(signal => <AssetCard key={signal.symbol} signal={signal} currency={currency} active={signal.symbol === active.symbol} starred={watchlist.includes(signal.symbol)} onSelect={() => selectSignal(signal.symbol)} onStar={() => toggleWatch(signal.symbol)} />)}</div>
+        </div>
+        <div className="space-y-4">
+          <AuthPanel authUser={authUser} plan={plan} authEmail={authEmail} setAuthEmail={setAuthEmail} authMessage={authMessage} onMagicLink={sendMagicLink} onSignOut={signOut} onUpgrade={upgradeToPro} upgrading={upgrading} checkoutSyncing={checkoutSyncing} />
+          <div className="card rounded-3xl p-4"><div className="mb-3 flex items-center gap-2"><Settings2 className="text-signal-blue" size={18} /><h2 className="text-xl font-bold">Session Settings</h2></div><div className="grid gap-3"><Select label="Trader type" value={mode} onChange={v => setMode(v as TraderMode)} options={['scalp', 'swing', 'position']} /><Select label="Experience" value={experience} onChange={v => setExperience(v as Experience)} options={['beginner', 'pro']} /><Select label="Currency" value={currency} onChange={setCurrency} options={currencies} /></div></div>
+        </div>
+      </section>
 
-      <section className="mt-4 grid gap-4 lg:grid-cols-4">
+      <section className="mb-4 grid gap-4 lg:grid-cols-[1fr_.9fr]">
+        <NotificationsCard top={top} outcome={topOutcome} condition={snapshot.marketCondition} preferences={alertPreferences} events={alertEvents} dailyRecap={dailyRecap} isPro={plan === 'pro'} onToggle={updateAlertPreference} onUpgrade={upgradeToPro} />
+        <ProAnalyticsPanel analytics={proAnalytics} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
+      </section>
+
+      <section className="mb-4 grid gap-4 lg:grid-cols-4">
         <TrustCard icon={<DatabaseZap size={18} />} label="Data source" value={snapshot.source} detail={snapshot.source === 'CoinGecko live' ? `${snapshot.diagnostics.matchedSymbols.length}/${snapshot.diagnostics.requestedSymbols.length} assets live · ${snapshot.diagnostics.latencyMs}ms` : `Fallback active · ${snapshot.diagnostics.fallbackReason || 'Live feed unavailable'}`} />
         <TrustCard icon={<Clock3 size={18} />} label="Data last updated" value={new Date(snapshot.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} detail={`${snapshot.diagnostics.currency} · refreshes every 5 min · no-store`} onClick={() => { refreshMarket(); markRitual('market'); }} action={loadingLive ? 'Refreshing...' : 'Refresh'} />
         <TrustCard icon={<Zap size={18} />} label="Market condition" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} onClick={() => markRitual('market')} />
         <TrustCard icon={<Activity size={18} />} label="Global top check" value={snapshot.diagnostics.globalTop} detail={snapshot.diagnostics.missingSymbols.length ? `Missing live: ${snapshot.diagnostics.missingSymbols.slice(0, 3).join(', ')}${snapshot.diagnostics.missingSymbols.length > 3 ? ' +' + (snapshot.diagnostics.missingSymbols.length - 3) : ''}` : 'Global leader ranked from live market rows'} />
       </section>
-
-      <StrategyLayerCard strategy={strategyDefinition} activeStrategy={activeStrategy} strategies={STRATEGIES} message={strategyMessage} top={strategyTop} fit={topStrategyFit} activeFit={activeStrategyFit} performance={strategyPerformance} onStrategy={updateActiveStrategy} onSelect={selectSignal} onGlossary={openGlossaryTerm} />
-      <GuidedActionLayer action={guidedAction} signal={strategyTop} strategyName={strategyDefinition.name} onSelect={selectSignal} onGlossary={openGlossaryTerm} />
-      <ConfidenceLayerCard conviction={convictionLayer} signal={strategyTop} strategyName={strategyDefinition.name} onGlossary={openGlossaryTerm} />
-
-      <PerformanceHero summary={performanceSummary} results={performanceResults} analytics={proAnalytics} source={performanceSource} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
-
-
-      <PersonalizedWatchlistHero signals={signals} personalizedSignals={personalizedSignals} watchlist={watchlist} preferences={watchlistPreferences} summary={watchlistSummary} input={watchlistInput} message={watchlistMessage} source={watchlistSource} limit={watchlistLimit} locked={watchlistLocked} isPro={plan === 'pro'} onInput={setWatchlistInput} onAdd={addWatchlistSymbol} onSelect={selectSignal} onToggle={toggleWatch} onPreference={updateSymbolPreference} onPrimary={setPrimaryWatchlistSymbol} onUpgrade={upgradeToPro} />
-
-      <section className="mt-4 grid gap-4 lg:grid-cols-[.85fr_1.15fr]">
-        <div className="space-y-4">
-          <div className="card rounded-3xl p-5">
-            <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-bold">Personal Watchlist</h2><span className="text-xs text-slate-400">{watchlist.length}/{watchlistLimit} symbols</span></div>
-            <div className="space-y-3">{personalizedSignals.map(item => <SignalRow key={item.symbol} signal={item} active={item.symbol === active.symbol} currency={currency} onSelect={() => selectSignal(item.symbol)} onStar={() => toggleWatch(item.symbol)} starred />)}</div>
-          </div>
-          <AuthPanel authUser={authUser} plan={plan} authEmail={authEmail} setAuthEmail={setAuthEmail} authMessage={authMessage} onMagicLink={sendMagicLink} onSignOut={signOut} onUpgrade={upgradeToPro} upgrading={upgrading} checkoutSyncing={checkoutSyncing} />
-          <JourneyCard visits={visits} journey={journey} completed={completedRitual} />
-          <RitualCard ritual={ritual} mark={markRitual} />
-          <NotificationsCard top={top} outcome={topOutcome} condition={snapshot.marketCondition} preferences={alertPreferences} events={alertEvents} dailyRecap={dailyRecap} isPro={plan === 'pro'} onToggle={updateAlertPreference} onUpgrade={upgradeToPro} />
-        </div>
-
-        <div className={`card rounded-3xl p-5 ${signalChanged ? 'animate-pulseSignal' : ''}`}>
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-[.2em] text-signal-blue">Your Top Signal</p><h2 className="text-4xl font-black">{top.symbol} <span className="text-lg font-medium text-slate-400">{top.name}</span></h2></div><span className={`rounded-full border px-4 py-2 text-sm font-bold ${labelClass(top.label)}`}>{top.label}</span></div>
-          <p className="mb-4 rounded-2xl border border-signal-blue/20 bg-signal-blue/10 p-4 text-slate-100">{top.why}</p>
-          <Breakdown signal={top} onGlossary={openGlossaryTerm} />
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <SignalPerformanceCard signal={top} outcome={topOutcome} />
-            <PerformanceEngineCard engine={performanceEngine} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
-            <FeedbackLoopCard signal={top} stats={topFeedbackStats} globalStats={globalFeedbackStats} message={feedbackMessage} onFeedback={(action, outcome) => recordSignalFeedback(top, action, outcome)} />
-            <SignalHistoryPanel results={performanceResults} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
-            <ProAnalyticsPanel analytics={proAnalytics} isPro={plan === 'pro'} onUpgrade={upgradeToPro} />
-          </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <ProLock isPro={plan === 'pro'} onUpgrade={upgradeToPro} title="Advanced MTF Weighting" body="Compare short, swing, and position posture in one combined Pro view. Used by early access members who want deeper context." />
-            <ProLock isPro={plan === 'pro'} onUpgrade={upgradeToPro} title="Signal Confidence Notes" body="See how signals performed and why confidence shifted before reacting." />
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-4 card rounded-3xl p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl font-black">Top Signal Grid</h2><p className="text-sm text-slate-400">Tap a card to open its signal breakdown. Star it to add it to your watchlist.</p></div><button onClick={() => openGlossaryTerm('Signal')} className="rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue"><BookOpen className="mr-2 inline" size={18} /> Glossary</button></div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">{signals.map(signal => <AssetCard key={signal.symbol} signal={signal} currency={currency} active={signal.symbol === active.symbol} starred={watchlist.includes(signal.symbol)} onSelect={() => selectSignal(signal.symbol)} onStar={() => toggleWatch(signal.symbol)} />)}</div>
-      </section>
-
-      <section className="mt-4 grid gap-4 lg:grid-cols-[1fr_.8fr]">
-        <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Selected Signal: {active.symbol}</h2><p className="mt-1 text-slate-300">{active.why}</p><div className="mt-4"><Breakdown signal={active} compact onGlossary={openGlossaryTerm} /></div></div>
-        <div className="card rounded-3xl p-5"><h2 className="text-2xl font-black">Pro Access</h2><p className="mt-2 text-slate-300">One clear upgrade path: full receipt history, advanced analytics, Pro alerts, and expanded watchlists.</p><button onClick={plan === 'pro' ? refreshPlan : upgradeToPro} className="mt-4 w-full rounded-2xl border border-signal-blue/30 bg-signal-blue/10 px-4 py-3 font-bold text-signal-blue">{checkoutSyncing ? 'Finalizing Pro access...' : plan === 'pro' ? 'Pro Active' : upgrading ? 'Opening Checkout...' : 'Upgrade to Pro'}</button></div>
-      </section>
-
       <button
         type="button"
         onClick={() => openGlossaryTerm(activeGlossaryTerm || 'Signal')}
