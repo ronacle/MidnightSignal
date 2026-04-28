@@ -66,8 +66,11 @@ function liveWhy(symbol: string, label: SignalLabel, mode: TraderMode, change1h:
   return `${symbol} is mixed on live data (${shortTerm}, ${day}, ${week}), so it remains watchable but not a clean leader.`;
 }
 
-function mergeLiveSignal(base: AssetSignal, row?: CoinGeckoMarketRow, mode: TraderMode): AssetSignal {
-  if (!row?.current_price) return base;
+function mergeLiveSignal(
+  base: AssetSignal,
+  row: CoinGeckoMarketRow | undefined,
+  mode: TraderMode
+): AssetSignal {  if (!row?.current_price) return base;
 
   const change1h = Number(row.price_change_percentage_1h_in_currency ?? 0);
   const change24h = Number(row.price_change_percentage_24h_in_currency ?? base.change24h);
