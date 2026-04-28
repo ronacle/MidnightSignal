@@ -7,7 +7,7 @@ import { AssetSignal, Experience, TraderMode, buildSignals, formatPrice } from '
 import { BUILD } from '@/lib/build';
 import { MIDNIGHT_NETWORK_DEFAULT_WATCHLIST, normalizeAssetSymbol } from '@/lib/assets';
 import { buildMidnightNetworkInsight, midnightAssetRole } from '@/lib/midnight-network';
-import { MarketCondition, TrustSnapshot } from '@/lib/market';
+import type { MarketCondition, TrustSnapshot } from '@/lib/market';
 import { getSupabaseBrowserClient } from '@/lib/supabase-browser';
 import { PerformanceOutcome, SignalResult, buildProPerformanceAnalytics, buildSignalReceiptText, buildSignalResults, formatHoldTime, outcomeLabel, summarizePerformance } from '@/lib/performance';
 import { buildPersonalIntelligenceProfile, type UserIntelligenceProfile } from '@/lib/personalization';
@@ -293,12 +293,14 @@ export default function Dashboard() {
   async function refreshMarket() {
     setLoadingLive(true);
     try {
-      const params = new URLSearchParams({ mode, currency });
-      if (lastTop?.symbol) params.set('previousSymbol', lastTop.symbol);
-      if (lastTop?.confidence) params.set('previousConfidence', String(lastTop.confidence));
-      const response = await fetch('/api/signals/live?' + params.toString(), { cache: 'no-store' });
-      if (!response.ok) throw new Error('Live signal refresh failed');
-      const next = (await response.json()) as TrustSnapshot;
+      const response = await fetch('/api/signals/live', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({ mode, currency, previousTop: lastTop })
+      });
+      const payload = await response.json();
+      const next = (payload?.snapshot || snapshot) as TrustSnapshot;
       setSnapshot(next);
       setLastTop(next.signals[0]);
 
@@ -315,9 +317,9 @@ export default function Dashboard() {
   useEffect(() => { refreshMarket(); }, [mode, currency]);
 
   useEffect(() => {
-    const id = setInterval(() => { refreshMarket(); }, 5 * 60 * 1000);
-    return () => clearInterval(id);
-  }, [mode, currency, lastTop?.symbol, lastTop?.confidence, authUser?.id]);
+    const interval = window.setInterval(() => { refreshMarket(); }, 5 * 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, [mode, currency, lastTop?.symbol, authUser?.id]);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -967,7 +969,7 @@ export default function Dashboard() {
         <BookOpen size={18} /> Learn
       </button>
       {glossaryOpen && <Glossary activeTerm={activeGlossaryTerm} onJump={setActiveGlossaryTerm} onClose={() => setGlossaryOpen(false)} />}
-      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version}  /  Live Signal Layer  /  {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'}  /  {snapshot.source}  /  Educational use only  /  Not financial advice</footer>
+      <footer className="py-8 text-center text-xs text-slate-500">Midnight Signal v{BUILD.version}  /  Confidence Layer  /  {performanceSource === 'database' ? 'Persistent signal results' : 'Simulated performance fallback'}  /  {snapshot.source}  /  Educational use only  /  Not financial advice</footer>
     </main>
   );
 }

@@ -1,34 +1,34 @@
 import { NextResponse } from 'next/server';
-import type { AssetSignal, TraderMode } from '@/lib/signals';
 import { getMarketSnapshot } from '@/lib/market';
+import type { AssetSignal, TraderMode } from '@/lib/signals';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-type PreviousTop = Pick<AssetSignal, 'symbol' | 'confidence'> & Partial<AssetSignal>;
+type LivePayload = {
+  mode?: TraderMode;
+  currency?: string;
+  previousTop?: AssetSignal;
+};
 
-function isTraderMode(value: string | null): value is TraderMode {
-  return value === 'scalp' || value === 'swing' || value === 'position';
+function modeFrom(value: unknown): TraderMode {
+  return value === 'scalp' || value === 'position' || value === 'swing' ? value : 'swing';
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const modeParam = searchParams.get('mode');
-  const mode: TraderMode = isTraderMode(modeParam) ? modeParam : 'swing';
+  const mode = modeFrom(searchParams.get('mode'));
   const currency = (searchParams.get('currency') || 'USD').toUpperCase();
-  const previousSymbol = searchParams.get('previousSymbol') || undefined;
-  const previousConfidence = Number(searchParams.get('previousConfidence') || 0);
-  const previousTop: PreviousTop | undefined = previousSymbol
-    ? { symbol: previousSymbol, confidence: Number.isFinite(previousConfidence) ? previousConfidence : 0 }
-    : undefined;
+  const snapshot = await getMarketSnapshot(mode, currency);
+  return NextResponse.json({ ok: true, snapshot }, { headers: { 'Cache-Control': 'no-store, max-age=0' } });
+}
 
-  const snapshot = await getMarketSnapshot(mode, currency, previousTop as AssetSignal | undefined);
-
-  return NextResponse.json(snapshot, {
-    headers: {
-      'Cache-Control': 'no-store, max-age=0',
-      'CDN-Cache-Control': 'no-store',
-      'Vercel-CDN-Cache-Control': 'no-store'
-    }
-  });
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as LivePayload;
+    const snapshot = await getMarketSnapshot(modeFrom(body.mode), (body.currency || 'USD').toUpperCase(), body.previousTop);
+    return NextResponse.json({ ok: true, snapshot }, { headers: { 'Cache-Control': 'no-store, max-age=0' } });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unable to load live signals.' }, { status: 500, headers: { 'Cache-Control': 'no-store, max-age=0' } });
+  }
 }
