@@ -844,13 +844,15 @@ export default function Dashboard() {
       {!agreed && <AgreementModal confirmedLearning={confirmedLearning} confirmedRisk={confirmedRisk} setConfirmedLearning={setConfirmedLearning} setConfirmedRisk={setConfirmedRisk} onAccept={acceptAgreement} />}
       {agreed && accessMode === 'unset' && <AccessModal earlyEmail={earlyEmail} setEarlyEmail={setEarlyEmail} onGuest={() => setAccessMode('guest')} onJoin={joinEarlyAccess} />}
 
-      <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-signal-blue/20 bg-signal-blue/10 px-3 py-1 text-xs font-semibold text-signal-blue"><Sparkles size={14} /> v{BUILD.version}  /  Confidence Layer</div>
-          <h1 className="text-4xl font-black tracking-tight sm:text-5xl">What's the signal tonight? <span className="text-signal-blue"></span></h1>
-          <p className="mt-2 max-w-2xl text-slate-300">One clear personal read, Midnight Network context, global discovery, and recommendations that explain why they were ranked for you.</p>
+      <header className="mb-4 flex flex-col gap-3 rounded-3xl border border-white/10 bg-black/20 px-4 py-3 shadow-soft backdrop-blur md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl border border-signal-blue/30 bg-signal-blue/10 text-signal-blue"><Sparkles size={17} /></span>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[.24em] text-signal-blue">Midnight Signal</p>
+            <p className="text-sm text-slate-400">Live chart intelligence · Build {BUILD.version}</p>
+          </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access...' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in  /  ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong><br />Build {BUILD.version}</div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300"><strong className={plan === 'pro' ? 'text-signal-green' : 'text-white'}>{checkoutSyncing ? 'Finalizing Pro Access...' : plan === 'pro' ? 'Pro Unlocked' : authUser ? `Signed in  /  ${plan.toUpperCase()}` : accessMode === 'early' ? 'Early Access' : 'Guest Mode'}</strong></div>
       </header>
 
       <BrandWisdomHero />
@@ -1145,53 +1147,82 @@ function MidnightNetworkSpotlight({ insight, currency, onSelect, onGlossary }: {
 }
 
 
-function BrandWisdomHero() {
-  const ladder = ['Market Data', 'Information', 'Knowledge', 'Understanding', 'Market Wisdom'];
+function OrbitBrandLogo() {
+  const dots = [
+    { cls: 'top-0 left-1/2 -translate-x-1/2 bg-signal-blue shadow-[0_0_28px_rgba(92,200,255,.95)]' },
+    { cls: 'right-0 top-1/2 -translate-y-1/2 bg-purple-400 shadow-[0_0_28px_rgba(168,85,247,.95)]' },
+    { cls: 'bottom-0 left-1/2 -translate-x-1/2 bg-signal-amber shadow-[0_0_28px_rgba(255,190,80,.95)]' },
+    { cls: 'left-0 top-1/2 -translate-y-1/2 bg-signal-green shadow-[0_0_28px_rgba(61,255,139,.95)]' }
+  ];
 
   return (
-    <section className="mb-5 overflow-hidden rounded-[2rem] border border-signal-blue/20 bg-gradient-to-br from-signal-blue/15 via-white/[.045] to-signal-green/10 p-5 shadow-glow">
-      <div className="grid gap-5 lg:grid-cols-[.82fr_1.18fr] lg:items-center">
-        <div className="flex items-center gap-4">
-          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.6rem] border border-signal-blue/30 bg-midnight-950/80 shadow-glow">
-            <div className="absolute inset-2 rounded-[1.25rem] border border-signal-blue/20 animate-pulseSignal" />
-            <div className="absolute h-12 w-12 rounded-full border border-signal-blue/30" />
-            <div className="absolute h-1 w-14 rounded-full bg-signal-blue/70 animate-pulseSignal" />
-            <div className="absolute h-14 w-1 rounded-full bg-signal-green/60 animate-pulseSignal" />
-            <Moon className="relative z-10 text-signal-blue" size={30} />
-          </div>
-          <div>
-            <p className="text-xs font-black uppercase tracking-[.28em] text-signal-blue">Midnight Signal</p>
-            <h2 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">We read the charts for you.</h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">Midnight turns noisy live candles, trend shifts, and momentum changes into one clear signal you can understand before you act.</p>
+    <div className="relative h-44 w-44 shrink-0 md:h-52 md:w-52" aria-label="Midnight Signal animated orbit logo">
+      <div className="absolute inset-4 rounded-full border border-signal-blue/40 shadow-[0_0_32px_rgba(92,200,255,.18)]" />
+      <div className="absolute inset-10 rounded-full border border-purple-400/25" />
+      <div className="absolute left-1/2 top-4 h-[calc(100%-2rem)] w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-signal-blue/35 to-transparent" />
+      <div className="absolute left-4 top-1/2 h-px w-[calc(100%-2rem)] -translate-y-1/2 bg-gradient-to-r from-transparent via-signal-green/35 to-transparent" />
+      <div className="absolute inset-7 rounded-full border border-signal-blue/30 animate-midnight-orbit-slow" />
+      <div className="absolute inset-8 rounded-[50%] border border-purple-400/25 rotate-45 animate-midnight-orbit-reverse" />
+      <div className="absolute inset-8 rounded-[50%] border border-signal-blue/25 -rotate-45 animate-midnight-orbit" />
+      <div className="absolute inset-0 animate-midnight-orbit">
+        {dots.map(dot => <span key={dot.cls} className={`absolute h-7 w-7 rounded-full ${dot.cls}`} />)}
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="h-10 w-10 rounded-full bg-white shadow-[0_0_34px_rgba(92,200,255,.95)] ring-4 ring-signal-blue/20" />
+      </div>
+      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(92,200,255,.16),transparent_58%)]" />
+    </div>
+  );
+}
+
+function TransformationCard({ title, detail, icon, tone }: { title: string; detail: string; icon: React.ReactNode; tone: 'blue' | 'green' | 'amber' | 'purple' }) {
+  const toneClass = tone === 'green' ? 'border-signal-green/35 text-signal-green shadow-[0_0_28px_rgba(61,255,139,.10)]' : tone === 'amber' ? 'border-signal-amber/35 text-signal-amber shadow-[0_0_28px_rgba(255,190,80,.10)]' : tone === 'purple' ? 'border-purple-400/35 text-purple-300 shadow-[0_0_28px_rgba(168,85,247,.10)]' : 'border-signal-blue/35 text-signal-blue shadow-[0_0_28px_rgba(92,200,255,.10)]';
+  return (
+    <div className={`min-h-[122px] rounded-2xl border bg-midnight-950/65 p-4 ${toneClass}`}>
+      <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl border border-current/25 bg-current/10">{icon}</div>
+      <p className="text-sm font-black text-white">{title}</p>
+      <p className="mt-2 text-xs leading-5 text-slate-300">{detail}</p>
+    </div>
+  );
+}
+
+function BrandWisdomHero() {
+  const ladder = [
+    { title: 'Market Data', detail: 'Raw live candles, price movement, trend shifts, and volume behavior from the market.', icon: <BarChart3 size={18} />, tone: 'blue' as const },
+    { title: 'Information', detail: 'We filter the noise and extract what actually changed across timeframes.', icon: <DatabaseZap size={18} />, tone: 'blue' as const },
+    { title: 'Knowledge', detail: 'Pattern recognition turns chart behavior into momentum and risk context.', icon: <TrendingUp size={18} />, tone: 'green' as const },
+    { title: 'Understanding', detail: 'The signal is translated into plain English: what matters and why.', icon: <BookOpen size={18} />, tone: 'amber' as const },
+    { title: 'Market Wisdom', detail: 'One clear ranked read. Right time. Better decisions.', icon: <Target size={18} />, tone: 'purple' as const }
+  ];
+
+  return (
+    <section className="mb-5 overflow-hidden rounded-[2rem] border border-signal-blue/20 bg-[radial-gradient(circle_at_8%_20%,rgba(92,200,255,.24),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(168,85,247,.16),transparent_22%),linear-gradient(135deg,rgba(2,6,23,.96),rgba(4,11,28,.9)_48%,rgba(2,6,23,.98))] p-5 shadow-[0_24px_90px_rgba(0,0,0,.42)]">
+      <div className="grid gap-7 xl:grid-cols-[.72fr_1.28fr] xl:items-center">
+        <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center xl:flex-col xl:items-start">
+          <OrbitBrandLogo />
+          <div className="max-w-md">
+            <div className="mb-4 h-px w-56 bg-gradient-to-r from-signal-blue via-white/50 to-transparent" />
+            <p className="text-xs font-black uppercase tracking-[.34em] text-signal-blue">Midnight Signal</p>
+            <h2 className="mt-3 text-4xl font-black leading-[.98] tracking-tight text-white sm:text-5xl">We read the charts for <span className="bg-gradient-to-r from-signal-blue to-purple-300 bg-clip-text text-transparent">you.</span></h2>
+            <p className="mt-4 max-w-sm text-base leading-7 text-slate-300">Midnight turns noisy live candles, trend shifts, and momentum changes into one clear signal you can understand before you act.</p>
           </div>
         </div>
-
-        <div className="rounded-[1.5rem] border border-white/10 bg-midnight-950/45 p-4">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[.22em] text-slate-400">Transforming</p>
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="relative rounded-[1.75rem] border border-white/10 bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur">
+          <div className="mb-4 flex items-center gap-4">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-signal-blue/40 to-white/10" />
+            <p className="text-xs font-black uppercase tracking-[.34em] text-slate-300">Transforming</p>
+            <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-purple-400/35 to-transparent" />
+          </div>
+          <div className="grid gap-3 md:grid-cols-5">
             {ladder.map((item, index) => (
-              <div key={item} className="flex items-center gap-2">
-                <span className={`rounded-full border px-3 py-2 text-xs font-black ${index === ladder.length - 1 ? 'border-signal-green/40 bg-signal-green/15 text-signal-green' : 'border-signal-blue/25 bg-signal-blue/10 text-signal-blue'}`}>{item}</span>
-                {index < ladder.length - 1 && <span className="text-slate-500">→</span>}
+              <div key={item.title} className="relative">
+                <TransformationCard title={item.title} detail={item.detail} icon={item.icon} tone={item.tone} />
+                {index < ladder.length - 1 && <div className="pointer-events-none absolute -right-3 top-12 z-10 hidden h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-midnight-950 text-slate-300 md:flex">→</div>}
               </div>
             ))}
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[.04] p-3">
-              <Activity className="mb-2 text-signal-blue" size={18} />
-              <p className="text-sm font-bold">Live movement</p>
-              <p className="text-xs leading-5 text-slate-400">Tracks short and longer timeframe shifts.</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[.04] p-3">
-              <BarChart3 className="mb-2 text-signal-blue" size={18} />
-              <p className="text-sm font-bold">Signal translation</p>
-              <p className="text-xs leading-5 text-slate-400">Converts chart behavior into a ranked read.</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[.04] p-3">
-              <BookOpen className="mb-2 text-signal-green" size={18} />
-              <p className="text-sm font-bold">Plain English</p>
-              <p className="text-xs leading-5 text-slate-400">Explains what matters without chart overload.</p>
-            </div>
+          <div className="mt-4 rounded-2xl border border-purple-400/20 bg-purple-500/8 px-4 py-3 text-center text-lg font-black text-slate-100 shadow-[0_0_30px_rgba(168,85,247,.10)]">
+            <Sparkles className="mr-2 inline text-purple-300" size={18} /> Clarity. Confidence. Conviction. <span className="text-purple-300">That&apos;s Market Wisdom.</span>
           </div>
         </div>
       </div>

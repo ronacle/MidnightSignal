@@ -25,3 +25,15 @@ button, input, select { font: inherit; }
 .premium-lock {
   mask-image: linear-gradient(to bottom, black 48%, transparent 100%);
 }
+
+@keyframes midnight-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes midnight-orbit-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+.animate-midnight-orbit { animation: midnight-orbit 10s linear infinite; }
+.animate-midnight-orbit-slow { animation: midnight-orbit 18s linear infinite; }
+.animate-midnight-orbit-reverse { animation: midnight-orbit-reverse 14s linear infinite; }
