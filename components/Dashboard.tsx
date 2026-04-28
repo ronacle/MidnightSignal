@@ -1147,57 +1147,85 @@ function MidnightNetworkSpotlight({ insight, currency, onSelect, onGlossary }: {
 }
 
 
+
 function OrbitBrandLogo() {
-  const dots = [
-    { cls: 'top-0 left-1/2 -translate-x-1/2 bg-signal-blue shadow-[0_0_28px_rgba(92,200,255,.95)]' },
-    { cls: 'right-0 top-1/2 -translate-y-1/2 bg-purple-400 shadow-[0_0_28px_rgba(168,85,247,.95)]' },
-    { cls: 'bottom-0 left-1/2 -translate-x-1/2 bg-signal-amber shadow-[0_0_28px_rgba(255,190,80,.95)]' },
-    { cls: 'left-0 top-1/2 -translate-y-1/2 bg-signal-green shadow-[0_0_28px_rgba(61,255,139,.95)]' }
+  const orbits = [
+    { size: 78, duration: 7.5, direction: 'normal' as const, dot: 'bg-signal-blue shadow-[0_0_24px_rgba(92,200,255,.95)]', angle: 0 },
+    { size: 104, duration: 10.5, direction: 'reverse' as const, dot: 'bg-signal-green shadow-[0_0_24px_rgba(61,255,139,.85)]', angle: 75 },
+    { size: 132, duration: 13.5, direction: 'normal' as const, dot: 'bg-purple-400 shadow-[0_0_24px_rgba(168,85,247,.9)]', angle: 155 },
+    { size: 160, duration: 17, direction: 'reverse' as const, dot: 'bg-signal-amber shadow-[0_0_24px_rgba(255,190,80,.9)]', angle: 245 }
   ];
 
   return (
     <div className="relative h-44 w-44 shrink-0 md:h-52 md:w-52" aria-label="Midnight Signal animated orbit logo">
-      <div className="absolute inset-4 rounded-full border border-signal-blue/40 shadow-[0_0_32px_rgba(92,200,255,.18)]" />
-      <div className="absolute inset-10 rounded-full border border-purple-400/25" />
-      <div className="absolute left-1/2 top-4 h-[calc(100%-2rem)] w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-signal-blue/35 to-transparent" />
-      <div className="absolute left-4 top-1/2 h-px w-[calc(100%-2rem)] -translate-y-1/2 bg-gradient-to-r from-transparent via-signal-green/35 to-transparent" />
-      <div className="absolute inset-7 rounded-full border border-signal-blue/30 animate-midnight-orbit-slow" />
-      <div className="absolute inset-8 rounded-[50%] border border-purple-400/25 rotate-45 animate-midnight-orbit-reverse" />
-      <div className="absolute inset-8 rounded-[50%] border border-signal-blue/25 -rotate-45 animate-midnight-orbit" />
-      <div className="absolute inset-0 animate-midnight-orbit">
-        {dots.map(dot => <span key={dot.cls} className={`absolute h-7 w-7 rounded-full ${dot.cls}`} />)}
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="h-10 w-10 rounded-full bg-white shadow-[0_0_34px_rgba(92,200,255,.95)] ring-4 ring-signal-blue/20" />
-      </div>
-      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(92,200,255,.16),transparent_58%)]" />
+      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(92,200,255,.18),transparent_58%)] blur-sm" />
+      <div className="absolute inset-8 rounded-full border border-signal-blue/20" />
+      <div className="absolute inset-12 rounded-full border border-white/10" />
+
+      {orbits.map((orbit, index) => (
+        <div
+          key={`${orbit.size}-${orbit.duration}`}
+          className="absolute left-1/2 top-1/2 rounded-full border border-white/10"
+          style={{
+            width: orbit.size,
+            height: orbit.size,
+            marginLeft: -(orbit.size / 2),
+            marginTop: -(orbit.size / 2),
+            animation: `midnight-orbit ${orbit.duration}s linear infinite`,
+            animationDirection: orbit.direction,
+            transform: `rotate(${orbit.angle}deg)`
+          }}
+        >
+          <span
+            className={`absolute left-1/2 top-0 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ${orbit.dot}`}
+            style={{ width: index === 0 ? 16 : index === 3 ? 11 : 13, height: index === 0 ? 16 : index === 3 ? 11 : 13 }}
+          />
+        </div>
+      ))}
+
+      <div className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border border-signal-blue/25 bg-signal-blue/10 blur-[1px]" />
+      <div className="absolute left-1/2 top-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_38px_rgba(92,200,255,.95)] ring-4 ring-signal-blue/20" />
+      <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-signal-blue shadow-[0_0_18px_rgba(92,200,255,.95)]" />
     </div>
   );
 }
 
-function TransformationCard({ title, detail, icon, tone }: { title: string; detail: string; icon: React.ReactNode; tone: 'blue' | 'green' | 'amber' | 'purple' }) {
-  const toneClass = tone === 'green' ? 'border-signal-green/35 text-signal-green shadow-[0_0_28px_rgba(61,255,139,.10)]' : tone === 'amber' ? 'border-signal-amber/35 text-signal-amber shadow-[0_0_28px_rgba(255,190,80,.10)]' : tone === 'purple' ? 'border-purple-400/35 text-purple-300 shadow-[0_0_28px_rgba(168,85,247,.10)]' : 'border-signal-blue/35 text-signal-blue shadow-[0_0_28px_rgba(92,200,255,.10)]';
+function TransformationCard({ title, detail, icon, tone, index }: { title: string; detail: string; icon: React.ReactNode; tone: 'blue' | 'green' | 'amber' | 'purple'; index: number }) {
+  const toneClass = tone === 'green'
+    ? 'border-signal-green/35 text-signal-green shadow-[0_0_32px_rgba(61,255,139,.11)]'
+    : tone === 'amber'
+      ? 'border-signal-amber/35 text-signal-amber shadow-[0_0_32px_rgba(255,190,80,.11)]'
+      : tone === 'purple'
+        ? 'border-purple-400/35 text-purple-300 shadow-[0_0_32px_rgba(168,85,247,.12)]'
+        : 'border-signal-blue/35 text-signal-blue shadow-[0_0_32px_rgba(92,200,255,.11)]';
+
   return (
-    <div className={`min-h-[122px] rounded-2xl border bg-midnight-950/65 p-4 ${toneClass}`}>
-      <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl border border-current/25 bg-current/10">{icon}</div>
-      <p className="text-sm font-black text-white">{title}</p>
-      <p className="mt-2 text-xs leading-5 text-slate-300">{detail}</p>
+    <div className={`group relative overflow-hidden rounded-2xl border bg-midnight-950/72 p-4 backdrop-blur ${toneClass}`}>
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-current/60 to-transparent opacity-70" />
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-current/25 bg-current/10">{icon}</div>
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[.28em] text-slate-500">Step {index + 1}</p>
+          <p className="mt-1 text-sm font-black text-white">{title}</p>
+          <p className="mt-2 text-xs leading-5 text-slate-300">{detail}</p>
+        </div>
+      </div>
     </div>
   );
 }
 
 function BrandWisdomHero() {
   const ladder = [
-    { title: 'Market Data', detail: 'Raw live candles, price movement, trend shifts, and volume behavior from the market.', icon: <BarChart3 size={18} />, tone: 'blue' as const },
-    { title: 'Information', detail: 'We filter the noise and extract what actually changed across timeframes.', icon: <DatabaseZap size={18} />, tone: 'blue' as const },
-    { title: 'Knowledge', detail: 'Pattern recognition turns chart behavior into momentum and risk context.', icon: <TrendingUp size={18} />, tone: 'green' as const },
-    { title: 'Understanding', detail: 'The signal is translated into plain English: what matters and why.', icon: <BookOpen size={18} />, tone: 'amber' as const },
-    { title: 'Market Wisdom', detail: 'One clear ranked read. Right time. Better decisions.', icon: <Target size={18} />, tone: 'purple' as const }
+    { title: 'Market Data', detail: 'Live candles, price movement, trend shifts, and volume behavior stream in first.', icon: <BarChart3 size={18} />, tone: 'blue' as const },
+    { title: 'Information', detail: 'Noise is filtered into the few changes that actually matter right now.', icon: <DatabaseZap size={18} />, tone: 'blue' as const },
+    { title: 'Knowledge', detail: 'Momentum, confidence, and risk context are ranked across the market.', icon: <TrendingUp size={18} />, tone: 'green' as const },
+    { title: 'Understanding', detail: 'The chart read becomes plain English: what is moving and why it matters.', icon: <BookOpen size={18} />, tone: 'amber' as const },
+    { title: 'Market Wisdom', detail: 'One clear signal, supported by live data, ready for your next decision.', icon: <Target size={18} />, tone: 'purple' as const }
   ];
 
   return (
-    <section className="mb-5 overflow-hidden rounded-[2rem] border border-signal-blue/20 bg-[radial-gradient(circle_at_8%_20%,rgba(92,200,255,.24),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(168,85,247,.16),transparent_22%),linear-gradient(135deg,rgba(2,6,23,.96),rgba(4,11,28,.9)_48%,rgba(2,6,23,.98))] p-5 shadow-[0_24px_90px_rgba(0,0,0,.42)]">
-      <div className="grid gap-7 xl:grid-cols-[.72fr_1.28fr] xl:items-center">
+    <section className="mb-6 overflow-hidden rounded-[2rem] border border-signal-blue/20 bg-[radial-gradient(circle_at_9%_22%,rgba(92,200,255,.28),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,.18),transparent_24%),linear-gradient(135deg,rgba(2,6,23,.97),rgba(4,11,28,.92)_48%,rgba(2,6,23,.99))] p-5 shadow-[0_28px_100px_rgba(0,0,0,.48)]">
+      <div className="grid gap-8 xl:grid-cols-[.78fr_1.22fr] xl:items-center">
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center xl:flex-col xl:items-start">
           <OrbitBrandLogo />
           <div className="max-w-md">
@@ -1207,22 +1235,28 @@ function BrandWisdomHero() {
             <p className="mt-4 max-w-sm text-base leading-7 text-slate-300">Midnight turns noisy live candles, trend shifts, and momentum changes into one clear signal you can understand before you act.</p>
           </div>
         </div>
-        <div className="relative rounded-[1.75rem] border border-white/10 bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur">
-          <div className="mb-4 flex items-center gap-4">
+
+        <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-black/24 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur">
+          <div className="absolute left-8 top-20 hidden h-[calc(100%-8.5rem)] w-px bg-gradient-to-b from-signal-blue via-signal-green to-purple-400/70 md:block" />
+          <div className="mb-5 flex items-center gap-4">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-signal-blue/40 to-white/10" />
             <p className="text-xs font-black uppercase tracking-[.34em] text-slate-300">Transforming</p>
             <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-purple-400/35 to-transparent" />
           </div>
-          <div className="grid gap-3 md:grid-cols-5">
+
+          <div className="grid gap-3 md:grid-cols-2">
             {ladder.map((item, index) => (
-              <div key={item.title} className="relative">
-                <TransformationCard title={item.title} detail={item.detail} icon={item.icon} tone={item.tone} />
-                {index < ladder.length - 1 && <div className="pointer-events-none absolute -right-3 top-12 z-10 hidden h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-midnight-950 text-slate-300 md:flex">→</div>}
+              <div key={item.title} className={index === ladder.length - 1 ? 'md:col-span-2' : ''}>
+                <div className="flex items-center gap-3">
+                  <div className="hidden h-3 w-3 shrink-0 rounded-full bg-white shadow-[0_0_16px_rgba(92,200,255,.9)] md:block" />
+                  <TransformationCard title={item.title} detail={item.detail} icon={item.icon} tone={item.tone} index={index} />
+                </div>
               </div>
             ))}
           </div>
-          <div className="mt-4 rounded-2xl border border-purple-400/20 bg-purple-500/8 px-4 py-3 text-center text-lg font-black text-slate-100 shadow-[0_0_30px_rgba(168,85,247,.10)]">
-            <Sparkles className="mr-2 inline text-purple-300" size={18} /> Clarity. Confidence. Conviction. <span className="text-purple-300">That&apos;s Market Wisdom.</span>
+
+          <div className="mt-5 rounded-2xl border border-purple-400/20 bg-purple-500/8 px-4 py-3 text-center text-base font-black text-slate-100 shadow-[0_0_30px_rgba(168,85,247,.12)]">
+            <Sparkles className="mr-2 inline text-purple-300" size={18} /> From live market noise to usable signal intelligence.
           </div>
         </div>
       </div>
