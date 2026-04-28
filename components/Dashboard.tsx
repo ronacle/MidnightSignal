@@ -228,7 +228,7 @@ export default function Dashboard() {
   const [ritual, setRitual] = useState<RitualState>(defaultRitual);
   const [snapshot, setSnapshot] = useState<TrustSnapshot>(() => {
     const signals = buildSignals('swing');
-    return { signals, source: 'Fallback demo data', updatedAt: BUILD.deployedAt, marketCondition: 'active', confidenceReason: `${signals[0].symbol} leads because trend and momentum are currently the strongest combined readings.` };
+    return { signals, source: 'Fallback demo data', updatedAt: BUILD.deployedAt, marketCondition: 'active', confidenceReason: `${signals[0].symbol} leads because trend and momentum are currently the strongest combined readings.`, diagnostics: { source: 'Fallback demo data', requestedSymbols: signals.map(signal => signal.symbol), matchedSymbols: [], missingSymbols: signals.map(signal => signal.symbol), rowCount: 0, latencyMs: 0, globalTop: signals[0]?.symbol || 'N/A', currency: 'USD', mode: 'swing', fallbackReason: 'Initial client fallback before live refresh.' } };
   });
   const [loadingLive, setLoadingLive] = useState(false);
   const [persistentResults, setPersistentResults] = useState<SignalResult[]>([]);
@@ -905,10 +905,11 @@ export default function Dashboard() {
 
       <ConversionLayer summary={performanceSummary} analytics={proAnalytics} isPro={plan === 'pro'} upgrading={upgrading || checkoutSyncing} onUpgrade={upgradeToPro} />
 
-      <section className="mt-4 grid gap-4 lg:grid-cols-3">
-        <TrustCard icon={<DatabaseZap size={18} />} label="Data source" value={snapshot.source} detail={snapshot.source === 'CoinGecko live' ? 'Live prices loaded successfully' : 'Safe fallback is active'} />
-        <TrustCard icon={<Clock3 size={18} />} label="Data last updated" value={new Date(snapshot.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} detail={snapshot.source + ' · refreshes every 5 min'} onClick={() => { refreshMarket(); markRitual('market'); }} action={loadingLive ? 'Refreshing...' : 'Refresh'} />
+      <section className="mt-4 grid gap-4 lg:grid-cols-4">
+        <TrustCard icon={<DatabaseZap size={18} />} label="Data source" value={snapshot.source} detail={snapshot.source === 'CoinGecko live' ? `${snapshot.diagnostics.matchedSymbols.length}/${snapshot.diagnostics.requestedSymbols.length} assets live · ${snapshot.diagnostics.latencyMs}ms` : `Fallback active · ${snapshot.diagnostics.fallbackReason || 'Live feed unavailable'}`} />
+        <TrustCard icon={<Clock3 size={18} />} label="Data last updated" value={new Date(snapshot.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} detail={`${snapshot.diagnostics.currency} · refreshes every 5 min · no-store`} onClick={() => { refreshMarket(); markRitual('market'); }} action={loadingLive ? 'Refreshing...' : 'Refresh'} />
         <TrustCard icon={<Zap size={18} />} label="Market condition" value={snapshot.marketCondition} detail={conditionCopy(snapshot.marketCondition)} onClick={() => markRitual('market')} />
+        <TrustCard icon={<Activity size={18} />} label="Global top check" value={snapshot.diagnostics.globalTop} detail={snapshot.diagnostics.missingSymbols.length ? `Missing live: ${snapshot.diagnostics.missingSymbols.slice(0, 3).join(', ')}${snapshot.diagnostics.missingSymbols.length > 3 ? ' +' + (snapshot.diagnostics.missingSymbols.length - 3) : ''}` : 'Global leader ranked from live market rows'} />
       </section>
 
       <StrategyLayerCard strategy={strategyDefinition} activeStrategy={activeStrategy} strategies={STRATEGIES} message={strategyMessage} top={strategyTop} fit={topStrategyFit} activeFit={activeStrategyFit} performance={strategyPerformance} onStrategy={updateActiveStrategy} onSelect={selectSignal} onGlossary={openGlossaryTerm} />

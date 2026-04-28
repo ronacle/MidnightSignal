@@ -3,12 +3,26 @@ import { coingeckoIdsBySymbol, normalizeAssetSymbol } from './assets';
 
 export type MarketCondition = 'calm' | 'active' | 'volatile';
 
+export type LiveDiagnostics = {
+  source: 'CoinGecko live' | 'Fallback demo data';
+  requestedSymbols: string[];
+  matchedSymbols: string[];
+  missingSymbols: string[];
+  rowCount: number;
+  latencyMs: number;
+  globalTop: string;
+  currency: string;
+  mode: TraderMode;
+  fallbackReason?: string;
+};
+
 export type TrustSnapshot = {
   signals: AssetSignal[];
   source: 'CoinGecko live' | 'Fallback demo data';
   updatedAt: string;
   marketCondition: MarketCondition;
   confidenceReason: string;
+  diagnostics: LiveDiagnostics;
 };
 
 type CoinGeckoMarketRow = {
@@ -96,16 +110,54 @@ async function fetchCoinGeckoMarkets(currency: string): Promise<Record<string, C
   return byId;
 }
 
+function buildDiagnostics(params: {
+  source: 'CoinGecko live' | 'Fallback demo data';
+  signals: AssetSignal[];
+  byId?: Record<string, CoinGeckoMarketRow>;
+  startedAt: number;
+  currency: string;
+  mode: TraderMode;
+  fallbackReason?: string;
+}): LiveDiagnostics {
+  const requestedSymbols = [...supportedSymbols];
+  const matchedSymbols = requestedSymbols.filter(symbol => Boolean(params.byId?.[ids[symbol]]?.current_price));
+  const missingSymbols = requestedSymbols.filter(symbol => !matchedSymbols.includes(symbol));
+  return {
+    source: params.source,
+    requestedSymbols,
+    matchedSymbols,
+    missingSymbols,
+    rowCount: Object.keys(params.byId || {}).length,
+    latencyMs: Date.now() - params.startedAt,
+    globalTop: params.signals[0]?.symbol || 'N/A',
+    currency: params.currency.toUpperCase(),
+    mode: params.mode,
+    fallbackReason: params.fallbackReason
+  };
+}
+
 export async function getMarketSnapshot(mode: TraderMode, currency: string, previousTop?: AssetSignal): Promise<TrustSnapshot> {
   const fallback = buildSignals(mode);
   const updatedAt = new Date().toISOString();
+  const startedAt = Date.now();
 
   try {
     const byId = await fetchCoinGeckoMarkets(currency);
-    const live = fallback.map(signal => scoreLiveSignal(signal, byId[ids[signal.symbol]], mode)).sort((a, b) => b.confidence - a.confidence || b.change24h - a.change24h);
-    return { signals: live, source: 'CoinGecko live', updatedAt, marketCondition: condition(live), confidenceReason: reason(live[0], previousTop) };
-  } catch {
-    return { signals: fallback, source: 'Fallback demo data', updatedAt, marketCondition: condition(fallback), confidenceReason: reason(fallback[0], previousTop) };
+    const live = fallback
+      .map(signal => scoreLiveSignal(signal, byId[ids[signal.symbol]], mode))
+      .sort((a, b) => b.confidence - a.confidence || b.change24h - a.change24h);
+    const diagnostics = buildDiagnostics({ source: 'CoinGecko live', signals: live, byId, startedAt, currency, mode });
+    return { signals: live, source: 'CoinGecko live', updatedAt, marketCondition: condition(live), confidenceReason: reason(live[0], previousTop), diagnostics };
+  } catch (error) {
+    const diagnostics = buildDiagnostics({
+      source: 'Fallback demo data',
+      signals: fallback,
+      startedAt,
+      currency,
+      mode,
+      fallbackReason: error instanceof Error ? error.message : 'Unknown live market error'
+    });
+    return { signals: fallback, source: 'Fallback demo data', updatedAt, marketCondition: condition(fallback), confidenceReason: reason(fallback[0], previousTop), diagnostics };
   }
 }
 
